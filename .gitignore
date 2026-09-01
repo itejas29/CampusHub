@@ -13,6 +13,8 @@ dist/
 build/
 .vite/
 *.local
+# TypeScript incremental build state — machine-local, regenerated on build.
+*.tsbuildinfo
 
 .env
 .env.*
