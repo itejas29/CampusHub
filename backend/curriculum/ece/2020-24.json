@@ -1,0 +1,970 @@
+{
+  "program": {
+    "code": "B.TECH-ECE",
+    "name": "B.Tech. Electronics and Communications Engineering",
+    "short_name": "ECE",
+    "degree_type": "B.Tech",
+    "duration_years": 4,
+    "total_semesters": 8,
+    "department": {
+      "code": "ECE",
+      "name": "Electronics and Communication Engineering",
+      "short_name": "ECE",
+      "school": "SoT"
+    }
+  },
+  "curriculum": {
+    "version": "2020-24",
+    "name": "B.Tech. ECE — Curriculum 2020-24",
+    "effective_from_year": 2020,
+    "effective_to_year": 2023,
+    "total_credits": 172,
+    "status": "PUBLISHED"
+  },
+  "source": {
+    "url": "https://api.pdeu.ac.in/pdpu/resources/ece-syllabus-2020-2024.pdf",
+    "title": "B.Tech. ECE — Undergraduate Curriculum Handbook (A.Y. 2020-24)",
+    "publisher": "Pandit Deendayal Energy University",
+    "retrieved_at": "2026-08-28",
+    "academic_year": "2020-24",
+    "confidence": "CONFIRMED_OFFICIAL_SOURCE"
+  },
+  "divisions": {
+    "names": [
+      "A",
+      "B"
+    ],
+    "rationale": "No PDEU document states division counts. Derived from the official seat intake in the B.Tech. Admission Rules A.Y. 2026-27 at roughly 60-75 students per division. Editable programme data, not a citation.",
+    "confidence": "DERIVED_FROM_INTAKE"
+  },
+  "semesters": [
+    {
+      "number": 1,
+      "components": [
+        {
+          "code": "2020-24-S1-01",
+          "title": "Mathematics- I",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 1,
+          "course": "ECE-040-MATHEMATICS-I"
+        },
+        {
+          "code": "2020-24-S1-02",
+          "title": "Engineering Chemistry",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 2,
+          "course": "UG-ENGINEERING-CHEMISTRY"
+        },
+        {
+          "code": "2020-24-S1-03",
+          "title": "Engineering Chemistry Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 3,
+          "course": "UG-ENGINEERING-CHEMISTRY-LABOR"
+        },
+        {
+          "code": "2020-24-S1-04",
+          "title": "Element of Mechanical Engineering",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 4,
+          "course": "ECE-041-ELEMENT-OF-MECHA"
+        },
+        {
+          "code": "2020-24-S1-05",
+          "title": "Element of Mechanical Engineering Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 5,
+          "course": "ECE-042-ELEMENT-OF-MECHA"
+        },
+        {
+          "code": "2020-24-S1-06",
+          "title": "Basic Electronics",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 6,
+          "course": "UG-BASIC-ELECTRONICS"
+        },
+        {
+          "code": "2020-24-S1-07",
+          "title": "Basic Electronics Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 7,
+          "course": "ECE-043-BASIC-ELECTRONIC"
+        },
+        {
+          "code": "2020-24-S1-08",
+          "title": "Computer Programming-I",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 8,
+          "course": "ECE-044-COMPUTER-PROGRAM"
+        },
+        {
+          "code": "2020-24-S1-09",
+          "title": "Computer Programming Lab-I",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 9,
+          "course": "ECE-045-COMPUTER-PROGRAM"
+        },
+        {
+          "code": "2020-24-S1-10",
+          "title": "Professional Ethics and Human Values",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 10,
+          "course": "ECE-046-PROFESSIONAL-ETH"
+        },
+        {
+          "code": "2020-24-S1-11",
+          "title": "NCC/NSS/Sports",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 11,
+          "course": "ECE-047-NCC-NSS-SPORTS"
+        }
+      ],
+      "total_credits": 19.0
+    },
+    {
+      "number": 2,
+      "components": [
+        {
+          "code": "2020-24-S2-01",
+          "title": "Mathematics- II",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 1,
+          "course": "ECE-048-MATHEMATICS-II"
+        },
+        {
+          "code": "2020-24-S2-02",
+          "title": "Element of Civil Engineering & Solid Mechanics",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 2,
+          "course": "ECE-049-ELEMENT-OF-CIVIL"
+        },
+        {
+          "code": "2020-24-S2-03",
+          "title": "Element of Civil Engineering & Solid Mechanics Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 3,
+          "course": "ECE-050-ELEMENT-OF-CIVIL"
+        },
+        {
+          "code": "2020-24-S2-04",
+          "title": "Elements of Electrical Engineering",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 4,
+          "course": "UG-ELEMENTS-OF-ELECTRICAL-ENGI"
+        },
+        {
+          "code": "2020-24-S2-05",
+          "title": "Elements of Electrical Engineering Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 5,
+          "course": "ECE-051-ELEMENTS-OF-ELEC"
+        },
+        {
+          "code": "2020-24-S2-06",
+          "title": "Engineering Physics",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 6,
+          "course": "UG-ENGINEERING-PHYSICS"
+        },
+        {
+          "code": "2020-24-S2-07",
+          "title": "Engineering Physics Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 7,
+          "course": "ECE-052-ENGINEERING-PHYS"
+        },
+        {
+          "code": "2020-24-S2-08",
+          "title": "Workshop Practice",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 8,
+          "course": "UG-WORKSHOP-PRACTICE"
+        },
+        {
+          "code": "2020-24-S2-09",
+          "title": "Engineering Graphics Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 9,
+          "course": "ECE-053-ENGINEERING-GRAP"
+        },
+        {
+          "code": "2020-24-S2-10",
+          "title": "Computer Programming II",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 10,
+          "course": "UG-COMPUTER-PROGRAMMING-II"
+        },
+        {
+          "code": "2020-24-S2-11",
+          "title": "Environmental Studies",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 11,
+          "course": "UG-ENVIRONMENTAL-STUDIES"
+        },
+        {
+          "code": "2020-24-S2-12",
+          "title": "Communication Skills – I",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 12,
+          "course": "UG-COMMUNICATION-SKILLS-I"
+        },
+        {
+          "code": "2020-24-S2-13",
+          "title": "NCC/NSS/Sports",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 13,
+          "course": "ECE-047-NCC-NSS-SPORTS"
+        }
+      ],
+      "total_credits": 26.0
+    },
+    {
+      "number": 3,
+      "components": [
+        {
+          "code": "2020-24-S3-01",
+          "title": "Mathematics- III",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 1,
+          "course": "ECE-054-MATHEMATICS-III"
+        },
+        {
+          "code": "2020-24-S3-02",
+          "title": "Electromagnetics and Transmission Line",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 2,
+          "course": "ECE-055-ELECTROMAGNETICS"
+        },
+        {
+          "code": "2020-24-S3-03",
+          "title": "Digital Logic Design and HDL",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 3,
+          "course": "ECE-056-DIGITAL-LOGIC-DE"
+        },
+        {
+          "code": "2020-24-S3-04",
+          "title": "Digital Logic Design Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 4,
+          "course": "ECE-057-DIGITAL-LOGIC-DE"
+        },
+        {
+          "code": "2020-24-S3-05",
+          "title": "Circuits and Systems",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 5,
+          "course": "ECE-058-CIRCUITS-AND-SYS"
+        },
+        {
+          "code": "2020-24-S3-06",
+          "title": "Analog Electronics-1",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 6,
+          "course": "ECE-059-ANALOG-ELECTRONI"
+        },
+        {
+          "code": "2020-24-S3-07",
+          "title": "Analog Electronics-1 Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 7,
+          "course": "ECE-060-ANALOG-ELECTRONI"
+        },
+        {
+          "code": "2020-24-S3-08",
+          "title": "Simulation and Design Tools Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 8,
+          "course": "ECE-061-SIMULATION-AND-D"
+        },
+        {
+          "code": "OE1",
+          "title": "Open Elective 1",
+          "component_type": "OPEN_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "OTHER_DEPARTMENT_FOET",
+          "scope_label": "From another department's open elective basket",
+          "credits": 3,
+          "sequence": 101,
+          "eligibility": {
+            "eligible_schools": [
+              "SoT",
+              "SoET"
+            ],
+            "exclude_own_department": true,
+            "rule_source": "B.Tech. Electrical Engineering course structure: the open elective basket is announced by the other departments of the School of Technology and the other schools of the university; the offering department's own students are excluded."
+          }
+        }
+      ],
+      "total_credits": 22.0
+    },
+    {
+      "number": 4,
+      "components": [
+        {
+          "code": "2020-24-S4-01",
+          "title": "Analog Communication",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 1,
+          "course": "ECE-005-ANALOG-COMMUNICA"
+        },
+        {
+          "code": "2020-24-S4-02",
+          "title": "Analog Communication Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 2,
+          "course": "ECE-006-ANALOG-COMMUNICA"
+        },
+        {
+          "code": "2020-24-S4-03",
+          "title": "Analog Electronics-2",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 3,
+          "course": "ECE-062-ANALOG-ELECTRONI"
+        },
+        {
+          "code": "2020-24-S4-04",
+          "title": "Analog Electronics-2 Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 4,
+          "course": "ECE-063-ANALOG-ELECTRONI"
+        },
+        {
+          "code": "2020-24-S4-05",
+          "title": "Digital Signal Processing",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 5,
+          "course": "UG-DIGITAL-SIGNAL-PROCESSING"
+        },
+        {
+          "code": "2020-24-S4-06",
+          "title": "Digital Signal Processing Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 6,
+          "course": "UG-DIGITAL-SIGNAL-PROCESSING-L"
+        },
+        {
+          "code": "2020-24-S4-07",
+          "title": "Computer Communication and Networks",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 7,
+          "course": "ECE-064-COMPUTER-COMMUNI"
+        },
+        {
+          "code": "2020-24-S4-08",
+          "title": "Communication Skills - II",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 8,
+          "course": "UG-COMMUNICATION-SKILLS-II"
+        },
+        {
+          "code": "OE2",
+          "title": "Open Elective 2",
+          "component_type": "OPEN_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "OTHER_DEPARTMENT_FOET",
+          "scope_label": "From another department's open elective basket",
+          "credits": 3,
+          "sequence": 101,
+          "eligibility": {
+            "eligible_schools": [
+              "SoT",
+              "SoET"
+            ],
+            "exclude_own_department": true,
+            "rule_source": "B.Tech. Electrical Engineering course structure: the open elective basket is announced by the other departments of the School of Technology and the other schools of the university; the offering department's own students are excluded."
+          }
+        },
+        {
+          "code": "IO",
+          "title": "Industrial Orientation",
+          "component_type": "INTERNSHIP",
+          "is_elective": false,
+          "source_scope": "ANY",
+          "scope_label": "3 weeks, distributed across Semesters IV and V",
+          "credits": 1,
+          "sequence": 102
+        }
+      ],
+      "total_credits": 19.0
+    },
+    {
+      "number": 5,
+      "components": [
+        {
+          "code": "2020-24-S5-01",
+          "title": "Digital Communication",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 1,
+          "course": "UG-DIGITAL-COMMUNICATION"
+        },
+        {
+          "code": "2020-24-S5-02",
+          "title": "Digital Communication Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 2,
+          "course": "UG-DIGITAL-COMMUNICATION-LABOR"
+        },
+        {
+          "code": "2020-24-S5-03",
+          "title": "Computer Design and Applications",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 3,
+          "course": "ECE-065-COMPUTER-DESIGN-"
+        },
+        {
+          "code": "2020-24-S5-04",
+          "title": "Computer Design and Applications Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 4,
+          "course": "ECE-066-COMPUTER-DESIGN-"
+        },
+        {
+          "code": "2020-24-S5-05",
+          "title": "Machine Learning and Applications",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 5,
+          "course": "ECE-024-MACHINE-LEARNING"
+        },
+        {
+          "code": "2020-24-S5-06",
+          "title": "Machine Learning and Applications Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 6,
+          "course": "ECE-067-MACHINE-LEARNING"
+        },
+        {
+          "code": "2020-24-S5-07",
+          "title": "Industry 4.0",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 7,
+          "course": "UG-INDUSTRY-4-0"
+        },
+        {
+          "code": "2020-24-S5-08",
+          "title": "Industry 4.0 Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 8,
+          "course": "UG-INDUSTRY-4-0-LAB"
+        },
+        {
+          "code": "CE1",
+          "title": "Core Elective 1",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 101
+        },
+        {
+          "code": "CE2",
+          "title": "Core Elective 2",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 102
+        },
+        {
+          "code": "OE3",
+          "title": "Open Elective 3",
+          "component_type": "OPEN_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "OTHER_DEPARTMENT_FOET",
+          "scope_label": "From another department's open elective basket",
+          "credits": 3,
+          "sequence": 103,
+          "eligibility": {
+            "eligible_schools": [
+              "SoT",
+              "SoET"
+            ],
+            "exclude_own_department": true,
+            "rule_source": "B.Tech. Electrical Engineering course structure: the open elective basket is announced by the other departments of the School of Technology and the other schools of the university; the offering department's own students are excluded."
+          }
+        }
+      ],
+      "total_credits": 24.0
+    },
+    {
+      "number": 6,
+      "components": [
+        {
+          "code": "2020-24-S6-01",
+          "title": "Embedded Systems",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 1,
+          "course": "UG-EMBEDDED-SYSTEMS"
+        },
+        {
+          "code": "2020-24-S6-02",
+          "title": "Embedded Systems Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 2,
+          "course": "UG-EMBEDDED-SYSTEMS-LABORATORY"
+        },
+        {
+          "code": "2020-24-S6-03",
+          "title": "Antenna Theory and Design",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 3,
+          "course": "ECE-068-ANTENNA-THEORY-A"
+        },
+        {
+          "code": "2020-24-S6-04",
+          "title": "Electronics System design lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 4,
+          "course": "ECE-069-ELECTRONICS-SYST"
+        },
+        {
+          "code": "2020-24-S6-05",
+          "title": "Modern Semiconductor Devices & Technology",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 5,
+          "course": "ECE-070-MODERN-SEMICONDU"
+        },
+        {
+          "code": "2020-24-S6-06",
+          "title": "Communication Skills - III",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 6,
+          "course": "ECE-071-COMMUNICATION-SK"
+        },
+        {
+          "code": "CE3",
+          "title": "Core Elective 3",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 101,
+          "options": [
+            {
+              "course": "ECE-072-MOBILE-COMMUNICA",
+              "title": "Mobile Communication"
+            },
+            {
+              "course": "ECE-021-POWER-ELECTRONIC",
+              "title": "Power Electronics"
+            }
+          ]
+        },
+        {
+          "code": "CE4",
+          "title": "Core Elective 4",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 102
+        },
+        {
+          "code": "OE4",
+          "title": "Open Elective 4",
+          "component_type": "OPEN_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "OTHER_DEPARTMENT_FOET",
+          "scope_label": "From another department's open elective basket",
+          "credits": 3,
+          "sequence": 103,
+          "eligibility": {
+            "eligible_schools": [
+              "SoT",
+              "SoET"
+            ],
+            "exclude_own_department": true,
+            "rule_source": "B.Tech. Electrical Engineering course structure: the open elective basket is announced by the other departments of the School of Technology and the other schools of the university; the offering department's own students are excluded."
+          }
+        },
+        {
+          "code": "IT",
+          "title": "Industrial Training / IEP",
+          "component_type": "INTERNSHIP",
+          "is_elective": false,
+          "source_scope": "ANY",
+          "scope_label": "6 weeks in the summer break after Semester VI",
+          "credits": 2,
+          "sequence": 104
+        }
+      ],
+      "total_credits": 23.0
+    },
+    {
+      "number": 7,
+      "components": [
+        {
+          "code": "2020-24-S7-01",
+          "title": "RF and Microwave",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 1,
+          "course": "ECE-073-RF-AND-MICROWAVE"
+        },
+        {
+          "code": "2020-24-S7-02",
+          "title": "RF and Microwave Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 2,
+          "course": "ECE-074-RF-AND-MICROWAVE"
+        },
+        {
+          "code": "2020-24-S7-03",
+          "title": "Digital CMOS VLSI Circuits",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 3,
+          "course": "ECE-075-DIGITAL-CMOS-VLS"
+        },
+        {
+          "code": "2020-24-S7-04",
+          "title": "Digital CMOS VLSI Circuits Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 4,
+          "course": "ECE-076-DIGITAL-CMOS-VLS"
+        },
+        {
+          "code": "CE5",
+          "title": "Core Elective 5",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 101,
+          "options": [
+            {
+              "course": "UG-INFORMATION-SECURITY",
+              "title": "Information Security"
+            },
+            {
+              "course": "ECE-077-BIO-MEDICAL-ELEC",
+              "title": "Bio-medical Electronics"
+            },
+            {
+              "course": "ECE-078-ENERGY-HARVESTIN",
+              "title": "Energy harvesting"
+            },
+            {
+              "course": "ECE-079-INDUSTRIAL-AUTOM",
+              "title": "Industrial Automation and Robotics"
+            },
+            {
+              "course": "ECE-037-RADAR-AND-NAVIGA",
+              "title": "Radar and Navigation Systems"
+            },
+            {
+              "course": "ECE-080-GIS-AND-REMOTE-S",
+              "title": "GIS and Remote Sensing"
+            },
+            {
+              "course": "UG-INTERNET-OF-THINGS",
+              "title": "Internet of Things"
+            },
+            {
+              "course": "ECE-022-SATELLITE-COMMUN",
+              "title": "Satellite Communication"
+            },
+            {
+              "course": "ECE-081-DEEP-AND-REINFOR",
+              "title": "Deep and Reinforcement Learning"
+            },
+            {
+              "course": "ECE-082-5G-NETWORKS",
+              "title": "5G Networks"
+            },
+            {
+              "course": "ECE-083-PROCESS-CONTROL-",
+              "title": "Process Control and Instrumentation"
+            },
+            {
+              "course": "ECE-033-ADVANCED-PROCESS",
+              "title": "Advanced Processors and SoCs"
+            }
+          ]
+        },
+        {
+          "code": "CE6",
+          "title": "Core Elective 6",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 102
+        },
+        {
+          "code": "CE7",
+          "title": "Core Elective 7",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 103
+        },
+        {
+          "code": "MINI",
+          "title": "Mini Project",
+          "component_type": "PROJECT",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": "Department-supervised mini project",
+          "credits": 3,
+          "sequence": 104
+        }
+      ],
+      "total_credits": 19.0
+    },
+    {
+      "number": 8,
+      "components": [
+        {
+          "code": "MP",
+          "title": "Comprehensive / Major Project",
+          "component_type": "PROJECT",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": "Industry or academic supervised project",
+          "credits": 10,
+          "sequence": 101
+        }
+      ],
+      "total_credits": 10.0
+    }
+  ]
+}

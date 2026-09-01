@@ -1,0 +1,951 @@
+{
+  "program": {
+    "code": "B.TECH-MECH",
+    "name": "B.Tech. Mechanical Engineering",
+    "short_name": "Mechanical",
+    "degree_type": "B.Tech",
+    "duration_years": 4,
+    "total_semesters": 8,
+    "department": {
+      "code": "MEC",
+      "name": "Mechanical Engineering",
+      "short_name": "Mechanical",
+      "school": "SoT"
+    }
+  },
+  "curriculum": {
+    "version": "2024-28",
+    "name": "B.Tech. Mechanical Engineering — Curriculum 2024-28",
+    "effective_from_year": 2024,
+    "effective_to_year": null,
+    "total_credits": 160,
+    "status": "PUBLISHED"
+  },
+  "source": {
+    "url": "https://api.pdeu.ac.in/pdpu/resources/btech-mechanical-course-structure-2024.pdf",
+    "title": "Course Structure for B.Tech. Mechanical Engineering (w.e.f. 2024-25)",
+    "publisher": "Pandit Deendayal Energy University",
+    "retrieved_at": "2026-08-28",
+    "academic_year": "2024-28",
+    "confidence": "CONFIRMED_OFFICIAL_SOURCE"
+  },
+  "divisions": {
+    "names": [
+      "A",
+      "B"
+    ],
+    "rationale": "No PDEU document states division counts. Derived from the official seat intake in the B.Tech. Admission Rules A.Y. 2026-27 at roughly 60-75 students per division. Editable programme data, not a citation.",
+    "confidence": "DERIVED_FROM_INTAKE"
+  },
+  "semesters": [
+    {
+      "number": 1,
+      "components": [
+        {
+          "code": "2024-28-S1-01",
+          "title": "Humanities – 1",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 1,
+          "course": "UG-HUMANITIES-1"
+        },
+        {
+          "code": "2024-28-S1-02",
+          "title": "Mathematics – 1",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 2,
+          "course": "UG-MATHEMATICS-1"
+        },
+        {
+          "code": "2024-28-S1-03",
+          "title": "Physics",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 3,
+          "course": "UG-PHYSICS"
+        },
+        {
+          "code": "2024-28-S1-04",
+          "title": "Physics – Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 4,
+          "course": "UG-PHYSICS-LABORATORY"
+        },
+        {
+          "code": "2024-28-S1-05",
+          "title": "Environment Science",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 5,
+          "course": "UG-ENVIRONMENT-SCIENCE"
+        },
+        {
+          "code": "2024-28-S1-06",
+          "title": "Workshop Practices",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 6,
+          "course": "UG-WORKSHOP-PRACTICES"
+        },
+        {
+          "code": "2024-28-S1-07",
+          "title": "Biology for Engineers",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 7,
+          "course": "UG-BIOLOGY-FOR-ENGINEERS"
+        },
+        {
+          "code": "2024-28-S1-08",
+          "title": "Computer Programming -I",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 8,
+          "course": "UG-COMPUTER-PROGRAMMING-I"
+        },
+        {
+          "code": "2024-28-S1-09",
+          "title": "Computer Programming -I Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 9,
+          "course": "UG-COMPUTER-PROGRAMMING-I-LABO"
+        },
+        {
+          "code": "2024-28-S1-10",
+          "title": "Universal Human Values",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 10,
+          "course": "UG-UNIVERSAL-HUMAN-VALUES"
+        },
+        {
+          "code": "2024-28-S1-11",
+          "title": "Indian Knowledge System",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 11,
+          "course": "UG-INDIAN-KNOWLEDGE-SYSTEM"
+        }
+      ],
+      "total_credits": 20.0
+    },
+    {
+      "number": 2,
+      "components": [
+        {
+          "code": "2024-28-S2-01",
+          "title": "Humanities - 2",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 1,
+          "course": "UG-HUMANITIES-2"
+        },
+        {
+          "code": "2024-28-S2-02",
+          "title": "Mathematics – 2",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 2,
+          "course": "UG-MATHEMATICS-2"
+        },
+        {
+          "code": "2024-28-S2-03",
+          "title": "Elements of Electrical and Electronics Engineering",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 3,
+          "course": "MEC-001-ELEMENTS-OF-ELEC"
+        },
+        {
+          "code": "2024-28-S2-04",
+          "title": "Elements of Electrical and Electronics Engineering Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 4,
+          "course": "MEC-002-ELEMENTS-OF-ELEC"
+        },
+        {
+          "code": "2024-28-S2-05",
+          "title": "Indian Knowledge System",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 5,
+          "course": "UG-INDIAN-KNOWLEDGE-SYSTEM"
+        },
+        {
+          "code": "2024-28-S2-06",
+          "title": "Organizational Behaviour",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 6,
+          "course": "UG-ORGANIZATIONAL-BEHAVIOUR"
+        },
+        {
+          "code": "2024-28-S2-07",
+          "title": "Professional Communication",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 7,
+          "course": "MEC-003-PROFESSIONAL-COM"
+        },
+        {
+          "code": "2024-28-S2-08",
+          "title": "Yoga, Health and Hygiene OR NSS / NCC",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 8,
+          "course": "MEC-004-YOGA-HEALTH-AND-"
+        }
+      ],
+      "total_credits": 16.0
+    },
+    {
+      "number": 3,
+      "components": [
+        {
+          "code": "2024-28-S3-01",
+          "title": "Mathematics – III",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 1,
+          "course": "MEC-005-MATHEMATICS-III"
+        },
+        {
+          "code": "2024-28-S3-02",
+          "title": "Introduction to Artificial Intelligence",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 2,
+          "course": "UG-INTRODUCTION-TO-ARTIFICI-2"
+        },
+        {
+          "code": "2024-28-S3-03",
+          "title": "Engineering Mechanics",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 3,
+          "course": "MEC-006-ENGINEERING-MECH"
+        },
+        {
+          "code": "2024-28-S3-04",
+          "title": "Thermodynamics",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 4,
+          "course": "MEC-007-THERMODYNAMICS"
+        },
+        {
+          "code": "2024-28-S3-05",
+          "title": "Thermodynamics Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 5,
+          "course": "MEC-008-THERMODYNAMICS-L"
+        },
+        {
+          "code": "2024-28-S3-06",
+          "title": "Mechanical Measurement and Metrology",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 6,
+          "course": "MEC-009-MECHANICAL-MEASU"
+        },
+        {
+          "code": "2024-28-S3-07",
+          "title": "Mechanical Measurement and Metrology Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 7,
+          "course": "MEC-010-MECHANICAL-MEASU"
+        },
+        {
+          "code": "2024-28-S3-08",
+          "title": "Mechanical Drawing Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 8,
+          "course": "MEC-011-MECHANICAL-DRAWI"
+        },
+        {
+          "code": "CSSI",
+          "title": "Civic and Social Service Internship",
+          "component_type": "INTERNSHIP",
+          "is_elective": false,
+          "source_scope": "ANY",
+          "scope_label": "Approved NGO / social organisation",
+          "credits": 1,
+          "sequence": 101
+        }
+      ],
+      "total_credits": 20.0
+    },
+    {
+      "number": 4,
+      "components": [
+        {
+          "code": "2024-28-S4-01",
+          "title": "Industry 4.0",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 1,
+          "course": "UG-INDUSTRY-4-0"
+        },
+        {
+          "code": "2024-28-S4-02",
+          "title": "Industry 4.0 Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 2,
+          "course": "UG-INDUSTRY-4-0-LAB"
+        },
+        {
+          "code": "2024-28-S4-03",
+          "title": "Fluid Mechanics",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 3,
+          "course": "UG-FLUID-MECHANICS"
+        },
+        {
+          "code": "2024-28-S4-04",
+          "title": "Fluid Mechanics Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 4,
+          "course": "UG-FLUID-MECHANICS-LABORATORY"
+        },
+        {
+          "code": "2024-28-S4-05",
+          "title": "Design and Kinematics of Machines",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 5,
+          "course": "MEC-012-DESIGN-AND-KINEM"
+        },
+        {
+          "code": "2024-28-S4-06",
+          "title": "Design and Kinematics of Machines Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 6,
+          "course": "MEC-013-DESIGN-AND-KINEM"
+        },
+        {
+          "code": "2024-28-S4-07",
+          "title": "Engineering Metallurgy",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 7,
+          "course": "MEC-014-ENGINEERING-META"
+        },
+        {
+          "code": "2024-28-S4-08",
+          "title": "Engineering Metallurgy Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 8,
+          "course": "MEC-015-ENGINEERING-META"
+        },
+        {
+          "code": "2024-28-S4-09",
+          "title": "Strength of Material",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 9,
+          "course": "MEC-016-STRENGTH-OF-MATE"
+        },
+        {
+          "code": "2024-28-S4-10",
+          "title": "Strength of Material Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 10,
+          "course": "MEC-017-STRENGTH-OF-MATE"
+        },
+        {
+          "code": "OE1",
+          "title": "Open Elective 1",
+          "component_type": "OPEN_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "OTHER_SCHOOL",
+          "scope_label": "From Other School",
+          "credits": 3,
+          "sequence": 101,
+          "eligibility": {
+            "eligible_schools": [
+              "SoET",
+              "SLS",
+              "SoM",
+              "SoL"
+            ],
+            "exclude_own_department": true,
+            "rule_source": "B.Tech. Electrical Engineering course structure: the open elective basket is announced by the other departments of the School of Technology and the other schools of the university; the offering department's own students are excluded."
+          },
+          "note": "The official structure lists 24ME221T Renewable Energy in this slot — the department's own basket contribution. Scope requires faculty confirmation.",
+          "confidence": "REQUIRES_FACULTY_CONFIRMATION",
+          "department_basket": [
+            {
+              "course": "MEC-018-RENEWABLE-ENERGY",
+              "title": "Renewable Energy"
+            }
+          ]
+        },
+        {
+          "code": "IO",
+          "title": "Industrial Orientation",
+          "component_type": "INTERNSHIP",
+          "is_elective": false,
+          "source_scope": "ANY",
+          "scope_label": "3 weeks, distributed across Semesters IV and V",
+          "credits": 0,
+          "sequence": 102
+        }
+      ],
+      "total_credits": 22.0
+    },
+    {
+      "number": 5,
+      "components": [
+        {
+          "code": "2024-28-S5-01",
+          "title": "Engineering Economics",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 1,
+          "course": "UG-ENGINEERING-ECONOMICS"
+        },
+        {
+          "code": "2024-28-S5-02",
+          "title": "Heat Transfer",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 2,
+          "course": "MEC-019-HEAT-TRANSFER"
+        },
+        {
+          "code": "2024-28-S5-03",
+          "title": "Heat Transfer Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 3,
+          "course": "MEC-020-HEAT-TRANSFER-LA"
+        },
+        {
+          "code": "2024-28-S5-04",
+          "title": "Dynamics of Machine",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 4,
+          "course": "MEC-021-DYNAMICS-OF-MACH"
+        },
+        {
+          "code": "2024-28-S5-05",
+          "title": "Dynamics of Machine Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 5,
+          "course": "MEC-022-DYNAMICS-OF-MACH"
+        },
+        {
+          "code": "2024-28-S5-06",
+          "title": "Manufacturing Processes - I",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 6,
+          "course": "MEC-023-MANUFACTURING-PR"
+        },
+        {
+          "code": "2024-28-S5-07",
+          "title": "Manufacturing Processes - I Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 7,
+          "course": "MEC-024-MANUFACTURING-PR"
+        },
+        {
+          "code": "OE2-MOOC",
+          "title": "NPTEL / SWAYAM / MOOC Course",
+          "component_type": "MOOC",
+          "is_elective": true,
+          "source_scope": "EXTERNAL_PLATFORM",
+          "scope_label": "NPTEL / SWAYAM / MOOC certified course",
+          "credits": 3,
+          "sequence": 101
+        },
+        {
+          "code": "PE1",
+          "title": "Program Elective 1",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 102,
+          "options": [
+            {
+              "course": "MEC-025-INTRODUCTION-TO-",
+              "title": "Introduction to Composite Materials"
+            },
+            {
+              "course": "MEC-026-RENEWABLE-AND-SU",
+              "title": "Renewable and Sustainable Energy Technologies"
+            },
+            {
+              "course": "MEC-027-FLUID-MACHINERY",
+              "title": "Fluid Machinery"
+            },
+            {
+              "course": "MEC-028-LASER-AND-ELECTR",
+              "title": "Laser and Electron Beam Material Processing"
+            }
+          ]
+        }
+      ],
+      "total_credits": 21.0
+    },
+    {
+      "number": 6,
+      "components": [
+        {
+          "code": "2024-28-S6-01",
+          "title": "Refrigeration and Air Conditioning",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 1,
+          "course": "MEC-029-REFRIGERATION-AN"
+        },
+        {
+          "code": "2024-28-S6-02",
+          "title": "Refrigeration and Air Conditioning Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 2,
+          "course": "MEC-030-REFRIGERATION-AN"
+        },
+        {
+          "code": "2024-28-S6-03",
+          "title": "Machine Design -I",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 3,
+          "course": "MEC-031-MACHINE-DESIGN-I"
+        },
+        {
+          "code": "2024-28-S6-04",
+          "title": "Machine Design -I Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 4,
+          "course": "MEC-032-MACHINE-DESIGN-I"
+        },
+        {
+          "code": "2024-28-S6-05",
+          "title": "Manufacturing Processes - II",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 5,
+          "course": "MEC-033-MANUFACTURING-PR"
+        },
+        {
+          "code": "2024-28-S6-06",
+          "title": "Manufacturing Processes - II Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 6,
+          "course": "MEC-034-MANUFACTURING-PR"
+        },
+        {
+          "code": "2024-28-S6-07",
+          "title": "Robotics",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 7,
+          "course": "MEC-035-ROBOTICS"
+        },
+        {
+          "code": "2024-28-S6-08",
+          "title": "Robotics Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 8,
+          "course": "MEC-036-ROBOTICS-LABORAT"
+        },
+        {
+          "code": "OE3",
+          "title": "Open Elective 3",
+          "component_type": "OPEN_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "OTHER_DEPARTMENT_FOET",
+          "scope_label": "From Other Department of FoET",
+          "credits": 3,
+          "sequence": 101,
+          "eligibility": {
+            "eligible_schools": [
+              "SoT",
+              "SoET"
+            ],
+            "exclude_own_department": true,
+            "rule_source": "B.Tech. Electrical Engineering course structure: the open elective basket is announced by the other departments of the School of Technology and the other schools of the university; the offering department's own students are excluded."
+          }
+        },
+        {
+          "code": "PE2",
+          "title": "Program Elective 2",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 102,
+          "options": [
+            {
+              "course": "MEC-037-MECHANICAL-VIBRA",
+              "title": "Mechanical Vibration"
+            },
+            {
+              "course": "MEC-038-ADDITIVE-MANUFAC",
+              "title": "Additive Manufacturing"
+            },
+            {
+              "course": "MEC-039-PRODUCTION-AND-O",
+              "title": "Production and Operation Management"
+            },
+            {
+              "course": "MEC-040-HEAT-EXCHANGER-D",
+              "title": "Heat Exchanger Design"
+            }
+          ]
+        }
+      ],
+      "total_credits": 22.0
+    },
+    {
+      "number": 7,
+      "components": [
+        {
+          "code": "2024-28-S7-01",
+          "title": "Optimization Techniques",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 1,
+          "course": "MEC-041-OPTIMIZATION-TEC"
+        },
+        {
+          "code": "2024-28-S7-02",
+          "title": "Project Management",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 2,
+          "course": "UG-PROJECT-MANAGEMENT"
+        },
+        {
+          "code": "2024-28-S7-03",
+          "title": "Computational Engineering Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 3,
+          "course": "MEC-042-COMPUTATIONAL-EN"
+        },
+        {
+          "code": "SI",
+          "title": "Summer Internship",
+          "component_type": "INTERNSHIP",
+          "is_elective": false,
+          "source_scope": "ANY",
+          "scope_label": "Industry / R&D host organisation",
+          "credits": 2,
+          "sequence": 101
+        },
+        {
+          "code": "OE4",
+          "title": "Open Elective 4",
+          "component_type": "OPEN_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "OTHER_DEPARTMENT_FOET",
+          "scope_label": "From Other Department of FoET",
+          "credits": 3,
+          "sequence": 102,
+          "eligibility": {
+            "eligible_schools": [
+              "SoT",
+              "SoET"
+            ],
+            "exclude_own_department": true,
+            "rule_source": "B.Tech. Electrical Engineering course structure: the open elective basket is announced by the other departments of the School of Technology and the other schools of the university; the offering department's own students are excluded."
+          }
+        },
+        {
+          "code": "PE3",
+          "title": "Program Elective 3",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 103,
+          "options": [
+            {
+              "course": "MEC-043-EXERGY-ANALYSIS-",
+              "title": "Exergy Analysis of Thermal Systems"
+            },
+            {
+              "course": "MEC-044-MACHINE-DESIGN-I",
+              "title": "Machine Design-II"
+            },
+            {
+              "course": "MEC-045-MICRO-AND-NANO-M",
+              "title": "Micro and Nano Manufacturing"
+            }
+          ]
+        },
+        {
+          "code": "PE4",
+          "title": "Program Elective 4",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 104,
+          "options": [
+            {
+              "course": "MEC-046-CRYOGENICS",
+              "title": "Cryogenics"
+            },
+            {
+              "course": "MEC-047-CAD",
+              "title": "CAD"
+            }
+          ]
+        },
+        {
+          "code": "PE5",
+          "title": "Program Elective 5",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 105,
+          "options": [
+            {
+              "course": "MEC-048-WELDING-FOR-META",
+              "title": "Welding for Metal Joining, Surfacing and Additive Manufacturing"
+            },
+            {
+              "course": "MEC-049-AUTOMOBILE-ENGIN",
+              "title": "Automobile Engineering"
+            },
+            {
+              "course": "MEC-050-COMPUTER-AIDED-M",
+              "title": "Computer Aided Manufacturing"
+            },
+            {
+              "course": "MEC-051-NON-DESTRUCTIVE-",
+              "title": "Non-Destructive Testing and Failure Analysis"
+            },
+            {
+              "course": "MEC-052-MATERIAL-AND-PRO",
+              "title": "Material and Procurement Management"
+            }
+          ]
+        },
+        {
+          "code": "SEM",
+          "title": "Seminar",
+          "component_type": "PROJECT",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": "Department seminar",
+          "credits": 1,
+          "sequence": 106
+        }
+      ],
+      "total_credits": 23.0
+    },
+    {
+      "number": 8,
+      "components": [
+        {
+          "code": "MP",
+          "title": "Major / Comprehensive Project",
+          "component_type": "PROJECT",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": "Department- or industry-supervised project",
+          "credits": 12,
+          "sequence": 101
+        }
+      ],
+      "total_credits": 12.0
+    }
+  ]
+}

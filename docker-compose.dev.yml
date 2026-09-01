@@ -1,0 +1,32 @@
+# Optional live-reload overlay:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Bind-mounts the working tree so edits apply without a rebuild.
+# macOS note: this fails with "Resource deadlock avoided" when the project is
+# inside an iCloud-synced folder (~/Desktop or ~/Documents with "Desktop &
+# Documents" sync enabled). Move the project to e.g. ~/dev/CampusHub, or run
+# the base stack without this overlay.
+services:
+  backend:
+    volumes:
+      - ./backend:/app
+      - uploads-data:/app/uploads
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+    command:
+      - uvicorn
+      - app.main:app
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "8000"
+      - --reload
+      - --reload-dir
+      - /app/app
+
+  frontend:
+    volumes:
+      - ./frontend:/app
+      # Keep the image's node_modules — host modules may be built for a
+      # different platform.
+      - /app/node_modules

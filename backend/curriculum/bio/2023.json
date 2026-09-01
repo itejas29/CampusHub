@@ -1,0 +1,372 @@
+{
+  "program": {
+    "code": "B.TECH-BIO",
+    "name": "B.Tech. Biotechnology",
+    "short_name": "Biotechnology",
+    "degree_type": "B.Tech",
+    "duration_years": 4,
+    "total_semesters": 8,
+    "department": {
+      "code": "BIO",
+      "name": "Biotechnology",
+      "short_name": "Biotechnology",
+      "school": "SoET"
+    }
+  },
+  "curriculum": {
+    "version": "2023",
+    "name": "B.Tech. Biotechnology — Course Structure (partial)",
+    "effective_from_year": 2023,
+    "effective_to_year": null,
+    "total_credits": null,
+    "status": "DRAFT",
+    "incomplete_note": "Official published structure covers Semester I–II only. Semesters III–VIII are not available from any PDEU source and must be supplied by the department."
+  },
+  "source": {
+    "url": "https://api.pdeu.ac.in/pdpu/resources/btech-biotechnology-course-structure.pdf",
+    "title": "Course Structure for B.Tech in Biotechnology Program",
+    "publisher": "Pandit Deendayal Energy University",
+    "retrieved_at": "2026-08-28",
+    "academic_year": "2023",
+    "confidence": "PARTIAL_SOURCE"
+  },
+  "divisions": {
+    "names": [
+      "A",
+      "B"
+    ],
+    "rationale": "No PDEU document states division counts. Derived from the official seat intake in the B.Tech. Admission Rules A.Y. 2026-27 at roughly 60-75 students per division. Editable programme data, not a citation.",
+    "confidence": "DERIVED_FROM_INTAKE"
+  },
+  "semesters": [
+    {
+      "number": 1,
+      "components": [
+        {
+          "code": "2023-S1-01",
+          "title": "Mathematics I for Biotechnology",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 1,
+          "course": "BIO-001-MATHEMATICS-I-FO"
+        },
+        {
+          "code": "2023-S1-02",
+          "title": "Engineering Chemistry",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 2,
+          "course": "UG-ENGINEERING-CHEMISTRY"
+        },
+        {
+          "code": "2023-S1-03",
+          "title": "Engineering Chemistry - Lab.",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 3,
+          "course": "BIO-002-ENGINEERING-CHEM"
+        },
+        {
+          "code": "2023-S1-04",
+          "title": "Elements of Mechanical Engineering",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 4,
+          "course": "BIO-003-ELEMENTS-OF-MECH"
+        },
+        {
+          "code": "2023-S1-05",
+          "title": "Elements of Mechanical Engineering - Lab.",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 5,
+          "course": "BIO-004-ELEMENTS-OF-MECH"
+        },
+        {
+          "code": "2023-S1-06",
+          "title": "Basic Electronics",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 6,
+          "course": "UG-BASIC-ELECTRONICS"
+        },
+        {
+          "code": "2023-S1-07",
+          "title": "Basic Electronics - Lab.",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 7,
+          "course": "BIO-005-BASIC-ELECTRONIC"
+        },
+        {
+          "code": "2023-S1-08",
+          "title": "Engineering Graphics - Lab.",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 8,
+          "course": "BIO-006-ENGINEERING-GRAP"
+        },
+        {
+          "code": "2023-S1-09",
+          "title": "Programming with C",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 9,
+          "course": "BIO-007-PROGRAMMING-WITH"
+        },
+        {
+          "code": "2023-S1-10",
+          "title": "Programming with C - Lab.",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 10,
+          "course": "BIO-008-PROGRAMMING-WITH"
+        },
+        {
+          "code": "2023-S1-11",
+          "title": "Environmental Studies",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 11,
+          "course": "UG-ENVIRONMENTAL-STUDIES"
+        },
+        {
+          "code": "2023-S1-12",
+          "title": "NCC / NSS / Sports - I",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 12,
+          "course": "BIO-009-NCC-NSS-SPORTS-I"
+        }
+      ],
+      "total_credits": 23.0
+    },
+    {
+      "number": 2,
+      "components": [
+        {
+          "code": "2023-S2-01",
+          "title": "Mathematics II for Biotechnology",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 1,
+          "course": "BIO-010-MATHEMATICS-II-F"
+        },
+        {
+          "code": "2023-S2-02",
+          "title": "Fundamentals of Life Sciences",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 2,
+          "course": "BIO-011-FUNDAMENTALS-OF-"
+        },
+        {
+          "code": "2023-S2-03",
+          "title": "Elements of Civil Engineering & Solid Mechanics",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 3,
+          "course": "BIO-012-ELEMENTS-OF-CIVI"
+        },
+        {
+          "code": "2023-S2-04",
+          "title": "Elements of Civil Engineering & Solid Mechanics - Lab.",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 4,
+          "course": "BIO-013-ELEMENTS-OF-CIVI"
+        },
+        {
+          "code": "2023-S2-05",
+          "title": "Elements of Electrical Engineering",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 5,
+          "course": "UG-ELEMENTS-OF-ELECTRICAL-ENGI"
+        },
+        {
+          "code": "2023-S2-06",
+          "title": "Elements of Electrical Engineering - Lab.",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 6,
+          "course": "BIO-014-ELEMENTS-OF-ELEC"
+        },
+        {
+          "code": "2023-S2-07",
+          "title": "Engineering Physics",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 7,
+          "course": "UG-ENGINEERING-PHYSICS"
+        },
+        {
+          "code": "2023-S2-08",
+          "title": "Engineering Physics - Lab.",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 8,
+          "course": "BIO-015-ENGINEERING-PHYS"
+        },
+        {
+          "code": "2023-S2-09",
+          "title": "Workshop Practice",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 9,
+          "course": "UG-WORKSHOP-PRACTICE"
+        },
+        {
+          "code": "2023-S2-10",
+          "title": "Fundamentals of Python Programming",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 10,
+          "course": "BIO-016-FUNDAMENTALS-OF-"
+        },
+        {
+          "code": "2023-S2-11",
+          "title": "Communication Skills - I",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 11,
+          "course": "UG-COMMUNICATION-SKILLS-I"
+        },
+        {
+          "code": "2023-S2-12",
+          "title": "Professional Ethics & Human Values",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 12,
+          "course": "BIO-017-PROFESSIONAL-ETH"
+        },
+        {
+          "code": "2023-S2-13",
+          "title": "NCC / NSS / Sports - II",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 13,
+          "course": "BIO-018-NCC-NSS-SPORTS-I"
+        },
+        {
+          "code": "CSSI",
+          "title": "Civic Services & Social Internship",
+          "component_type": "INTERNSHIP",
+          "is_elective": false,
+          "source_scope": "ANY",
+          "scope_label": "Approved NGO / social organisation",
+          "credits": 1,
+          "sequence": 101,
+          "note": "Placed in Semester II by the official Biotechnology structure, whereas the Academic Rules describe CSSI as undertaken at the end of Semester II and every other programme credits it in Semester III. Source conflict.",
+          "confidence": "REQUIRES_FACULTY_CONFIRMATION"
+        }
+      ],
+      "total_credits": 26.0
+    },
+    {
+      "number": 3,
+      "components": [],
+      "total_credits": 0
+    },
+    {
+      "number": 4,
+      "components": [],
+      "total_credits": 0
+    },
+    {
+      "number": 5,
+      "components": [],
+      "total_credits": 0
+    },
+    {
+      "number": 6,
+      "components": [],
+      "total_credits": 0
+    },
+    {
+      "number": 7,
+      "components": [],
+      "total_credits": 0
+    },
+    {
+      "number": 8,
+      "components": [],
+      "total_credits": 0
+    }
+  ]
+}

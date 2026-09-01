@@ -1,0 +1,1063 @@
+<title>CampusHub Phase 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+
+<style>
+  :root {
+    --paper:      #FBFCFD;
+    --surface:    #F1F4F7;
+    --surface-2:  #E7ECF1;
+    --line:       #D8E0E8;
+    --line-soft:  #E7ECF1;
+    --ink:        #0F151C;
+    --ink-muted:  #4A5866;
+    --ink-faint:  #6E7C8A;
+    --accent:     #31577F;
+    --accent-ink: #FFFFFF;
+    --accent-soft:#E3EAF2;
+    --pass:       #1F6F4A;
+    --pass-soft:  #E0EFE7;
+    --config:     #8A5A0B;
+    --config-soft:#F6ECD9;
+    --limit:      #9A4530;
+    --limit-soft: #F7E7E2;
+    --shadow:     0 1px 2px rgba(15,21,28,.05), 0 8px 24px -16px rgba(15,21,28,.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #0E1319;
+      --surface:    #161D25;
+      --surface-2:  #1E2831;
+      --line:       #2A3641;
+      --line-soft:  #202A34;
+      --ink:        #E8EEF4;
+      --ink-muted:  #A3B1BF;
+      --ink-faint:  #7C8B99;
+      --accent:     #8FB4DC;
+      --accent-ink: #0E1319;
+      --accent-soft:#1C2B3B;
+      --pass:       #6FCB9F;
+      --pass-soft:  #14291F;
+      --config:     #E0B368;
+      --config-soft:#2A2113;
+      --limit:      #E39481;
+      --limit-soft: #2C1A16;
+      --shadow:     0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:      #0E1319;
+    --surface:    #161D25;
+    --surface-2:  #1E2831;
+    --line:       #2A3641;
+    --line-soft:  #202A34;
+    --ink:        #E8EEF4;
+    --ink-muted:  #A3B1BF;
+    --ink-faint:  #7C8B99;
+    --accent:     #8FB4DC;
+    --accent-ink: #0E1319;
+    --accent-soft:#1C2B3B;
+    --pass:       #6FCB9F;
+    --pass-soft:  #14291F;
+    --config:     #E0B368;
+    --config-soft:#2A2113;
+    --limit:      #E39481;
+    --limit-soft: #2C1A16;
+    --shadow:     0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.6);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, .ui { font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace; }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0 56px;
+  }
+  @media (min-width: 1040px) {
+    .wrap { grid-template-columns: 208px minmax(0, 1fr); }
+  }
+
+  /* ── masthead ───────────────────────────────────────────── */
+  header.masthead {
+    grid-column: 1 / -1;
+    border-bottom: 1px solid var(--line);
+    padding: 72px 0 36px;
+    margin-bottom: 44px;
+  }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 18px;
+  }
+  h1 {
+    font-size: clamp(34px, 5.4vw, 54px);
+    line-height: 1.05;
+    letter-spacing: -.022em;
+    font-weight: 700;
+    margin: 0 0 20px;
+    text-wrap: balance;
+  }
+  .standfirst {
+    font-size: clamp(18px, 2.1vw, 21px);
+    line-height: 1.5;
+    color: var(--ink-muted);
+    max-width: 62ch;
+    margin: 0;
+  }
+
+  /* ── metrics ────────────────────────────────────────────── */
+  .metrics {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 52px;
+  }
+  .metric { background: var(--surface); padding: 20px 22px; }
+  .metric dt {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 8px;
+  }
+  .metric dd {
+    margin: 0;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 30px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .metric dd small {
+    display: block;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--ink-faint);
+    margin-top: 7px;
+  }
+  .metric.is-pass dd { color: var(--pass); }
+
+  /* ── contents rail ──────────────────────────────────────── */
+  nav.toc { display: none; }
+  @media (min-width: 1040px) {
+    nav.toc {
+      display: block;
+      grid-column: 1;
+      align-self: start;
+      position: sticky;
+      top: 32px;
+    }
+    nav.toc h2 {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      margin: 0 0 14px;
+    }
+    nav.toc ol { list-style: none; margin: 0; padding: 0; counter-reset: toc; }
+    nav.toc li { counter-increment: toc; margin-bottom: 3px; }
+    nav.toc a {
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      gap: 8px;
+      padding: 6px 8px 6px 0;
+      font-family: "IBM Plex Sans", sans-serif;
+      font-size: 13.5px;
+      line-height: 1.35;
+      color: var(--ink-muted);
+      text-decoration: none;
+      border-radius: 3px;
+    }
+    nav.toc a::before {
+      content: counter(toc, decimal-leading-zero);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      color: var(--ink-faint);
+      padding-top: 2px;
+    }
+    nav.toc a:hover { color: var(--ink); background: var(--surface); }
+    nav.toc a:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  }
+
+  /* ── body ───────────────────────────────────────────────── */
+  main { grid-column: 1 / -1; min-width: 0; }
+  @media (min-width: 1040px) { main { grid-column: 2; } }
+
+  section { margin-bottom: 60px; scroll-margin-top: 24px; }
+
+  h2 {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .085em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 6px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  h2 .num {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    color: var(--accent);
+  }
+  h2 + .h2-title {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: clamp(23px, 2.9vw, 29px);
+    font-weight: 600;
+    letter-spacing: -.018em;
+    line-height: 1.2;
+    margin: 0 0 18px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+    text-wrap: balance;
+  }
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -.005em;
+    margin: 32px 0 12px;
+  }
+  p { margin: 0 0 16px; max-width: 68ch; }
+  main > section > p:last-child { margin-bottom: 0; }
+
+  a { color: var(--accent); }
+
+  code {
+    font-size: .845em;
+    background: var(--surface-2);
+    padding: .12em .38em;
+    border-radius: 3px;
+    color: var(--ink);
+    word-break: break-word;
+  }
+
+  /* ── tables ─────────────────────────────────────────────── */
+  .scroll {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    margin: 0 0 20px;
+    background: var(--surface);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  th, td {
+    text-align: left;
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: top;
+  }
+  th {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    background: var(--surface-2);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td code { background: transparent; padding: 0; color: var(--ink-muted); }
+  tr.total td { font-weight: 600; background: var(--surface-2); }
+
+  /* ── chips ──────────────────────────────────────────────── */
+  .chip {
+    display: inline-block;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .chip.pass   { background: var(--pass-soft);   color: var(--pass); }
+  .chip.config { background: var(--config-soft); color: var(--config); }
+  .chip.limit  { background: var(--limit-soft);  color: var(--limit); }
+  .chip.new    { background: var(--accent-soft); color: var(--accent); }
+
+  /* ── callout ────────────────────────────────────────────── */
+  .note {
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+    padding: 16px 20px;
+    border-radius: 0 4px 4px 0;
+    margin: 0 0 22px;
+    font-size: 16px;
+  }
+  .note p { margin: 0; max-width: none; }
+  .note p + p { margin-top: 10px; }
+  .note.security { border-left-color: var(--limit); }
+  .note strong { font-family: "IBM Plex Sans", sans-serif; font-weight: 600; }
+
+  /* ── file lists ─────────────────────────────────────────── */
+  .paths {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    line-height: 2;
+    color: var(--ink-muted);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 14px 18px;
+    margin: 0 0 20px;
+    overflow-x: auto;
+  }
+  .paths span { white-space: nowrap; }
+  .paths span::after { content: " · "; color: var(--ink-faint); }
+  .paths span:last-child::after { content: ""; }
+
+  /* ── numbered limitation list ───────────────────────────── */
+  ol.limits { list-style: none; counter-reset: lim; margin: 0; padding: 0; }
+  ol.limits li {
+    counter-increment: lim;
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line-soft);
+    max-width: 72ch;
+  }
+  ol.limits li:last-child { border-bottom: 0; }
+  ol.limits li::before {
+    content: counter(lim, decimal-leading-zero);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: var(--ink-faint);
+    padding-top: 4px;
+  }
+  ol.limits b {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-weight: 600;
+    font-size: 15.5px;
+    display: block;
+    margin-bottom: 3px;
+  }
+  ol.limits div { font-size: 15.5px; color: var(--ink-muted); }
+
+  footer {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--line);
+    padding-top: 22px;
+    margin-top: 8px;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 13px;
+    color: var(--ink-faint);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
+  html { scroll-behavior: smooth; }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">CampusHub · PDEU Centralised Student Portal</p>
+    <h1>Phase 2 Implementation Report</h1>
+    <p class="standfirst">
+      Phase 2 closed the gap between “the data exists” and “the workflow is usable”:
+      documents now have a real lifecycle, progress is computed from those documents
+      rather than stored as a number, and Minor Specialisation has a complete,
+      auditable allocation round. Two later corrections tightened it further —
+      CSSI now runs on a semester window, and Coordinator and Mentor became
+      separately assignable scoped roles.
+    </p>
+  </header>
+
+  <dl class="metrics">
+    <div class="metric is-pass">
+      <dt>Tests</dt>
+      <dd>185<small>185 passing, 0 failing</small></dd>
+    </div>
+    <div class="metric">
+      <dt>New tests</dt>
+      <dd>86<small>99 pre-existing preserved</small></dd>
+    </div>
+    <div class="metric">
+      <dt>Migrations</dt>
+      <dd>6<small>round-trips, no drift</small></dd>
+    </div>
+    <div class="metric">
+      <dt>API</dt>
+      <dd>145<small>operations · 117 paths</small></dd>
+    </div>
+    <div class="metric">
+      <dt>Routes added</dt>
+      <dd>16<small>plus 6 changed</small></dd>
+    </div>
+    <div class="metric is-pass">
+      <dt>Live checks</dt>
+      <dd>84<small>across six live suites</small></dd>
+    </div>
+  </dl>
+
+  <nav class="toc" aria-label="Contents">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#corrections">Corrections applied</a></li>
+      <li><a href="#files">Files changed</a></li>
+      <li><a href="#migrations">Migrations</a></li>
+      <li><a href="#api">API routes</a></li>
+      <li><a href="#ui">UI changes</a></li>
+      <li><a href="#tests">Tests</a></li>
+      <li><a href="#policies">Configurable policies</a></li>
+      <li><a href="#limits">Known limitations</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <div class="note">
+      <p><strong>The Phase 1 elective-capacity work was not touched.</strong>
+      Open Elective (min 40, 75 <em>per section</em>, sections filled sequentially)
+      and Core Elective (min 40 combined across divisions, no ceiling, one class)
+      were re-verified against the exact worked examples — 12 of 12 checks pass, and
+      an AST walk confirms zero executable CPI references anywhere in elective
+      allocation.</p>
+    </div>
+
+    <!-- 1 ───────────────────────────────────────────────── -->
+    <section id="corrections">
+      <h2><span class="num">01</span> Section</h2>
+      <p class="h2-title">Two corrections applied after the first build</p>
+
+      <h3>CSSI runs on a semester window</h3>
+      <p>CSSI previously carried <code>target_semester = 1</code>, which is only a
+      floor — every student from Semester I upward could see it. It is now a
+      window with three phases, because floating a programme and opening it are
+      different moments.</p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Student</th><th>Phase</th><th>What they can do</th></tr></thead>
+          <tbody>
+            <tr><td>Semester I</td><td><span class="chip limit">Hidden</span></td>
+                <td>CSSI does not appear at all</td></tr>
+            <tr><td>Semester II</td><td><span class="chip config">Announced</span></td>
+                <td>Sees it and can line up an NGO over the break. Enrolment and every
+                submission are refused with an explanation.</td></tr>
+            <tr><td>Semester III</td><td><span class="chip pass">Active</span></td>
+                <td>Certificate and all other submissions open. Once the certificate is
+                verified, the coordinator allocates a presentation slot.</td></tr>
+            <tr><td>Semester IV+</td><td><span class="chip limit">Concluded</span></td>
+                <td>No longer open to them</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>The presentation slot is refused (409) until the certificate is verified —
+      allocating a date to a student who has not completed the internship would put
+      a commitment in front of them that nobody intends to honour.</p>
+
+      <h3>Coordinator and Mentor are separately assignable</h3>
+      <p>A scoped assignment is now
+      <code>faculty → role → module → department</code>. Coordinator and Mentor are
+      independent grants: neither implies the other, one person may hold several,
+      and permissions resolve as the union so revoking one never removes what
+      another gave.</p>
+
+      <h3>Minor coordinator scope stays a policy decision</h3>
+      <p>An earlier draft of this work read "Minor coordinator for ICT" as
+      <em>the minors ICT offers</em>, and added an ICT Data Science minor to make
+      that reading work. Both were wrong: the reading was an assumption, and the
+      minor was an invented offering. The minor has been removed, the demo
+      catalogue is now labelled as demo data in the seed, and the interpretation
+      is configuration:</p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th><code>MINOR_COORDINATOR_SCOPE</code></th><th>Means</th></tr></thead>
+          <tbody>
+            <tr><td><code>OFFERING</code></td>
+                <td>The minors the coordinator's department offers — its seats, ranking policy and allocation rounds</td></tr>
+            <tr><td><code>APPLICANT</code></td>
+                <td>Applications from students of the coordinator's department, whichever department offers the minor</td></tr>
+            <tr><td><code>EITHER</code> <span class="chip config">Default</span></td>
+                <td>A match on either side is enough. Shipped as the default because locking a real coordinator out of plausibly-theirs work is the worse failure while the policy is unknown.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>All three are covered by tests, so switching the rule once the
+      university confirms it is a one-line change with known behaviour. No minor
+      is added to the catalogue unless the university confirms it.</p>
+
+      <h3>Two more fixes, found by using the app</h3>
+
+      <div class="note security">
+        <p><strong>Seven dead links produced a 404.</strong>
+        Dashboard action items, stat cards, calendar deadlines, elective
+        notifications and a seeded announcement all pointed at
+        <code>/academics/electives</code> — a path that has not existed since Open
+        and Core were split into separate screens. Each now resolves the correct
+        screen from the component's own type, and the old path redirects so
+        notifications already stored against it still work.</p>
+      </div>
+      <div class="note security">
+        <p><strong>An expired session stranded the user.</strong>
+        The fetch wrapper only ended a session on 401 <em>if a refresh token
+        existed</em>. With none — an expired or revoked session — the 401 fell
+        straight through, so the app rendered its full shell with
+        “Authentication credentials were not provided” in the middle and no way
+        out. Any unrecoverable 401 now clears the session and redirects to sign-in,
+        which then returns the user to the page they were trying to reach.</p>
+      </div>
+
+      <div class="note security">
+        <p><strong>Security fix — cross-module scope leak.</strong>
+        <code>assert_coordinates</code> short-circuited on the coarse permission, and
+        <code>Role.INTERNSHIP_COORDINATOR</code> carries institution-wide
+        <code>internships:manage</code>. The ICT <em>Summer Internship</em>
+        coordinator could therefore manage ICT’s <em>CSSI</em> — precisely what
+        scoped assignments exist to prevent. Only genuinely institution-wide roles
+        now bypass; everyone else needs a matching assignment.</p>
+      </div>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Faculty</th><th>Grants held</th><th>Result</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Dr. Priya Nair</td>
+              <td><span class="chip new">Coordinator</span> Summer Internship · ICT</td>
+              <td>Manages Summer · ICT. Refused CSSI · ICT, and Summer · CSE.</td>
+            </tr>
+            <tr>
+              <td>Dr. Meera Krishnan</td>
+              <td><span class="chip new">Coordinator</span> NPTEL/MOOC · ICT<br>
+                  <span class="chip config">Mentor</span> Summer Internship · ICT</td>
+              <td>Both resolve at once. Neither leaks into the other’s module.</td>
+            </tr>
+            <tr>
+              <td>Dr. Vikram Joshi</td>
+              <td><span class="chip config">Mentor</span> Summer Internship · ICT<br>
+                  <span class="chip config">Mentor</span> CSSI · ICT</td>
+              <td>Sees his mentee screens. No administrative control over either module.</td>
+            </tr>
+            <tr>
+              <td>Prof. Sneha Iyer</td>
+              <td><span class="chip new">Coordinator</span> CSSI · ICT</td>
+              <td>Runs CSSI. Has <em>no</em> mentee screens — coordinating is not mentoring.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>Admin → Role Assignments now carries a
+      <strong>Faculty · Role · Module · Department · Status · Actions</strong> table
+      with Create, Edit and Revoke, an optional validity window, and a role catalogue
+      that separates <em>which roles exist</em> from <em>who holds them, where</em>.
+      Role and module are immutable on edit — rewriting them in place would
+      misrepresent the audit trail, so revoke and re-create instead. Every change is
+      audit-logged.</p>
+    </section>
+
+    <!-- 2 ───────────────────────────────────────────────── -->
+    <section id="files">
+      <h2><span class="num">02</span> Section</h2>
+      <p class="h2-title">Files changed</p>
+
+      <h3>New files</h3>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr><th>File</th><th class="num">Lines</th><th>Purpose</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>services/documents.py</code></td><td class="num">467</td>
+              <td>Expected-vs-actual documents, review workflow, document-driven progress, protected file URLs, per-file authorisation</td>
+            </tr>
+            <tr>
+              <td><code>services/minors.py</code></td><td class="num">219</td>
+              <td>Minor ranking policy and allocation round</td>
+            </tr>
+            <tr>
+              <td><code>tests/test_program_phase.py</code></td><td class="num">—</td>
+              <td>18 tests covering the semester window</td>
+            </tr>
+            <tr>
+              <td><code>api/v1/roles.py</code></td><td class="num">—</td>
+              <td>Coordinator role matrix, assign, revoke</td>
+            </tr>
+            <tr>
+              <td><code>components/documents/DocumentGroups.tsx</code></td><td class="num">316</td>
+              <td>Shared expected/actual document panel and progress — used by both the student page and the faculty drawer</td>
+            </tr>
+            <tr>
+              <td><code>features/admin/MinorAllocationTab.tsx</code></td><td class="num">232</td>
+              <td>Coordinator allocation round screen</td>
+            </tr>
+            <tr>
+              <td><code>features/admin/RoleAssignmentsPage.tsx</code></td><td class="num">—</td>
+              <td>Which faculty holds which coordinator role</td>
+            </tr>
+            <tr>
+              <td><code>tests/test_documents.py</code></td><td class="num">—</td>
+              <td>19 tests</td>
+            </tr>
+            <tr>
+              <td><code>tests/test_progress.py</code></td><td class="num">—</td>
+              <td>14 tests</td>
+            </tr>
+            <tr>
+              <td><code>tests/test_minor_ranking.py</code></td><td class="num">—</td>
+              <td>12 tests</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Modified — backend</h3>
+      <div class="paths">
+        <span>models/enums.py</span><span>models/internships.py</span><span>models/identity.py</span><span>models/academics.py</span><span>api/v1/internships.py</span><span>api/v1/minors.py</span><span>api/v1/files.py</span><span>api/v1/dashboard.py</span><span>api/v1/electives.py</span><span>api/v1/roles.py</span><span>api/v1/admin.py</span><span>schemas/internships.py</span><span>schemas/minors.py</span><span>services/scope.py</span><span>services/sections.py</span><span>core/rbac.py</span><span>seed/data.py</span><span>seed/run.py</span>
+      </div>
+
+      <h3>Modified — frontend</h3>
+      <div class="paths">
+        <span>internships/InternshipRecordPage.tsx</span><span>internships/StudentDetailDrawer.tsx</span><span>internships/MyStudentsPage.tsx</span><span>admin/MinorAdminPage.tsx</span><span>admin/ElectiveAdminPage.tsx</span><span>ui/Badge.tsx</span><span>layout/AppShell.tsx</span><span>lib/api.ts</span><span>lib/format.ts</span><span>lib/navigation.ts</span><span>types/index.ts</span>
+      </div>
+    </section>
+
+    <!-- 3 ───────────────────────────────────────────────── -->
+    <section id="migrations">
+      <h2><span class="num">03</span> Section</h2>
+      <p class="h2-title">Migrations added</p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Revision</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>0002_faculty_role_assignments</code></td>
+              <td><code>faculty_role_assignments</code> — coordination scoped by (domain × department)</td>
+            </tr>
+            <tr>
+              <td><code>0003_elective_sections</code></td>
+              <td><code>course_sections</code>; per-family capacity columns on <code>course_offerings</code>; <code>section_id</code> on <code>elective_allocations</code></td>
+            </tr>
+            <tr>
+              <td><code>0004_document_lifecycle</code></td>
+              <td><code>week_number</code>, <code>submitted_at</code>, <code>reviewed_by_user_id</code>, <code>reviewed_at</code>, <code>review_comment</code>, <code>revision</code> on <code>internship_documents</code>; <code>revision</code> on <code>internship_reports</code>; FK to <code>users</code></td>
+            </tr>
+            <tr>
+              <td><code>0005_semester_windows</code></td>
+              <td><code>announce_from_semester</code>, <code>visible_to_semester</code> on <code>internship_programs</code>; <code>presentation_at</code>, <code>presentation_venue</code>, <code>presentation_panel</code> on <code>internship_enrollments</code></td>
+            </tr>
+            <tr>
+              <td><code>0006_assigned_roles</code></td>
+              <td><code>role</code> (backfilled to COORDINATOR), <code>starts_on</code>, <code>ends_on</code> on <code>faculty_role_assignments</code>; uniqueness widened to include the role</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p><code>alembic downgrade base &amp;&amp; alembic upgrade head</code> round-trips cleanly
+      and <code>alembic check</code> reports no drift. A <code>server_default</code> left in place
+      on <code>revision</code> was found during this check and dropped after backfill, so the
+      model and database now agree.</p>
+
+      <p><code>MinorApplicationStatus.WAITLISTED</code> needed <strong>no migration</strong>:
+      enums are stored as <code>VARCHAR</code> with <code>native_enum=False</code>, and this
+      column carries no CHECK constraint, so a new value is a pure Python change.</p>
+    </section>
+
+    <!-- 4 ───────────────────────────────────────────────── -->
+    <section id="api">
+      <h2><span class="num">04</span> Section</h2>
+      <p class="h2-title">API routes added and changed</p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Method</th><th>Route</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><span class="chip new">GET</span></td><td><code>/internships/enrollments/{id}/documents/expected</code></td><td>Every expected document, including <code>NOT_SUBMITTED</code></td></tr>
+            <tr><td><span class="chip new">POST</span></td><td><code>/internships/documents/{id}/review</code></td><td><code>start_review</code> / <code>verify</code> / <code>reject</code></td></tr>
+            <tr><td><span class="chip new">GET</span></td><td><code>/internships/enrollments/{id}/progress</code></td><td>Document-driven progress and named blockers</td></tr>
+            <tr><td><span class="chip new">GET</span></td><td><code>/minors/ranking-fields</code></td><td>Fields a minor may rank on</td></tr>
+            <tr><td><span class="chip new">PUT</span></td><td><code>/minors/{id}/ranking-policy</code></td><td>Declare this minor’s ranking criteria</td></tr>
+            <tr><td><span class="chip new">GET</span></td><td><code>/minors/{id}/allocation/preview</code></td><td>Dry run — nothing is written</td></tr>
+            <tr><td><span class="chip new">POST</span></td><td><code>/minors/{id}/allocation/run</code></td><td>Commit seats in rank order</td></tr>
+            <tr><td><span class="chip new">ALL</span></td><td><code>/admin/roles/*</code></td><td>Coordinator role matrix, assign, revoke</td></tr>
+            <tr><td><span class="chip new">ALL</span></td><td><code>/electives/admin/viability</code>, <code>/sections</code>, <code>/distribute</code>, <code>/sections/move</code></td><td>Section planning</td></tr>
+            <tr><td><span class="chip new">POST</span></td><td><code>/internships/enrollments/{id}/presentation</code></td><td>Allocate a presentation slot — refused until the certificate is verified</td></tr>
+            <tr><td><span class="chip new">GET</span></td><td><code>/internships/programs/{id}/presentation-queue</code></td><td>Who is ready for a slot, who already has one</td></tr>
+            <tr><td><span class="chip new">GET</span></td><td><code>/admin/roles/definitions</code></td><td>The roles an administrator may grant, and what each permits</td></tr>
+            <tr><td><span class="chip new">PATCH</span></td><td><code>/admin/roles/{id}</code></td><td>Edit scope, validity window or active flag</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note security">
+        <p><strong>Security fix — <code>GET /files/{id}/download</code>.</strong>
+        Previously any staff role, including <code>CLUB_ADMIN</code>, could download any
+        file. The endpoint now resolves the file back to its owning enrolment and
+        scopes access to the student, their mentor, and the coordinators of that
+        programme. An unrelated staff account receives 403.</p>
+      </div>
+
+      <h3>Other changes</h3>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Route</th><th>Change</th></tr></thead>
+          <tbody>
+            <tr><td><code>POST /internships/enrollments/{id}/documents</code></td><td>Resubmission replaces the existing row, increments <code>revision</code>, clears the previous reviewer</td></tr>
+            <tr><td><code>GET /internships/enrollments/{id}</code></td><td>Now returns <code>document_groups</code> and <code>progress</code></td></tr>
+            <tr><td><code>GET /dashboard/student</code></td><td>Action items and progress now come from real document state</td></tr>
+            <tr><td><code>GET /admin/roles</code></td><td>Renamed <code>GET /admin/permissions</code> — route collision with the new assignments router</td></tr>
+            <tr><td><code>GET /internships/programs</code></td><td>Each programme now reports its <code>phase</code> for the signed-in student, plus a sentence explaining it</td></tr>
+            <tr><td><code>POST /internships/programs/{id}/enroll</code> and every student write</td><td>Gated behind the programme's semester window, not merely a minimum semester</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 5 ───────────────────────────────────────────────── -->
+    <section id="ui">
+      <h2><span class="num">05</span> Section</h2>
+      <p class="h2-title">UI changes</p>
+
+      <h3>Document panel — shared by student and faculty</h3>
+      <p>One component renders every expected document for the programme, grouped into
+      Weekly Reports, Required Documents, Final Report and Other. A missing mandatory
+      item stays visible as a dashed <em>Not submitted</em> card — it is never silently
+      absent, and it never carries a placeholder link.</p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Role</th><th>What they see and can do</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Student</strong></td>
+              <td>Status, the reviewer’s rejection reason and timestamp, and an
+              <em>Upload</em> / <em>Replace file</em> button. Weekly reports route to
+              the Reports tab with the week number pre-filled, because a report
+              carries a written summary as well as a file.</td>
+            </tr>
+            <tr>
+              <td><strong>Faculty &amp; coordinator</strong></td>
+              <td>The same panel with <em>Start review</em>, <em>Verify</em> and
+              <em>Reject</em>. Rejection opens a modal that requires a reason.
+              <em>View PDF</em> fetches through the authenticated API and opens a
+              blob — the storage path is never exposed.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>Progress shows <em>n of m stages complete</em> with the specific blockers listed
+      (“week 3, 5, 6, 7… outstanding”, “Certificate: document is rejected”), replacing
+      the stored percentage. The Proof of Work / Documents tab badge counts outstanding
+      required items, so missing work is visible before the tab is opened.</p>
+
+      <h3>Minor allocation round</h3>
+      <p>A new coordinator tab shows the declared ranking criteria as an explicit chain,
+      the seat arithmetic, and the full ranked list with the cut-off marked. Preview is a
+      dry run; running the round is confirmed in a modal and notifies every applicant.</p>
+
+      <h3>Elective administration</h3>
+      <p>Viability and sections tab: per-division breakdown, whether a course runs, and
+      the planned section split.</p>
+    </section>
+
+    <!-- 6 ───────────────────────────────────────────────── -->
+    <section id="tests">
+      <h2><span class="num">06</span> Section</h2>
+      <p class="h2-title">Tests</p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>File</th><th class="num">Tests</th><th>Covers</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>test_documents.py</code></td><td class="num">19</td>
+              <td><code>NOT_SUBMITTED</code> as a first-class state, satisfying vs pending statuses, review transitions, resubmission guards, protected URLs, the 4 × 25 summer rubric</td>
+            </tr>
+            <tr>
+              <td><code>test_progress.py</code></td><td class="num">14</td>
+              <td>Missing or unverified documents blocking their stage, one missing week keeping the reporting stage open, aggregate counting</td>
+            </tr>
+            <tr>
+              <td><code>test_minor_ranking.py</code></td><td class="num">12</td>
+              <td>Unconfigured programme refuses to rank, unknown field or direction rejected, declared criteria actually order applicants, missing CPI never outranks a recorded one, determinism</td>
+            </tr>
+            <tr>
+              <td><code>test_program_phase.py</code></td><td class="num">18</td>
+              <td>Who sees CSSI per semester, announced accepts nothing, submissions open only in the target semester, Summer keeps its open-ended upper bound, an unconfigured programme is not gated</td>
+            </tr>
+            <tr>
+              <td><code>test_minor_scope.py</code></td><td class="num">14</td>
+              <td>Each of the three interpretations grants and refuses what it should; no rule grants a scope the coordinator does not hold; the default stays EITHER</td>
+            </tr>
+            <tr>
+              <td><code>test_scope.py</code> (extended)</td><td class="num">+9</td>
+              <td>Mentor is not Coordinator and vice versa, one user holds both, one role never removes another, coordinating one module grants nothing over another, validity windows</td>
+            </tr>
+            <tr>
+              <td>Pre-existing, unchanged</td><td class="num">90</td>
+              <td>allocation 13 · eligibility 18 · internship engine 10 · rbac 20 · scope 11 · sections 19 · security 8, less the 9 scope tests extended above</td>
+            </tr>
+            <tr class="total">
+              <td>Final count</td><td class="num">185</td>
+              <td><span class="chip pass">All passing</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Live-API verification</h3>
+      <p>Beyond the unit suite, six scripts drive the containerised stack with the full
+      seeded cohort — 84 assertions against real HTTP, real tokens and real data.</p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Suite</th><th>What it drives</th><th>Result</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Document lifecycle</td>
+              <td>Upload → review → reject → resubmit → verify, access control, file protection</td>
+              <td><span class="chip pass">All passed</span></td>
+            </tr>
+            <tr>
+              <td>Minor workflow</td>
+              <td>Policy declaration, preview, commit, access control</td>
+              <td><span class="chip pass">11 / 11</span></td>
+            </tr>
+            <tr>
+              <td>Role &amp; scope smoke</td>
+              <td>9 roles × dashboards, module × department isolation, audit isolation</td>
+              <td><span class="chip pass">23 / 23</span></td>
+            </tr>
+            <tr>
+              <td>Do-not-regress</td>
+              <td>Elective capacity examples, no CPI in electives</td>
+              <td><span class="chip pass">12 / 12</span></td>
+            </tr>
+            <tr>
+              <td>CSSI semester window</td>
+              <td>Phase per semester, announced refuses writes, presentation slot gated on the certificate</td>
+              <td><span class="chip pass">15 / 15</span></td>
+            </tr>
+            <tr>
+              <td>Role management</td>
+              <td>Role catalogue, cross-module refusals, Coordinator ≠ Mentor, multi-role union, create/edit/revoke, audit</td>
+              <td><span class="chip pass">22 / 22</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>Also audited in the browser: WCAG AA contrast across sixteen views in both
+      themes (0 failures), horizontal overflow at 375 px across the changed routes
+      (0 failures), and 0 application console errors. The create, edit and revoke
+      flows were driven through the real UI, not just the API.</p>
+    </section>
+
+    <!-- 7 ───────────────────────────────────────────────── -->
+    <section id="policies">
+      <h2><span class="num">07</span> Section</h2>
+      <p class="h2-title">Policies that remain intentionally configurable</p>
+
+      <p>These are deliberately not decided in code. CampusHub records the institute’s
+      rule; it does not invent one.</p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Policy</th><th>Where it lives</th><th>Default shipped</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="chip config">Ranking</span> Minor ranking formula</td>
+              <td><code>MinorProgram.rules["ranking"]["criteria"]</code></td>
+              <td><strong>None.</strong> An unconfigured minor refuses to run a round rather than guessing. The seed carries a worked example clearly labelled as demo.</td>
+            </tr>
+            <tr>
+              <td>Minor eligibility thresholds</td>
+              <td><code>min_cpi</code>, <code>max_backlogs</code>, <code>eligible_from_semester</code>, <code>excluded_department_ids</code></td>
+              <td>Per-programme rows</td>
+            </tr>
+            <tr>
+              <td>Summer / CSSI rubric</td>
+              <td><code>evaluation_criteria</code> rows</td>
+              <td>Summer = Final Report 25 + Presentation 25 + Weekly Submissions 25 + Industry Mentor 25</td>
+            </tr>
+            <tr>
+              <td><span class="chip config">Window</span> When a programme is floated and when it opens</td>
+              <td><code>announce_from_semester</code>, <code>target_semester</code>, <code>visible_to_semester</code></td>
+              <td>CSSI announced in II, carried out in III, hidden after. Summer announced and opened in VI, no upper bound.</td>
+            </tr>
+            <tr>
+              <td>Who coordinates and who mentors</td>
+              <td><code>faculty_role_assignments</code> (role × domain × department)</td>
+              <td>Granted by an administrator only. No role is implied by another.</td>
+            </tr>
+            <tr>
+              <td>Which stages require a document</td>
+              <td><code>InternshipStage.requires_document</code>, <code>document_type</code></td>
+              <td>Per-programme config</td>
+            </tr>
+            <tr>
+              <td>Report cadence and count</td>
+              <td><code>report_frequency</code>, <code>expected_report_count</code></td>
+              <td>Per-programme config</td>
+            </tr>
+            <tr>
+              <td>Elective minimum to run, section capacity</td>
+              <td><code>min_students_to_run</code>, <code>section_capacity</code>, <code>allow_multiple_sections</code></td>
+              <td>OE 40 / 75 per section / multiple · Core 40 combined / no ceiling / single class</td>
+            </tr>
+            <tr>
+              <td>Elective allocation strategy</td>
+              <td>Strategy registry</td>
+              <td><code>preference_order</code>; <code>merit</code> registered but <code>is_available=False</code></td>
+            </tr>
+            <tr>
+              <td>Storage backend</td>
+              <td><code>StorageBackend</code> ABC</td>
+              <td><code>LocalStorage</code> in development, <code>S3Storage</code> in production</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <p><strong>CPI/CGPA is used only by Minor Specialisation.</strong> Verified by an
+        AST walk across every elective allocation and section-planning module: zero
+        executable references. The only remaining mentions are comments stating the rule.</p>
+      </div>
+    </section>
+
+    <!-- 8 ───────────────────────────────────────────────── -->
+    <section id="limits">
+      <h2><span class="num">08</span> Section</h2>
+      <p class="h2-title">Known limitations</p>
+
+      <ol class="limits">
+        <li>
+          <div>
+            <b>Industry mentor marks have no external portal</b>
+            The rubric component is marked <code>is_external</code> and the student is
+            blocked from entering it (403), but the marks are currently recorded by
+            faculty on the mentor’s behalf. A token-based external form is not built.
+          </div>
+        </li>
+        <li>
+          <div>
+            <b>View PDF loads the whole file into memory</b>
+            It fetches the file as a blob before opening it. Fine for reports and
+            certificates; a large video would want a streamed, short-lived signed URL.
+          </div>
+        </li>
+        <li>
+          <div>
+            <b>No virus scanning or content sniffing on upload</b>
+            Extension and size are checked; the bytes are not.
+          </div>
+        </li>
+        <li>
+          <div>
+            <b>The minor waitlist does not auto-promote</b>
+            If an allocated student withdraws the seat is freed, but the next waitlisted
+            applicant is not promoted automatically — a coordinator re-runs the round.
+          </div>
+        </li>
+        <li>
+          <div>
+            <b>Notifications are in-app only</b>
+            Twenty-seven real events emit them; there is no email or push transport.
+          </div>
+        </li>
+        <li>
+          <div>
+            <b>Docker Compose bakes the code into the images</b>
+            Bind mounts fail with <code>EDEADLK</code> under iCloud-synced folders such as
+            <code>~/Desktop</code>. Live reload is the opt-in
+            <code>docker-compose.dev.yml</code> overlay.
+          </div>
+        </li>
+        <li>
+          <div>
+            <b>Progress counts stages equally</b>
+            A stage is complete or it is not; there is no weighting, because no weighting
+            has been specified.
+          </div>
+        </li>
+        <li>
+          <div>
+            <b>The minor coordinator interpretation is unconfirmed</b>
+            "Minor coordinator for ICT" could mean the minors ICT <em>offers</em>
+            or applications <em>from ICT students</em>. Both readings are
+            implemented and selected by <code>MINOR_COORDINATOR_SCOPE</code>;
+            it ships as <code>EITHER</code> until the university confirms which
+            applies. Nothing in the code assumes an answer.
+          </div>
+        </li>
+        <li>
+          <div>
+            <b>Role and module cannot be edited in place</b>
+            Changing "Mentor for CSSI" into "Coordinator for NPTEL" would rewrite what
+            the audit trail says happened, so the edit form refuses it. Revoke and
+            create instead.
+          </div>
+        </li>
+        <li>
+          <div>
+            <b>Semester windows assume a single current semester per student</b>
+            A student repeating a semester, or on an off-cycle registration, is
+            treated by their recorded <code>current_semester</code> alone.
+          </div>
+        </li>
+        <li>
+          <div>
+            <b>Seed data is demo-only</b>
+            Fake names, <code>campushub.example.com</code> addresses, generated PDFs.
+          </div>
+        </li>
+      </ol>
+    </section>
+
+  </main>
+
+  <footer>
+    CampusHub · Pandit Deendayal Energy University · Phase 2 implementation report
+  </footer>
+</div>

@@ -1,0 +1,739 @@
+{
+  "program": {
+    "code": "B.TECH-CHEM",
+    "name": "B.Tech. Chemical Engineering",
+    "short_name": "Chemical",
+    "degree_type": "B.Tech",
+    "duration_years": 4,
+    "total_semesters": 8,
+    "department": {
+      "code": "CHM",
+      "name": "Chemical Engineering",
+      "short_name": "Chemical",
+      "school": "SoET"
+    }
+  },
+  "curriculum": {
+    "version": "2024",
+    "name": "B.Tech. Chemical Engineering — UG Curriculum (2024 onwards)",
+    "effective_from_year": 2024,
+    "effective_to_year": null,
+    "total_credits": 160,
+    "status": "PUBLISHED"
+  },
+  "source": {
+    "url": "https://api.pdeu.ac.in/pdpu/resources/btech-chemical-course-structure.pdf",
+    "title": "B.Tech. Chemical Engineering — UG Curriculum (2024 onwards)",
+    "publisher": "Pandit Deendayal Energy University",
+    "retrieved_at": "2026-08-28",
+    "academic_year": "2024",
+    "confidence": "CONFIRMED_OFFICIAL_SOURCE"
+  },
+  "divisions": {
+    "names": [
+      "A",
+      "B"
+    ],
+    "rationale": "No PDEU document states division counts. Derived from the official seat intake in the B.Tech. Admission Rules A.Y. 2026-27 at roughly 60-75 students per division. Editable programme data, not a citation.",
+    "confidence": "DERIVED_FROM_INTAKE"
+  },
+  "semesters": [
+    {
+      "number": 1,
+      "components": [
+        {
+          "code": "2024-S1-01",
+          "title": "Humanities – 1",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 1,
+          "course": "UG-HUMANITIES-1"
+        },
+        {
+          "code": "2024-S1-02",
+          "title": "Mathematics – 1",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 2,
+          "course": "UG-MATHEMATICS-1"
+        },
+        {
+          "code": "2024-S1-03",
+          "title": "Physics",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 3,
+          "course": "UG-PHYSICS"
+        },
+        {
+          "code": "2024-S1-04",
+          "title": "Physics – Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 4,
+          "course": "UG-PHYSICS-LABORATORY"
+        },
+        {
+          "code": "2024-S1-05",
+          "title": "Environment Science",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 5,
+          "course": "UG-ENVIRONMENT-SCIENCE"
+        },
+        {
+          "code": "2024-S1-06",
+          "title": "Workshop Practices",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 6,
+          "course": "UG-WORKSHOP-PRACTICES"
+        },
+        {
+          "code": "2024-S1-07",
+          "title": "Biology for Engineers",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 7,
+          "course": "UG-BIOLOGY-FOR-ENGINEERS"
+        },
+        {
+          "code": "2024-S1-08",
+          "title": "Computer Programming -I",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 8,
+          "course": "UG-COMPUTER-PROGRAMMING-I"
+        },
+        {
+          "code": "2024-S1-09",
+          "title": "Computer Programming -I Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 9,
+          "course": "UG-COMPUTER-PROGRAMMING-I-LABO"
+        },
+        {
+          "code": "2024-S1-10",
+          "title": "Universal Human Values",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 10,
+          "course": "UG-UNIVERSAL-HUMAN-VALUES"
+        },
+        {
+          "code": "2024-S1-11",
+          "title": "Indian Knowledge System",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 11,
+          "course": "UG-INDIAN-KNOWLEDGE-SYSTEM"
+        }
+      ],
+      "total_credits": 20.0
+    },
+    {
+      "number": 2,
+      "components": [
+        {
+          "code": "2024-S2-01",
+          "title": "Humanities – 2",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 1,
+          "course": "UG-HUMANITIES-2"
+        },
+        {
+          "code": "2024-S2-02",
+          "title": "Mathematics – 2",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 2,
+          "course": "UG-MATHEMATICS-2"
+        },
+        {
+          "code": "2024-S2-03",
+          "title": "Chemistry",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 3,
+          "course": "UG-CHEMISTRY"
+        },
+        {
+          "code": "2024-S2-04",
+          "title": "Chemistry – Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 4,
+          "course": "UG-CHEMISTRY-LABORATORY"
+        },
+        {
+          "code": "2024-S2-05",
+          "title": "Introduction to Electrical Engineering",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 5,
+          "course": "UG-INTRODUCTION-TO-ELECTRICAL-"
+        },
+        {
+          "code": "2024-S2-06",
+          "title": "Introduction to Electrical Engineering-Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 6,
+          "course": "UG-INTRODUCTION-TO-ELECTRIC-2"
+        },
+        {
+          "code": "2024-S2-07",
+          "title": "Engineering Graphics",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 7,
+          "course": "UG-ENGINEERING-GRAPHICS"
+        },
+        {
+          "code": "2024-S2-08",
+          "title": "Yoga, Health & Hygiene OR NCC/NSS",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 8,
+          "course": "UG-YOGA-HEALTH-HYGIENE-OR-NCC-"
+        },
+        {
+          "code": "2024-S2-09",
+          "title": "Organizational Behaviour",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 9,
+          "course": "UG-ORGANIZATIONAL-BEHAVIOUR"
+        },
+        {
+          "code": "2024-S2-10",
+          "title": "Computer Programming -II",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 10,
+          "course": "UG-COMPUTER-PROGRAMMING-II"
+        },
+        {
+          "code": "2024-S2-11",
+          "title": "Computer Programming -II Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 11,
+          "course": "UG-COMPUTER-PROGRAMMING-II-LAB"
+        }
+      ],
+      "total_credits": 20.0
+    },
+    {
+      "number": 3,
+      "components": [
+        {
+          "code": "2024-S3-01",
+          "title": "Maths-III",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 1,
+          "course": "CHM-001-MATHS-III"
+        },
+        {
+          "code": "2024-S3-02",
+          "title": "Introduction to Artificial Intelligence",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 2,
+          "course": "UG-INTRODUCTION-TO-ARTIFICI-2"
+        },
+        {
+          "code": "2024-S3-03",
+          "title": "Chemical Process Calculations",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 3,
+          "course": "CHM-002-CHEMICAL-PROCESS"
+        },
+        {
+          "code": "2024-S3-04",
+          "title": "Mechanical Unit Operations",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 4,
+          "course": "CHM-003-MECHANICAL-UNIT-"
+        },
+        {
+          "code": "2024-S3-05",
+          "title": "Mechanical Unit Operations Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 5,
+          "course": "CHM-004-MECHANICAL-UNIT-"
+        },
+        {
+          "code": "2024-S3-06",
+          "title": "Fluid Mechanics",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 6,
+          "course": "UG-FLUID-MECHANICS"
+        },
+        {
+          "code": "2024-S3-07",
+          "title": "Fluid Mechanics Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 7,
+          "course": "UG-FLUID-MECHANICS-LABORATORY"
+        },
+        {
+          "code": "CSSI",
+          "title": "Civic and Social Service Internship",
+          "component_type": "INTERNSHIP",
+          "is_elective": false,
+          "source_scope": "ANY",
+          "scope_label": "Approved NGO / social organisation",
+          "credits": 1,
+          "sequence": 101
+        }
+      ],
+      "total_credits": 20.0
+    },
+    {
+      "number": 4,
+      "components": [
+        {
+          "code": "2024-S4-01",
+          "title": "Chemical Engineering Industry 4.0",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 1,
+          "course": "CHM-005-CHEMICAL-ENGINEE"
+        },
+        {
+          "code": "2024-S4-02",
+          "title": "Chemical Engineering Industry 4.0 Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 2,
+          "course": "CHM-006-CHEMICAL-ENGINEE"
+        },
+        {
+          "code": "2024-S4-03",
+          "title": "Introduction to Numerical Methods for Chemical Engineers",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 3,
+          "course": "CHM-007-INTRODUCTION-TO-"
+        },
+        {
+          "code": "IO",
+          "title": "Industrial Orientation",
+          "component_type": "INTERNSHIP",
+          "is_elective": false,
+          "source_scope": "ANY",
+          "scope_label": "3 weeks, distributed across Semesters IV and V",
+          "credits": 0,
+          "sequence": 101
+        },
+        {
+          "code": "OE1",
+          "title": "Open Elective 1 (Inter-School)",
+          "component_type": "OPEN_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "OTHER_SCHOOL",
+          "scope_label": "Inter-School",
+          "credits": 3,
+          "sequence": 102,
+          "eligibility": {
+            "eligible_schools": [
+              "SoT",
+              "SLS",
+              "SoM",
+              "SoL"
+            ],
+            "exclude_own_department": true,
+            "rule_source": "B.Tech. Electrical Engineering course structure: the open elective basket is announced by the other departments of the School of Technology and the other schools of the university; the offering department's own students are excluded."
+          }
+        }
+      ],
+      "total_credits": 10.0
+    },
+    {
+      "number": 5,
+      "components": [
+        {
+          "code": "2024-S5-01",
+          "title": "Process Equipment Design",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 1,
+          "course": "CHM-008-PROCESS-EQUIPMEN"
+        },
+        {
+          "code": "2024-S5-02",
+          "title": "Process Equipment Design Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 2,
+          "course": "CHM-009-PROCESS-EQUIPMEN"
+        },
+        {
+          "code": "OE2-MOOC",
+          "title": "Open Elective 2 (NPTEL / SWAYAM / MOOC)",
+          "component_type": "MOOC",
+          "is_elective": true,
+          "source_scope": "EXTERNAL_PLATFORM",
+          "scope_label": "NPTEL / SWAYAM / MOOC certified course",
+          "credits": 3,
+          "sequence": 101
+        },
+        {
+          "code": "PE1",
+          "title": "Program Elective 1",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 102
+        }
+      ],
+      "total_credits": 10.0
+    },
+    {
+      "number": 6,
+      "components": [
+        {
+          "code": "OE3",
+          "title": "Open Elective 3 (Inter-department, FoET)",
+          "component_type": "OPEN_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "OTHER_DEPARTMENT_FOET",
+          "scope_label": "Inter-department, FoET",
+          "credits": 3,
+          "sequence": 101,
+          "eligibility": {
+            "eligible_schools": [
+              "SoT",
+              "SoET"
+            ],
+            "exclude_own_department": true,
+            "rule_source": "B.Tech. Electrical Engineering course structure: the open elective basket is announced by the other departments of the School of Technology and the other schools of the university; the offering department's own students are excluded."
+          }
+        },
+        {
+          "code": "PE2",
+          "title": "Program Elective 2",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 102,
+          "options": [
+            {
+              "course": "CHM-010-PIPING-DESIGN",
+              "title": "Piping Design"
+            },
+            {
+              "course": "CHM-011-CORROSION-ENGINE",
+              "title": "Corrosion Engineering"
+            },
+            {
+              "course": "CHM-012-MATERIAL-SCIENCE",
+              "title": "Material Science & Engineering"
+            }
+          ]
+        },
+        {
+          "code": "PE3",
+          "title": "Program Elective 3",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 103,
+          "options": [
+            {
+              "course": "CHM-013-NANO-TECHNOLOGY-",
+              "title": "Nano Technology & Energy Storage"
+            },
+            {
+              "course": "CHM-014-MEMBRANE-PROCESS",
+              "title": "Membrane Processes"
+            }
+          ]
+        }
+      ],
+      "total_credits": 9.0
+    },
+    {
+      "number": 7,
+      "components": [
+        {
+          "code": "2024-S7-01",
+          "title": "Process Modelling and Optimization",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 1,
+          "course": "CHM-015-PROCESS-MODELLIN"
+        },
+        {
+          "code": "2024-S7-02",
+          "title": "Process Modelling and Optimization Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 2,
+          "course": "CHM-016-PROCESS-MODELLIN"
+        },
+        {
+          "code": "2024-S7-03",
+          "title": "Computer Aided Process Design",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 3,
+          "course": "CHM-017-COMPUTER-AIDED-P"
+        },
+        {
+          "code": "2024-S7-04",
+          "title": "Computer Aided Process Design Lab",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 4,
+          "course": "CHM-018-COMPUTER-AIDED-P"
+        },
+        {
+          "code": "2024-S7-05",
+          "title": "Transport Phenomenon",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 5,
+          "course": "CHM-019-TRANSPORT-PHENOM"
+        },
+        {
+          "code": "SI",
+          "title": "Summer Internship",
+          "component_type": "INTERNSHIP",
+          "is_elective": false,
+          "source_scope": "ANY",
+          "scope_label": "Industry / R&D host organisation",
+          "credits": 2,
+          "sequence": 101
+        },
+        {
+          "code": "OE4",
+          "title": "Open Elective 4 (Inter-department, FoET)",
+          "component_type": "OPEN_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "OTHER_DEPARTMENT_FOET",
+          "scope_label": "Inter-department, FoET",
+          "credits": 3,
+          "sequence": 102,
+          "eligibility": {
+            "eligible_schools": [
+              "SoT",
+              "SoET"
+            ],
+            "exclude_own_department": true,
+            "rule_source": "B.Tech. Electrical Engineering course structure: the open elective basket is announced by the other departments of the School of Technology and the other schools of the university; the offering department's own students are excluded."
+          }
+        },
+        {
+          "code": "PE4",
+          "title": "Program Elective 4",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 103,
+          "note": "The official structure labels this slot 'Program Elective 3' a second time (Sem VII). Imported as PE4; the duplicate numbering is a source conflict awaiting faculty confirmation.",
+          "confidence": "REQUIRES_FACULTY_CONFIRMATION",
+          "options": [
+            {
+              "course": "CHM-020-POLYMER-SCIENCE-",
+              "title": "Polymer Science & Technology"
+            },
+            {
+              "course": "CHM-021-ENERGY-CONVERSIO",
+              "title": "Energy Conversion Device Engineering"
+            },
+            {
+              "course": "CHM-022-PHARMACEUTICALS-",
+              "title": "Pharmaceuticals Technology"
+            }
+          ]
+        },
+        {
+          "code": "PE5",
+          "title": "Program Elective 5",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 104,
+          "options": [
+            {
+              "course": "CHM-023-PROCESS-PLANT-SA",
+              "title": "Process Plant Safety, Health, and Hygiene"
+            },
+            {
+              "course": "UG-PROJECT-MANAGEMENT",
+              "title": "Project Management"
+            },
+            {
+              "course": "CHM-024-PLANT-DESIGN-PRO",
+              "title": "Plant Design & Process Economics"
+            }
+          ]
+        },
+        {
+          "code": "SEM",
+          "title": "Seminar",
+          "component_type": "PROJECT",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": "Department seminar",
+          "credits": 0,
+          "sequence": 105
+        }
+      ],
+      "total_credits": 23.0
+    },
+    {
+      "number": 8,
+      "components": [
+        {
+          "code": "MP",
+          "title": "Major / Comprehensive Project",
+          "component_type": "PROJECT",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": "Department- or industry-supervised project",
+          "credits": 13,
+          "sequence": 101
+        }
+      ],
+      "total_credits": 13.0
+    }
+  ]
+}

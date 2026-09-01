@@ -1,0 +1,1161 @@
+<title>Phase 3B Curriculum Expansion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+
+<style>
+  :root {
+    --paper:      #FBFCFD;
+    --surface:    #F1F4F7;
+    --surface-2:  #E7ECF1;
+    --line:       #D8E0E8;
+    --line-soft:  #E7ECF1;
+    --ink:        #0F151C;
+    --ink-muted:  #4A5866;
+    --ink-faint:  #6E7C8A;
+    --accent:     #31577F;
+    --accent-ink: #FFFFFF;
+    --accent-soft:#E3EAF2;
+    --pass:       #1F6F4A;
+    --pass-soft:  #E0EFE7;
+    --config:     #8A5A0B;
+    --config-soft:#F6ECD9;
+    --limit:      #9A4530;
+    --limit-soft: #F7E7E2;
+    --shadow:     0 1px 2px rgba(15,21,28,.05), 0 8px 24px -16px rgba(15,21,28,.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #0E1319;
+      --surface:    #161D25;
+      --surface-2:  #1E2831;
+      --line:       #2A3641;
+      --line-soft:  #202A34;
+      --ink:        #E8EEF4;
+      --ink-muted:  #A3B1BF;
+      --ink-faint:  #7C8B99;
+      --accent:     #8FB4DC;
+      --accent-ink: #0E1319;
+      --accent-soft:#1C2B3B;
+      --pass:       #6FCB9F;
+      --pass-soft:  #14291F;
+      --config:     #E0B368;
+      --config-soft:#2A2113;
+      --limit:      #E39481;
+      --limit-soft: #2C1A16;
+      --shadow:     0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:      #0E1319;
+    --surface:    #161D25;
+    --surface-2:  #1E2831;
+    --line:       #2A3641;
+    --line-soft:  #202A34;
+    --ink:        #E8EEF4;
+    --ink-muted:  #A3B1BF;
+    --ink-faint:  #7C8B99;
+    --accent:     #8FB4DC;
+    --accent-ink: #0E1319;
+    --accent-soft:#1C2B3B;
+    --pass:       #6FCB9F;
+    --pass-soft:  #14291F;
+    --config:     #E0B368;
+    --config-soft:#2A2113;
+    --limit:      #E39481;
+    --limit-soft: #2C1A16;
+    --shadow:     0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.6);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, .ui { font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace; }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0 56px;
+  }
+  @media (min-width: 1040px) {
+    .wrap { grid-template-columns: 208px minmax(0, 1fr); }
+  }
+
+  /* ── masthead ───────────────────────────────────────────── */
+  header.masthead {
+    grid-column: 1 / -1;
+    border-bottom: 1px solid var(--line);
+    padding: 72px 0 36px;
+    margin-bottom: 44px;
+  }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 18px;
+  }
+  h1 {
+    font-size: clamp(34px, 5.4vw, 54px);
+    line-height: 1.05;
+    letter-spacing: -.022em;
+    font-weight: 700;
+    margin: 0 0 20px;
+    text-wrap: balance;
+  }
+  .standfirst {
+    font-size: clamp(18px, 2.1vw, 21px);
+    line-height: 1.5;
+    color: var(--ink-muted);
+    max-width: 62ch;
+    margin: 0;
+  }
+
+  /* ── metrics ────────────────────────────────────────────── */
+  .metrics {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 52px;
+  }
+  .metric { background: var(--surface); padding: 20px 22px; }
+  .metric dt {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 8px;
+  }
+  .metric dd {
+    margin: 0;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 30px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .metric dd small {
+    display: block;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--ink-faint);
+    margin-top: 7px;
+  }
+  .metric.is-pass dd { color: var(--pass); }
+
+  /* ── contents rail ──────────────────────────────────────── */
+  nav.toc { display: none; }
+  @media (min-width: 1040px) {
+    nav.toc {
+      display: block;
+      grid-column: 1;
+      align-self: start;
+      position: sticky;
+      top: 32px;
+    }
+    nav.toc h2 {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      margin: 0 0 14px;
+    }
+    nav.toc ol { list-style: none; margin: 0; padding: 0; counter-reset: toc; }
+    nav.toc li { counter-increment: toc; margin-bottom: 3px; }
+    nav.toc a {
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      gap: 8px;
+      padding: 6px 8px 6px 0;
+      font-family: "IBM Plex Sans", sans-serif;
+      font-size: 13.5px;
+      line-height: 1.35;
+      color: var(--ink-muted);
+      text-decoration: none;
+      border-radius: 3px;
+    }
+    nav.toc a::before {
+      content: counter(toc, decimal-leading-zero);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      color: var(--ink-faint);
+      padding-top: 2px;
+    }
+    nav.toc a:hover { color: var(--ink); background: var(--surface); }
+    nav.toc a:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  }
+
+  /* ── body ───────────────────────────────────────────────── */
+  main { grid-column: 1 / -1; min-width: 0; }
+  @media (min-width: 1040px) { main { grid-column: 2; } }
+
+  section { margin-bottom: 60px; scroll-margin-top: 24px; }
+
+  h2 {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .085em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 6px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  h2 .num {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    color: var(--accent);
+  }
+  h2 + .h2-title {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: clamp(23px, 2.9vw, 29px);
+    font-weight: 600;
+    letter-spacing: -.018em;
+    line-height: 1.2;
+    margin: 0 0 18px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+    text-wrap: balance;
+  }
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -.005em;
+    margin: 32px 0 12px;
+  }
+  p { margin: 0 0 16px; max-width: 68ch; }
+  main > section > p:last-child { margin-bottom: 0; }
+
+  a { color: var(--accent); }
+
+  code {
+    font-size: .845em;
+    background: var(--surface-2);
+    padding: .12em .38em;
+    border-radius: 3px;
+    color: var(--ink);
+    word-break: break-word;
+  }
+
+  /* ── tables ─────────────────────────────────────────────── */
+  .scroll {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    margin: 0 0 20px;
+    background: var(--surface);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  th, td {
+    text-align: left;
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: top;
+  }
+  th {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    background: var(--surface-2);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td code { background: transparent; padding: 0; color: var(--ink-muted); }
+  tr.total td { font-weight: 600; background: var(--surface-2); }
+
+  /* ── chips ──────────────────────────────────────────────── */
+  .chip {
+    display: inline-block;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .chip.pass   { background: var(--pass-soft);   color: var(--pass); }
+  .chip.config { background: var(--config-soft); color: var(--config); }
+  .chip.limit  { background: var(--limit-soft);  color: var(--limit); }
+  .chip.new    { background: var(--accent-soft); color: var(--accent); }
+
+  /* ── callout ────────────────────────────────────────────── */
+  .note {
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+    padding: 16px 20px;
+    border-radius: 0 4px 4px 0;
+    margin: 0 0 22px;
+    font-size: 16px;
+  }
+  .note p { margin: 0; max-width: none; }
+  .note p + p { margin-top: 10px; }
+  .note.security { border-left-color: var(--limit); }
+  .note strong { font-family: "IBM Plex Sans", sans-serif; font-weight: 600; }
+
+  /* ── file lists ─────────────────────────────────────────── */
+  .paths {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    line-height: 2;
+    color: var(--ink-muted);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 14px 18px;
+    margin: 0 0 20px;
+    overflow-x: auto;
+  }
+  .paths span { white-space: nowrap; }
+  .paths span::after { content: " · "; color: var(--ink-faint); }
+  .paths span:last-child::after { content: ""; }
+
+  /* ── numbered limitation list ───────────────────────────── */
+  ol.limits { list-style: none; counter-reset: lim; margin: 0; padding: 0; }
+  ol.limits li {
+    counter-increment: lim;
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line-soft);
+    max-width: 72ch;
+  }
+  ol.limits li:last-child { border-bottom: 0; }
+  ol.limits li::before {
+    content: counter(lim, decimal-leading-zero);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: var(--ink-faint);
+    padding-top: 4px;
+  }
+  ol.limits b {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-weight: 600;
+    font-size: 15.5px;
+    display: block;
+    margin-bottom: 3px;
+  }
+  ol.limits div { font-size: 15.5px; color: var(--ink-muted); }
+
+  footer {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--line);
+    padding-top: 22px;
+    margin-top: 8px;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 13px;
+    color: var(--ink-faint);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
+  html { scroll-behavior: smooth; }
+</style>
+<style>
+  /* ── cited source ───────────────────────────────────────── */
+  /* Curriculum data is university policy data. Every rule on this page that
+     came from a document shows the document. */
+  .source {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 12px;
+    align-items: baseline;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--pass);
+    border-radius: 0 4px 4px 0;
+    padding: 13px 18px;
+    margin: 0 0 20px;
+  }
+  .source.is-partial { border-left-color: var(--config); }
+  .source.is-absent  { border-left-color: var(--limit); }
+  .source dt {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+  .source dd {
+    margin: 0;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+    min-width: 0;
+  }
+  .source dd a { word-break: break-word; }
+  .source blockquote {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--ink-muted);
+  }
+
+  /* ── batch windows ──────────────────────────────────────── */
+  /* The bars encode the actual rule: which admission years a version governs.
+     Two versions of one programme never overlap. */
+  .windows {
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--surface);
+    padding: 16px 18px 12px;
+    margin: 0 0 22px;
+    overflow-x: auto;
+  }
+  .windows table { min-width: 520px; }
+  .windows th, .windows td { border: 0; padding: 5px 10px 5px 0; background: none; }
+  .windows th { font-size: 10.5px; }
+  .wname {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .bar {
+    display: block;
+    height: 22px;
+    border-radius: 3px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 20px;
+    padding: 0 9px;
+    white-space: nowrap;
+  }
+  .bar.is-draft {
+    background: var(--config-soft);
+    border-color: var(--config);
+    color: var(--config);
+    border-style: dashed;
+  }
+
+  /* ── correction list ────────────────────────────────────── */
+  /* Struck text is a factual claim the research disproved, not decoration. */
+  .fix { margin: 0 0 20px; padding: 0; list-style: none; }
+  .fix li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--line-soft);
+    max-width: 74ch;
+  }
+  .fix li:last-child { border-bottom: 0; }
+  .fix s { color: var(--ink-faint); text-decoration-thickness: 1px; }
+  .fix b {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-weight: 600;
+    font-size: 15.5px;
+    display: block;
+    margin-bottom: 3px;
+  }
+  .fix div { font-size: 15.5px; color: var(--ink-muted); }
+
+  .lede {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 15px;
+    color: var(--ink-muted);
+    max-width: 70ch;
+    margin: 0 0 18px;
+  }
+  ul.plain { margin: 0 0 18px; padding-left: 20px; }
+  ul.plain li { margin-bottom: 8px; max-width: 70ch; }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">CampusHub · PDEU Centralised Student Portal</p>
+    <h1>Phase 3B Implementation Report</h1>
+    <p class="standfirst">
+      The portal was already curriculum-driven &mdash; for one programme. Phase 3B made
+      that architecture carry ten verified B.Tech programmes across two schools,
+      without letting any of them inherit ICT&rsquo;s shape by default.
+    </p>
+  </header>
+
+  <dl class="metrics">
+    <div class="metric"><dt>Programmes</dt><dd>10<small>verified, from 11 admitting</small></dd></div>
+    <div class="metric"><dt>Curriculum versions</dt><dd>12<small>11 published · 1 draft</small></dd></div>
+    <div class="metric"><dt>Components</dt><dd>659<small>across all versions</small></dd></div>
+    <div class="metric"><dt>Courses</dt><dd>526<small>60 shared, not duplicated</small></dd></div>
+    <div class="metric is-pass"><dt>Tests</dt><dd>296<small>185 before · 111 added</small></dd></div>
+    <div class="metric"><dt>Flagged</dt><dd>6<small>await faculty confirmation</small></dd></div>
+  </dl>
+
+  <nav class="toc" aria-label="Contents">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#programmes">Programmes researched</a></li>
+      <li><a href="#sources">Official sources</a></li>
+      <li><a href="#versions">Curriculum versions</a></li>
+      <li><a href="#courses">Courses imported</a></li>
+      <li><a href="#electives">Elective rules</a></li>
+      <li><a href="#mooc">NPTEL / MOOC</a></li>
+      <li><a href="#internships">Internships</a></li>
+      <li><a href="#minors">Minor Specialisation</a></li>
+      <li><a href="#uncertain">Uncertain items</a></li>
+      <li><a href="#database">Database changes</a></li>
+      <li><a href="#api">API changes</a></li>
+      <li><a href="#frontend">Frontend changes</a></li>
+      <li><a href="#tests">Tests added</a></li>
+      <li><a href="#regression">Regression</a></li>
+      <li><a href="#limits">Limitations</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <!-- 1 ─────────────────────────────────────────────────── -->
+    <section id="programmes">
+      <h2><span class="num">01</span> Research</h2>
+      <p class="h2-title">Ten programmes, verified &mdash; and three the brief got wrong</p>
+
+      <p>
+        The programme list was taken from the university&rsquo;s own course-catalogue
+        payload rather than a static page that may be stale, then reconciled against the
+        <em>B.Tech. Admission Rules A.Y. 2026&ndash;27</em> seat matrix. The seat totals
+        agree: 1,440.
+      </p>
+
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr><th>School</th><th>Programme</th><th class="num">Seats</th><th>Curriculum</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>SoT</td><td>Information &amp; Communication Technology</td><td class="num">180</td><td><span class="chip pass">confirmed</span></td></tr>
+            <tr><td>SoT</td><td>Computer Engineering</td><td class="num">300</td><td><span class="chip pass">confirmed</span></td></tr>
+            <tr><td>SoT</td><td>Computer Science &amp; Business Systems</td><td class="num">60</td><td><span class="chip pass">confirmed</span></td></tr>
+            <tr><td>SoT</td><td>Electronics &amp; Communication Engineering</td><td class="num">120</td><td><span class="chip pass">confirmed &times;2</span></td></tr>
+            <tr><td>SoT</td><td>Mechanical Engineering</td><td class="num">120</td><td><span class="chip pass">confirmed</span></td></tr>
+            <tr><td>SoT</td><td>Civil Engineering</td><td class="num">120</td><td><span class="chip pass">confirmed</span></td></tr>
+            <tr><td>SoET</td><td>Chemical Engineering</td><td class="num">120</td><td><span class="chip pass">confirmed</span></td></tr>
+            <tr><td>SoET</td><td>Electrical Engineering</td><td class="num">120</td><td><span class="chip pass">confirmed</span></td></tr>
+            <tr><td>SoET</td><td>Petroleum Engineering</td><td class="num">120</td><td><span class="chip pass">confirmed</span></td></tr>
+            <tr><td>SoET</td><td>Biotechnology</td><td class="num">120</td><td><span class="chip config">partial &mdash; Sem I&ndash;II</span></td></tr>
+            <tr><td>&mdash;</td><td>Climate Science &amp; Sustainable Engineering</td><td class="num">60</td><td><span class="chip limit">no curriculum &mdash; not created</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Corrections the research forced</h3>
+      <p class="lede">
+        Building the brief&rsquo;s programme list verbatim would have created programmes
+        PDEU does not run.
+      </p>
+      <ul class="fix">
+        <li>
+          <span class="chip limit">not a programme</span>
+          <div>
+            <b><s>B.Tech Computer Science &amp; Engineering</s></b>
+            CSE is the <em>department</em>. The programme it runs is
+            <strong>Computer Engineering</strong>. The same department also runs
+            <strong>CSBS</strong>, which the brief did not list and whose structure
+            differs materially.
+          </div>
+        </li>
+        <li>
+          <span class="chip limit">not offered</span>
+          <div>
+            <b><s>B.Tech Automobile Engineering</s></b>
+            Zero occurrences in the current admission policy. It survives only as
+            <code>24ME437T</code>, a Program Elective 5 option inside Mechanical
+            Engineering.
+          </div>
+        </li>
+        <li>
+          <span class="chip config">wrong school</span>
+          <div>
+            <b>Electrical and Chemical are School of Energy Technology</b>
+            Not School of Technology &mdash; which matters, because Open Elective
+            eligibility is written in schools. Two further SoET programmes the brief
+            omitted (Petroleum, Biotechnology) were added.
+          </div>
+        </li>
+      </ul>
+
+      <div class="note">
+        <p>
+          The pre-existing seed&rsquo;s <code>B.TECH-CSE &mdash; &ldquo;B.Tech in Computer
+          Science and Engineering&rdquo;</code> was therefore not a real PDEU programme
+          name. It has been replaced rather than carried forward.
+        </p>
+      </div>
+    </section>
+
+    <!-- 2 ─────────────────────────────────────────────────── -->
+    <section id="sources">
+      <h2><span class="num">02</span> Provenance</h2>
+      <p class="h2-title">Every rule on this page cites the document it came from</p>
+
+      <p>
+        Retrieval was restricted to university-controlled hosts &mdash;
+        <code>pdeu.ac.in</code>, <code>api.pdeu.ac.in</code>. No third-party college
+        aggregator was used as a source of truth. Each imported version stores its URL,
+        title, retrieval date and a confidence grade, and the portal shows them.
+      </p>
+
+      <dl class="source">
+        <dt>Policy</dt>
+        <dd>
+          <a href="https://api.pdeu.ac.in/pdpu/resources/btech-academic-rules-2024.pdf">B.Tech. Academic Rules (batch 2024 onward)</a>
+          &mdash; internships &sect;8, Minor Specialisation Annexure II
+        </dd>
+        <dt>Admissions</dt>
+        <dd>
+          <a href="https://api.pdeu.ac.in/pdpu/resources/btech-admission-policy.pdf">B.Tech. Admission Rules A.Y. 2026&ndash;27</a>
+          &mdash; programme list, seat matrix
+        </dd>
+        <dt>Curricula</dt>
+        <dd>
+          Eleven course-structure and syllabus documents, one per version, all under
+          <code>api.pdeu.ac.in/pdpu/resources/</code>
+        </dd>
+        <dt>Retrieved</dt>
+        <dd>28 August 2026 &nbsp;<span class="chip pass">confirmed official source</span></dd>
+      </dl>
+    </section>
+
+    <!-- 3 ─────────────────────────────────────────────────── -->
+    <section id="versions">
+      <h2><span class="num">03</span> Versioning</h2>
+      <p class="h2-title">The admission batch is part of the key</p>
+
+      <p>
+        ECE has two published curricula, and they are <em>not</em> revisions of one
+        another. Two ECE students in the same lecture hall can therefore be governed by
+        different rules &mdash; which is why resolution goes through the batch window
+        rather than through department and semester.
+      </p>
+
+      <div class="windows">
+        <table>
+          <thead>
+            <tr><th>Version</th><th>2020</th><th>2022</th><th>2024</th><th>2026&rarr;</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="wname">ECE 2020-24</td>
+              <td colspan="2"><span class="bar">governs 2020&ndash;2023 batches</span></td>
+              <td colspan="2"></td>
+            </tr>
+            <tr>
+              <td class="wname">ECE 2024-28</td>
+              <td colspan="2"></td>
+              <td colspan="2"><span class="bar">governs 2024 batch onward</span></td>
+            </tr>
+            <tr>
+              <td class="wname">ICT 2022-R1</td>
+              <td colspan="2"><span class="bar">2021&ndash;2023 &middot; 611 students</span></td>
+              <td colspan="2"></td>
+            </tr>
+            <tr>
+              <td class="wname">ICT 2024-28</td>
+              <td colspan="2"></td>
+              <td colspan="2"><span class="bar">2024 onward &middot; 405 students</span></td>
+            </tr>
+            <tr>
+              <td class="wname">Biotechnology 2023</td>
+              <td colspan="4"><span class="bar is-draft">draft &mdash; source covers Sem I&ndash;II only &middot; 0 students</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>What actually differs between the two ECE structures:</p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th></th><th>ECE 2020&ndash;24</th><th>ECE 2024&ndash;28</th></tr></thead>
+          <tbody>
+            <tr><td>Open Electives</td><td>Sem <strong>III, IV, V, VI</strong></td><td>Sem <strong>IV, V, VI, VII</strong></td></tr>
+            <tr><td>MOOC / NPTEL slot</td><td><span class="chip limit">none</span></td><td>OE-2, Sem V</td></tr>
+            <tr><td>Elective family</td><td>Core Elective &times;7</td><td>Program Elective &times;5</td></tr>
+            <tr><td>CSSI</td><td><span class="chip limit">absent</span></td><td>Sem III</td></tr>
+            <tr><td>Final internship</td><td>Industrial Training, Sem VI</td><td>Summer Internship, Sem VII</td></tr>
+            <tr><td>Final project</td><td>10 credits</td><td>12 credits</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <p>
+          <strong>The existing ICT cohort was not disturbed.</strong> Its Phase 1
+          curriculum was given a bounded window (2021&ndash;2023) rather than being
+          overwritten, so the 814-student seed keeps working while the 2024 and 2025 ICT
+          batches move onto the official 2024&ndash;28 structure.
+        </p>
+      </div>
+    </section>
+
+    <!-- 4 ─────────────────────────────────────────────────── -->
+    <section id="courses">
+      <h2><span class="num">04</span> Catalogue</h2>
+      <p class="h2-title">454 courses imported, 60 of them shared</p>
+
+      <p>
+        Mathematics&nbsp;1, Environment Science and Engineering Graphics are studied by
+        most programmes. They are one row each, not one row per department: a shared
+        course has no owning department and is marked <code>is_shared</code>. Every course
+        carries its code, credits, L&ndash;T&ndash;P split, category, and a
+        theory / practical / project classification.
+      </p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Component type</th><th class="num">Count</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Core</td><td class="num">511</td><td>full semester structures</td></tr>
+            <tr><td>Program / Core Elective</td><td class="num">57</td><td>with option lists and specialisation tracks</td></tr>
+            <tr><td>Open Elective</td><td class="num">35</td><td>carrying school-level eligibility rules</td></tr>
+            <tr><td>Internship</td><td class="num">27</td><td>CSSI, Rural, Industrial Training, Summer, Orientation</td></tr>
+            <tr><td>Project</td><td class="num">20</td><td>Seminar, Mini Project, Major / Comprehensive</td></tr>
+            <tr><td>MOOC</td><td class="num">9</td><td>NPTEL / SWAYAM</td></tr>
+            <tr class="total"><td>Total</td><td class="num">659</td><td>across 12 curriculum versions</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        Researched curricula live as reviewable JSON under
+        <code>backend/curriculum/&lt;programme&gt;/&lt;version&gt;.json</code>, with the
+        shared catalogue in <code>courses.json</code>.
+      </p>
+    </section>
+
+    <!-- 5 ─────────────────────────────────────────────────── -->
+    <section id="electives">
+      <h2><span class="num">05</span> Electives</h2>
+      <p class="h2-title">Programmes differ, and the differences are the point</p>
+
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr><th>Programme</th><th>OE1</th><th>MOOC</th><th>OE3</th><th>OE4</th><th>Program Electives</th><th>Project</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>ICT 2024-28</td><td>IV</td><td>V</td><td>VI</td><td>VII</td><td>1&nbsp;V · 2,3&nbsp;VI · 4,5&nbsp;VII</td><td>VIII (12)</td></tr>
+            <tr><td>Computer Engg</td><td>IV</td><td>V</td><td>VI</td><td>VII</td><td>1&nbsp;V · 2,3&nbsp;VI · 4,5&nbsp;VII</td><td>VIII (12)</td></tr>
+            <tr><td>CSBS</td><td>IV*</td><td>V</td><td>VI*</td><td>VII*</td><td>1&nbsp;V · 2,3&nbsp;VI · 4,5&nbsp;VII</td><td>VIII (12)</td></tr>
+            <tr><td>ECE 2024-28</td><td>IV</td><td>V</td><td>VI</td><td>VII</td><td>1&nbsp;V · 2,3&nbsp;VI · 4,5&nbsp;VII</td><td>VIII (12)</td></tr>
+            <tr><td><strong>ECE 2020-24</strong></td><td><strong>III</strong></td><td><span class="chip limit">none</span></td><td><strong>V</strong></td><td><strong>VI</strong></td><td><strong>CE 1,2&nbsp;V · 3,4&nbsp;VI · 5,6,7&nbsp;VII</strong></td><td>VIII (10)</td></tr>
+            <tr><td>Civil</td><td>IV</td><td>V</td><td>VI</td><td>VII</td><td>1&nbsp;V · 2,3&nbsp;VI · 4,5&nbsp;VII</td><td>VIII (12)</td></tr>
+            <tr><td><strong>Mechanical</strong></td><td>IV</td><td>V</td><td>VI</td><td>VII</td><td><strong>1&nbsp;V · 2&nbsp;VI · 3,4,5&nbsp;VII</strong></td><td>VIII (12)</td></tr>
+            <tr><td>Chemical</td><td>IV</td><td>V</td><td>VI</td><td>VII</td><td>1&nbsp;V · 2,3&nbsp;VI · 4,5&nbsp;VII</td><td>VIII (13)</td></tr>
+            <tr><td>Petroleum</td><td>IV</td><td>V</td><td>VI</td><td>VII</td><td>1&nbsp;V · 2,3&nbsp;VI · 4,5&nbsp;VII</td><td>VIII (12)</td></tr>
+            <tr><td><strong>Electrical 2020-24</strong></td><td><strong>III</strong></td><td><span class="chip limit">none</span></td><td><strong>V</strong></td><td><strong>VI</strong></td><td>1&nbsp;V · 2,3&nbsp;VI · 4,5&nbsp;VII</td><td>VIII (13)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="lede">
+        * CSBS Open Electives are <strong>prescribed named courses</strong> &mdash;
+        Financial Management; Business Communication &amp; Value Science IV; Marketing
+        Research &amp; Marketing Management &mdash; not a cross-school basket. Modelled as
+        <code>selection_mode = DIRECT</code> and flagged.
+      </p>
+
+      <p>
+        Mechanical&rsquo;s <strong>1 / 1 / 3</strong> distribution is pinned by a test,
+        because flattening it into ICT&rsquo;s 1 / 2 / 2 is the most likely future
+        regression.
+      </p>
+
+      <h3>Cross-programme eligibility is a school rule</h3>
+
+      <dl class="source">
+        <dt>Quoted</dt>
+        <dd>
+          <blockquote>
+            &ldquo;This open elective will be offered to the students enrolled in B.Tech.
+            programs of School of Technology <strong>other than Electrical
+            Engineering</strong>.&rdquo; &nbsp;&ldquo;Student of Electrical Engineering
+            will have a choice for one open elective course from the basket of open
+            electives announced by <strong>the other departments of School of Technology /
+            other schools of university</strong>.&rdquo;
+          </blockquote>
+        </dd>
+        <dt>Source</dt>
+        <dd>B.Tech. Electrical Engineering course structure, Semesters III and IV</dd>
+      </dl>
+
+      <p>
+        <code>course.department_id == X</code> cannot express that. A Mechanical course
+        has a different department id from ICT, so a department-only check would wrongly
+        offer it for an ICT &ldquo;From Other School&rdquo; slot &mdash; same school. The
+        rule is stored declaratively instead, and that exact trap is a test.
+      </p>
+
+      <div class="paths">
+        <span>eligible_schools</span><span>eligible_departments</span><span>eligible_programs</span><span>excluded_departments</span><span>excluded_programs</span><span>exclude_own_department</span><span>rule_source</span>
+      </div>
+    </section>
+
+    <!-- 6 ─────────────────────────────────────────────────── -->
+    <section id="mooc">
+      <h2><span class="num">06</span> NPTEL / MOOC</h2>
+      <p class="h2-title">Semester V &mdash; but only because the curriculum says so</p>
+
+      <p>
+        Eight of the eleven curricula place a 3-credit
+        &ldquo;Open Elective 2 (NPTEL / SWAYAM / MOOC)&rdquo; in Semester V. Two have no
+        MOOC component whatsoever, so the brief&rsquo;s warning against assuming Sem V for
+        every programme was well founded.
+      </p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Curricula</th><th>MOOC component</th><th>Semester</th></tr></thead>
+          <tbody>
+            <tr><td>ICT, Computer Engg, CSBS, ECE 2024-28, Civil, Mechanical, Chemical, Petroleum</td><td>Open Elective 2, 3 credits</td><td class="num">V</td></tr>
+            <tr><td><strong>ECE 2020-24, Electrical 2020-24</strong></td><td><span class="chip limit">confirmed absent</span></td><td class="num">&mdash;</td></tr>
+            <tr><td>Biotechnology</td><td><span class="chip config">unknown &mdash; document truncated</span></td><td class="num">&mdash;</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 7 ─────────────────────────────────────────────────── -->
+    <section id="internships">
+      <h2><span class="num">07</span> Internships</h2>
+      <p class="h2-title">One engine, sixteen programmes, no new code paths</p>
+
+      <dl class="source">
+        <dt>Quoted</dt>
+        <dd>
+          <blockquote>
+            &ldquo;<strong>Civic &amp; Social Service Internship (CSSI):</strong> A student
+            is required to undergo 3 weeks &hellip; <strong>at the end of the second
+            semester</strong>.&rdquo; &nbsp;&ldquo;Report submission &amp; Viva examination
+            will be held <strong>at the start of the subsequent odd semester</strong>.&rdquo;
+          </blockquote>
+        </dd>
+        <dt>Source</dt>
+        <dd>B.Tech. Academic Rules (batch 2024 onward), &sect;8</dd>
+      </dl>
+
+      <p>
+        This <em>confirms</em> the existing CSSI window model rather than changing it.
+        <code>HIDDEN &rarr; ANNOUNCED (II) &rarr; ACTIVE (III) &rarr; CONCLUDED</code> is
+        untouched, and is now verified against policy instead of assumed.
+      </p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Programme</th><th>Sem III social internship</th><th>Final internship</th></tr></thead>
+          <tbody>
+            <tr><td>ICT, Computer Engg, CSBS, ECE 2024-28, Civil, Mechanical, Chemical</td><td>CSSI (1 cr)</td><td>Summer Internship, Sem VII</td></tr>
+            <tr><td><strong>Petroleum</strong></td><td><strong>Rural Internship</strong> <code>24INT152T</code></td><td>Summer Internship, Sem VII</td></tr>
+            <tr><td><strong>Biotechnology</strong></td><td><span class="chip config">Sem II &mdash; source conflict</span></td><td><span class="chip config">unknown</span></td></tr>
+            <tr><td><strong>ECE 2020-24, Electrical 2020-24</strong></td><td><span class="chip limit">none</span></td><td><strong>Industrial Training, Sem VI</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        Sixteen internship programmes are now generated <em>from the curricula</em> as
+        configuration &mdash; no department received its own code path. Biotechnology gets
+        none, because its curriculum is a draft.
+      </p>
+
+      <div class="paths">
+        <span>CSSI &times; 6 departments</span><span>Rural Internship &times; 1</span><span>Summer Internship &times; 7</span><span>Industrial Training &times; 2</span>
+      </div>
+
+      <p>Summer Internship keeps the confirmed <strong>25 + 25 + 25 + 25 = 100</strong> rubric.</p>
+    </section>
+
+    <!-- 8 ─────────────────────────────────────────────────── -->
+    <section id="minors">
+      <h2><span class="num">08</span> Minor Specialisation</h2>
+      <p class="h2-title">Every threshold is quoted policy, not an assumption</p>
+
+      <p>
+        Annexure II of the Academic Rules answers every knob the Minor module already
+        exposed. The four illustrative demo minors were replaced by the six PDEU actually
+        offers.
+      </p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Rule</th><th>Official text</th><th>Configured</th></tr></thead>
+          <tbody>
+            <tr><td>Entry semester</td><td>&ldquo;The <strong>III semester</strong> student of any Department of SoT and SoET&rdquo;</td><td><code>eligible_from_semester = 3</code></td></tr>
+            <tr><td>Minimum merit</td><td>&ldquo;minimum <strong>CPI of 7.5</strong> at the end of second semester&rdquo;</td><td><code>min_cpi = 7.5</code></td></tr>
+            <tr><td>Backlogs</td><td>&ldquo;<strong>without any course backlog</strong> pending&rdquo;</td><td><code>max_backlogs = 0</code></td></tr>
+            <tr><td>Seats</td><td>&ldquo;maximum intake of <strong>75 students in a division</strong>&rdquo;</td><td><code>capacity = 75</code></td></tr>
+            <tr><td>Ranking</td><td>&ldquo;as per <strong>merit based on latest CPI</strong> and on pro rata basis&rdquo;</td><td>CPI ranking, cited</td></tr>
+            <tr><td>Credits</td><td>18 additional credits, Sem III&ndash;VII</td><td><code>total_credits = 18</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        The six minors: Computational Data Science (Computer Engineering + Mathematics,
+        jointly), Smart and Sustainable Infrastructure (Civil), Internet of Things (ICT),
+        Robotics (Mechanical), Sustainability Engineering (Chemical), Coastal &amp;
+        Offshore Engineering (Petroleum).
+      </p>
+
+      <div class="note">
+        <p>
+          <strong>CPI appears here and nowhere else.</strong> No source in any of the
+          eleven curricula makes CPI an input to elective allocation. The existing
+          separation is preserved, and re-verified: zero executable CPI references in the
+          elective path.
+        </p>
+      </div>
+    </section>
+
+    <!-- 9 ─────────────────────────────────────────────────── -->
+    <section id="uncertain">
+      <h2><span class="num">09</span> Uncertainty</h2>
+      <p class="h2-title">Eleven things that were flagged instead of guessed</p>
+
+      <p>
+        Six components carry <code>REQUIRES_FACULTY_CONFIRMATION</code>, and
+        <strong>a curriculum version cannot be published while any remain</strong>.
+      </p>
+
+      <ol class="limits">
+        <li><b>Climate Science &amp; Sustainable Engineering</b><div>Admitting 60 students for 2026&ndash;27, but no curriculum published anywhere. The programme was <strong>not created</strong>.</div></li>
+        <li><b>Biotechnology Semesters III&ndash;VIII</b><div>The official structure stops at Semester II. Imported as a draft; reaches no student.</div></li>
+        <li><b>Biotechnology&rsquo;s social internship sits in Semester II</b><div>Unlike every other programme. Recorded from source and flagged as a conflict, not silently moved.</div></li>
+        <li><b>Chemical prints &ldquo;Program Elective 3&rdquo; twice</b><div>Once in Sem VI and again in Sem VII &mdash; almost certainly a typo for PE4. Imported verbatim with a conflict note rather than quietly &ldquo;fixed&rdquo;.</div></li>
+        <li><b>Minor allocation &ldquo;pro rata basis&rdquo;</b><div>The rules never define the pro-rata denominator. CPI ranking implemented; pro-rata left configurable and unset.</div></li>
+        <li><b>Mechanical and Chemical Sem IV Open Elective</b><div>Listed as a named departmental course. Modelled as the department&rsquo;s basket contribution, flagged.</div></li>
+        <li><b>CSBS Open Electives are prescribed</b><div>Not a cross-school basket. <code>DIRECT</code> selection, flagged.</div></li>
+        <li><b>Electrical has no published 2024&ndash;28 structure</b><div>Only 2020&ndash;24 exists on the university host. <strong>No 2024 curriculum was invented.</strong></div></li>
+        <li><b>Division counts</b><div>No official source states them. Derived from seat intake, labelled <code>DERIVED_FROM_INTAKE</code>, and editable.</div></li>
+        <li><b>Open Elective 40-minimum and 75-per-section</b><div>Departmental, not public. Left <strong>entirely unchanged</strong>.</div></li>
+        <li><b>The pre-existing ICT 2022-R1 curriculum</b><div>Has no public document. Retained for its cohort, flagged with review notes explaining why.</div></li>
+      </ol>
+    </section>
+
+    <!-- 10 ────────────────────────────────────────────────── -->
+    <section id="database">
+      <h2><span class="num">10</span> Database</h2>
+      <p class="h2-title">Migration 0007 &mdash; additive, so ICT keeps working</p>
+
+      <p>
+        Existing rows backfill to <code>PUBLISHED</code> with an open-ended batch window,
+        so nothing that worked before behaves differently after.
+      </p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Table</th><th>Added</th></tr></thead>
+          <tbody>
+            <tr><td><code>curriculums</code></td><td><code>effective_to_year</code>, <code>status</code>, <code>published_at</code>, <code>published_by_user_id</code>, and source traceability: <code>source_url</code>, <code>source_title</code>, <code>source_publisher</code>, <code>source_date</code>, <code>retrieved_at</code>, <code>academic_year_label</code>, <code>source_confidence</code>, <code>verified_by_user_id</code>, <code>verified_at</code>, <code>review_notes</code></td></tr>
+            <tr><td><code>curriculum_components</code></td><td><code>course_id</code>, <code>selection_mode</code>, <code>eligibility</code>, <code>source_confidence</code>, <code>source_note</code></td></tr>
+            <tr><td><code>courses</code></td><td><code>category</code>, <code>delivery_mode</code>, <code>is_shared</code></td></tr>
+            <tr><td><code>programs</code></td><td><code>short_name</code></td></tr>
+            <tr><td><code>program_divisions</code> <span class="chip new">new</span></td><td>programme &times; admission batch &times; division, with capacity and notes</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        New enums: <code>CurriculumStatus</code>, <code>SourceConfidence</code>,
+        <code>CourseCategory</code>, <code>DeliveryMode</code>.
+      </p>
+    </section>
+
+    <!-- 11 ────────────────────────────────────────────────── -->
+    <section id="api">
+      <h2><span class="num">11</span> API</h2>
+      <p class="h2-title">A publication lifecycle with real refusals</p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Route</th><th>Behaviour</th></tr></thead>
+          <tbody>
+            <tr><td><code>GET /curriculum</code></td><td>status, batch label, source provenance, flagged count</td></tr>
+            <tr><td><code>GET /curriculum/me</code></td><td>resolves through the <strong>batch window</strong>, published versions only</td></tr>
+            <tr><td><code>GET /curriculum/programs/{id}/divisions</code></td><td>divisions by batch, with student counts</td></tr>
+            <tr><td><code>POST /curriculum/versions</code></td><td>create a version &mdash; always begins as a draft</td></tr>
+            <tr><td><code>POST /curriculum/{id}/revise</code></td><td>copy into a new draft; <strong>closes the previous batch window</strong> so the two never overlap</td></tr>
+            <tr><td><code>POST /curriculum/{id}/publish</code></td><td><span class="chip config">refused</span> while any component needs faculty confirmation</td></tr>
+            <tr><td><code>POST /curriculum/{id}/unpublish</code></td><td><span class="chip config">refused</span> while students are governed by it</td></tr>
+            <tr><td><code>POST /curriculum/{id}/archive</code></td><td><span class="chip config">refused</span> while students are governed by it</td></tr>
+            <tr><td><code>POST /curriculum/{id}/components</code></td><td><span class="chip config">refused</span> on a published version &mdash; revise instead</td></tr>
+            <tr><td><code>POST /curriculum/components/{id}/confirm</code></td><td>clear a flag &mdash; deliberate, audited, by a named person</td></tr>
+            <tr><td><code>DELETE /curriculum/divisions/{id}</code></td><td><span class="chip config">refused</span> while students are assigned to it</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        All management routes require <code>academics:manage</code>; every mutation writes
+        an audit row. Verified live: publishing a flagged draft, unpublishing a live
+        version, archiving a governed version and editing a published curriculum are all
+        refused with an explanation, while <em>revise &rarr; publish</em> succeeds.
+      </p>
+    </section>
+
+    <!-- 12 ────────────────────────────────────────────────── -->
+    <section id="frontend">
+      <h2><span class="num">12</span> Frontend</h2>
+      <p class="h2-title">The tenth programme needed no frontend change at all</p>
+
+      <ul class="plain">
+        <li>
+          <strong>Curriculum Explorer</strong> &mdash; rewritten: programmes grouped by
+          school, version and batch label, publication status, a source panel linking the
+          official PDF with its confidence grade, per-component eligibility
+          (&ldquo;Open to: SoET, SLS, SoM, SoL&rdquo;), and amber highlighting for
+          components awaiting confirmation.
+        </li>
+        <li>
+          <strong>Curriculum management</strong> <span class="chip new">new</span>
+          &mdash; version table with publish / unpublish / archive, publication blocked
+          while flags remain, provenance per row, and a divisions panel by admission batch.
+        </li>
+        <li>
+          <strong>Types</strong> &mdash; <code>Program</code>,
+          <code>ProgramDivision</code>, <code>CurriculumSource</code>,
+          <code>CurriculumStatus</code>; <code>Curriculum</code> and
+          <code>CurriculumComponent</code> extended.
+        </li>
+      </ul>
+
+      <p>No page needed a per-programme branch. <code>tsc -b</code> clean; the production build succeeds.</p>
+    </section>
+
+    <!-- 13 ────────────────────────────────────────────────── -->
+    <section id="tests">
+      <h2><span class="num">13</span> Tests</h2>
+      <p class="h2-title">111 added, and one real defect found</p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>File</th><th class="num">Tests</th><th>Covers</th></tr></thead>
+          <tbody>
+            <tr><td><code>test_program_curricula.py</code></td><td class="num">62</td><td>every programme asserted against its official document</td></tr>
+            <tr><td><code>test_curriculum_versioning.py</code></td><td class="num">15</td><td>batch resolution, version and cross-programme isolation</td></tr>
+            <tr><td><code>test_curriculum_import.py</code></td><td class="num">15</td><td>import correctness, idempotence, publication gating</td></tr>
+            <tr><td><code>test_divisions_and_scope.py</code></td><td class="num">11</td><td>divisions per batch; school-level elective scope</td></tr>
+            <tr><td><code>test_curriculum_lifecycle.py</code></td><td class="num">8</td><td>published versions refuse edits</td></tr>
+            <tr class="total"><td>Total</td><td class="num">296</td><td>185 pre-existing, all still passing</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <ul class="plain">
+        <li>A 2022 ECE student gets the 2020&ndash;24 structure and a 2024 ECE student the 2024&ndash;28 one &mdash; and the 2022 student <strong>never sees a MOOC component</strong>.</li>
+        <li>An ICT student never receives ECE&rsquo;s curriculum; a programme with no curriculum gets <strong>nothing</strong>, not someone else&rsquo;s.</li>
+        <li>A Mechanical course is <strong>rejected</strong> for an ICT &ldquo;From Other School&rdquo; slot, though a naive department comparison would allow it.</li>
+        <li>Publishing Biotechnology is refused even when explicitly requested.</li>
+        <li>CPI is not consulted anywhere in Open Elective scope &mdash; for a 4.1-CPI student or a 9.8-CPI one.</li>
+      </ul>
+
+      <div class="note security">
+        <p>
+          <strong>One real defect surfaced.</strong> <code>resolve_curriculum</code> fell
+          back to <em>any</em> newest version when a student&rsquo;s batch matched no
+          window &mdash; which could hand a 2024 student a closed 2016&ndash;19 structure.
+          It now falls back only to a version whose window is still open-ended, and returns
+          nothing otherwise.
+        </p>
+      </div>
+    </section>
+
+    <!-- 14 ────────────────────────────────────────────────── -->
+    <section id="regression">
+      <h2><span class="num">14</span> Regression</h2>
+      <p class="h2-title">Every Phase 1 and 2 rule, re-verified after the expansion</p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Rule</th><th>Result</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>Open Elective, 90 students</td><td><code>[75, 15]</code></td><td><span class="chip pass">pass</span></td></tr>
+            <tr><td>Open Elective, 150 students</td><td><code>[75, 75]</code></td><td><span class="chip pass">pass</span></td></tr>
+            <tr><td>Open Elective, 151 students</td><td><code>[75, 75, 1]</code></td><td><span class="chip pass">pass</span></td></tr>
+            <tr><td>Core Elective, 40 combined (10+10+10+10)</td><td>runs as one class</td><td><span class="chip pass">pass</span></td></tr>
+            <tr><td>Core Elective, 39 combined</td><td>does not run</td><td><span class="chip pass">pass</span></td></tr>
+            <tr><td>CSSI semester window</td><td><code>I HIDDEN · II ANNOUNCED · III ACTIVE · IV CONCLUDED</code></td><td><span class="chip pass">pass</span></td></tr>
+            <tr><td>Summer Internship rubric</td><td><code>25 + 25 + 25 + 25 = 100</code></td><td><span class="chip pass">pass</span></td></tr>
+            <tr><td>CPI in elective allocation</td><td>zero executable references</td><td><span class="chip pass">pass</span></td></tr>
+            <tr><td>CPI in Minor eligibility and ranking</td><td>present, and now officially cited</td><td><span class="chip pass">pass</span></td></tr>
+            <tr><td>RBAC module &times; department isolation</td><td>185 pre-existing tests unchanged</td><td><span class="chip pass">pass</span></td></tr>
+            <tr><td>ICT 814-student cohort</td><td>intact, on its own curriculum version</td><td><span class="chip pass">pass</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        Seeded and verified live: ICT 2021&ndash;2023 &rarr; <code>2022-R1</code>
+        (611 students), ICT 2024&ndash;2025 &rarr; <code>2024-28</code> (405);
+        ECE 2022 &rarr; <code>2020-24</code> (41), ECE 2024 &rarr; <code>2024-28</code>
+        (71); Biotechnology draft &rarr; 0 students. Divisions: Computer Engineering
+        A&ndash;D, ICT A&ndash;C, CSBS A.
+      </p>
+    </section>
+
+    <!-- 15 ────────────────────────────────────────────────── -->
+    <section id="limits">
+      <h2><span class="num">15</span> Limitations</h2>
+      <p class="h2-title">What is deliberately missing, and why</p>
+
+      <ol class="limits">
+        <li><b>Biotechnology is incomplete</b><div>Only Semesters I&ndash;II exist publicly. It stays a draft and serves no student until the department supplies the rest.</div></li>
+        <li><b>No Electrical 2024&ndash;28 curriculum</b><div>Only the 2020&ndash;24 structure is published, so Electrical&rsquo;s 2024+ batches have none. Deliberate &mdash; the alternative was inventing one.</div></li>
+        <li><b>Climate Science &amp; Sustainable Engineering is absent</b><div>Despite admitting students, for the same reason.</div></li>
+        <li><b>Division counts are derived, not cited</b><div>Labelled as such in the data, and editable from the admin screen.</div></li>
+        <li><b>No Semester V+ cohort on a 2024&ndash;28 curriculum</b><div>Those curricula begin with the 2024 batch, which is genuinely only in Semester IV in AY 2025&ndash;26. Later-semester screens are exercised by the ICT and 2020-scheme cohorts instead; the alternative was placing students on curricula that do not cover them.</div></li>
+        <li><b>Industrial Orientation has no internship programme</b><div>It is modelled as a curriculum component, but no official source describes a document lifecycle for a three-week, zero-credit orientation.</div></li>
+        <li><b>The running Docker backend image is stale</b><div><code>docker compose up --build</code> is needed to serve this code. The database is already migrated and seeded.</div></li>
+      </ol>
+    </section>
+
+  </main>
+
+  <footer>
+    CampusHub Phase 3B &middot; 10 programmes &middot; 12 curriculum versions &middot;
+    296 tests passing &middot; research evidence in <code>docs/PHASE3B-RESEARCH.md</code>
+  </footer>
+
+</div>

@@ -1,0 +1,361 @@
+"""Students, faculty and departments — directory + administration."""
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import func, or_, select
+
+from app.core.deps import CurrentUser, DbSession, require_permission
+from app.core.errors import ConflictError, NotFoundError
+from app.core.rbac import P
+from app.core.security import hash_password
+from app.models.academics import Program
+from app.models.engagement import MentorAssignment
+from app.models.enums import AuditAction, Role, StudentStatus
+from app.models.identity import AcademicYear, Department, Faculty, Semester, Student, User, UserRole
+from app.schemas.common import Message, Page
+from app.schemas.identity import (
+    AcademicYearOut, DepartmentCreate, DepartmentOut, DepartmentUpdate, FacultyCreate,
+    FacultyOut, FacultyUpdate, ProfileUpdate, SemesterOut, StudentCreate, StudentDetail,
+    StudentOut, StudentUpdate,
+)
+from app.services import audit
+from app.services.serializers import faculty_out, student_out
+
+students_router = APIRouter(prefix="/students", tags=["students"])
+faculty_router = APIRouter(prefix="/faculty", tags=["faculty"])
+departments_router = APIRouter(prefix="/departments", tags=["departments"])
+academic_router = APIRouter(prefix="/academic", tags=["academics"])
+me_router = APIRouter(prefix="/me", tags=["profile"])
+
+
+# ── students ──────────────────────────────────────────────────────────────
+@students_router.get("", response_model=Page[StudentOut])
+def list_students(
+    db: DbSession, q: str | None = Query(None), department_id: int | None = None,
+    program_id: int | None = None, semester: int | None = None,
+    status: StudentStatus | None = None, division: str | None = None,
+    page: int = Query(1, ge=1), page_size: int = Query(25, ge=1, le=200),
+    _: User = Depends(require_permission(P["STUDENT_READ"])),
+) -> Page[StudentOut]:
+    stmt = select(Student).join(User, User.id == Student.user_id)
+    if q:
+        pattern = f"%{q.strip()}%"
+        stmt = stmt.where(or_(User.full_name.ilike(pattern),
+                              Student.roll_number.ilike(pattern),
+                              User.email.ilike(pattern)))
+    if department_id:
+        stmt = stmt.where(Student.department_id == department_id)
+    if program_id:
+        stmt = stmt.where(Student.program_id == program_id)
+    if semester:
+        stmt = stmt.where(Student.current_semester == semester)
+    if status:
+        stmt = stmt.where(Student.status == status)
+    if division:
+        stmt = stmt.where(Student.division == division)
+
+    total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    rows = db.scalars(
+        stmt.order_by(Student.roll_number)
+        .offset((page - 1) * page_size).limit(page_size)
+    )
+    return Page[StudentOut](items=[student_out(s) for s in rows], total=int(total),
+                            page=page, page_size=page_size)
+
+
+@students_router.get("/{student_id}", response_model=StudentDetail)
+def get_student(student_id: int, db: DbSession,
+                _: User = Depends(require_permission(P["STUDENT_READ"]))
+                ) -> StudentDetail:
+    student = db.get(Student, student_id)
+    if student is None:
+        raise NotFoundError("Student not found.")
+    assignment = db.scalar(select(MentorAssignment).where(
+        MentorAssignment.student_id == student.id, MentorAssignment.is_active.is_(True)
+    ))
+    base = student_out(student)
+    return StudentDetail(
+        **base.model_dump(), date_of_birth=student.date_of_birth,
+        gender=student.gender, address=student.address,
+        guardian_name=student.guardian_name, guardian_phone=student.guardian_phone,
+        mentor_name=assignment.faculty.user.full_name if assignment else None,
+        mentor_id=assignment.faculty_id if assignment else None,
+    )
+
+
+@students_router.post("", response_model=StudentOut, status_code=201)
+def create_student(
+    payload: StudentCreate, db: DbSession,
+    user: User = Depends(require_permission(P["STUDENT_MANAGE"])),
+) -> StudentOut:
+    if db.scalar(select(User).where(func.lower(User.email) == payload.email.lower())):
+        raise ConflictError("A user with that email address already exists.")
+    if db.scalar(select(Student).where(Student.roll_number == payload.roll_number)):
+        raise ConflictError("That roll number is already in use.")
+
+    account = User(email=payload.email.lower(),
+                   hashed_password=hash_password(payload.password),
+                   full_name=payload.full_name, phone=payload.phone)
+    db.add(account)
+    db.flush()
+    db.add(UserRole(user_id=account.id, role=Role.STUDENT))
+
+    student = Student(
+        user_id=account.id, roll_number=payload.roll_number,
+        enrollment_number=payload.enrollment_number, program_id=payload.program_id,
+        department_id=payload.department_id, admission_year=payload.admission_year,
+        current_semester=payload.current_semester, division=payload.division,
+        batch=payload.batch, cpi=payload.cpi,
+    )
+    db.add(student)
+    db.flush()
+    audit.record(db, action=AuditAction.CREATE, entity_type="student",
+                 entity_id=student.id, actor=user,
+                 description=f"Created student {student.roll_number}")
+    db.commit()
+    db.refresh(student)
+    return student_out(student)
+
+
+@students_router.patch("/{student_id}", response_model=StudentOut)
+def update_student(
+    student_id: int, payload: StudentUpdate, db: DbSession,
+    user: User = Depends(require_permission(P["STUDENT_MANAGE"])),
+) -> StudentOut:
+    student = db.get(Student, student_id)
+    if student is None:
+        raise NotFoundError("Student not found.")
+    changes = payload.model_dump(exclude_unset=True)
+    for field in ("full_name", "phone"):
+        if field in changes:
+            setattr(student.user, field, changes.pop(field))
+    for field, value in changes.items():
+        setattr(student, field, value)
+    audit.record(db, action=AuditAction.UPDATE, entity_type="student",
+                 entity_id=student.id, actor=user,
+                 description=f"Updated student {student.roll_number}",
+                 meta={"changes": list(payload.model_dump(exclude_unset=True))})
+    db.commit()
+    db.refresh(student)
+    return student_out(student)
+
+
+# ── faculty ───────────────────────────────────────────────────────────────
+@faculty_router.get("", response_model=list[FacultyOut])
+def list_faculty(db: DbSession, _: CurrentUser, q: str | None = Query(None),
+                 department_id: int | None = None,
+                 is_mentor: bool | None = None) -> list[FacultyOut]:
+    """Faculty directory — readable by every authenticated user."""
+    stmt = select(Faculty).join(User, User.id == Faculty.user_id).where(
+        Faculty.is_active.is_(True)
+    )
+    if q:
+        pattern = f"%{q.strip()}%"
+        stmt = stmt.where(or_(User.full_name.ilike(pattern),
+                              Faculty.designation.ilike(pattern),
+                              Faculty.specialization.ilike(pattern)))
+    if department_id:
+        stmt = stmt.where(Faculty.department_id == department_id)
+    if is_mentor is not None:
+        stmt = stmt.where(Faculty.is_mentor.is_(is_mentor))
+
+    rows = list(db.scalars(stmt.order_by(User.full_name)))
+    counts = dict(db.execute(
+        select(MentorAssignment.faculty_id, func.count(MentorAssignment.id))
+        .where(MentorAssignment.is_active.is_(True))
+        .group_by(MentorAssignment.faculty_id)
+    ).all())
+    return [faculty_out(f, mentee_count=counts.get(f.id, 0)) for f in rows]
+
+
+@faculty_router.get("/{faculty_id}", response_model=FacultyOut)
+def get_faculty(faculty_id: int, db: DbSession, _: CurrentUser) -> FacultyOut:
+    faculty = db.get(Faculty, faculty_id)
+    if faculty is None:
+        raise NotFoundError("Faculty member not found.")
+    count = db.scalar(select(func.count(MentorAssignment.id)).where(
+        MentorAssignment.faculty_id == faculty.id, MentorAssignment.is_active.is_(True)
+    )) or 0
+    return faculty_out(faculty, mentee_count=int(count))
+
+
+@faculty_router.post("", response_model=FacultyOut, status_code=201)
+def create_faculty(
+    payload: FacultyCreate, db: DbSession,
+    user: User = Depends(require_permission(P["FACULTY_MANAGE"])),
+) -> FacultyOut:
+    if db.scalar(select(User).where(func.lower(User.email) == payload.email.lower())):
+        raise ConflictError("A user with that email address already exists.")
+
+    account = User(email=payload.email.lower(),
+                   hashed_password=hash_password(payload.password),
+                   full_name=payload.full_name)
+    db.add(account)
+    db.flush()
+    db.add(UserRole(user_id=account.id, role=Role.FACULTY))
+    for role in payload.extra_roles:
+        if role != Role.FACULTY:
+            db.add(UserRole(user_id=account.id, role=role))
+
+    faculty = Faculty(
+        user_id=account.id, employee_code=payload.employee_code,
+        department_id=payload.department_id, designation=payload.designation,
+        cabin=payload.cabin, specialization=payload.specialization,
+        qualification=payload.qualification,
+        public_email=payload.public_email or payload.email,
+        public_phone=payload.public_phone, is_mentor=payload.is_mentor,
+    )
+    db.add(faculty)
+    db.flush()
+    audit.record(db, action=AuditAction.CREATE, entity_type="faculty",
+                 entity_id=faculty.id, actor=user,
+                 description=f"Created faculty {faculty.employee_code}")
+    db.commit()
+    db.refresh(faculty)
+    return faculty_out(faculty)
+
+
+@faculty_router.patch("/{faculty_id}", response_model=FacultyOut)
+def update_faculty(
+    faculty_id: int, payload: FacultyUpdate, db: DbSession,
+    user: User = Depends(require_permission(P["FACULTY_MANAGE"])),
+) -> FacultyOut:
+    faculty = db.get(Faculty, faculty_id)
+    if faculty is None:
+        raise NotFoundError("Faculty member not found.")
+    changes = payload.model_dump(exclude_unset=True)
+    if "full_name" in changes:
+        faculty.user.full_name = changes.pop("full_name")
+    for field, value in changes.items():
+        setattr(faculty, field, value)
+    audit.record(db, action=AuditAction.UPDATE, entity_type="faculty",
+                 entity_id=faculty.id, actor=user, description="Updated faculty record")
+    db.commit()
+    db.refresh(faculty)
+    return faculty_out(faculty)
+
+
+# ── departments ───────────────────────────────────────────────────────────
+@departments_router.get("", response_model=list[DepartmentOut])
+def list_departments(db: DbSession, _: CurrentUser) -> list[DepartmentOut]:
+    departments = list(db.scalars(select(Department).order_by(Department.code)))
+    ids = [d.id for d in departments]
+    students = dict(db.execute(
+        select(Student.department_id, func.count(Student.id))
+        .where(Student.department_id.in_(ids or [0]))
+        .group_by(Student.department_id)
+    ).all())
+    faculty = dict(db.execute(
+        select(Faculty.department_id, func.count(Faculty.id))
+        .where(Faculty.department_id.in_(ids or [0]))
+        .group_by(Faculty.department_id)
+    ).all())
+    programs = dict(db.execute(
+        select(Program.department_id, func.count(Program.id))
+        .where(Program.department_id.in_(ids or [0]))
+        .group_by(Program.department_id)
+    ).all())
+    return [
+        DepartmentOut(
+            id=d.id, code=d.code, name=d.name, short_name=d.short_name,
+            school=d.school, description=d.description, is_active=d.is_active,
+            student_count=students.get(d.id, 0), faculty_count=faculty.get(d.id, 0),
+            program_count=programs.get(d.id, 0),
+        )
+        for d in departments
+    ]
+
+
+@departments_router.post("", response_model=DepartmentOut, status_code=201)
+def create_department(
+    payload: DepartmentCreate, db: DbSession,
+    user: User = Depends(require_permission(P["DEPARTMENT_MANAGE"])),
+) -> DepartmentOut:
+    if db.scalar(select(Department).where(Department.code == payload.code)):
+        raise ConflictError("A department with that code already exists.")
+    department = Department(**payload.model_dump())
+    db.add(department)
+    db.flush()
+    audit.record(db, action=AuditAction.CREATE, entity_type="department",
+                 entity_id=department.id, actor=user,
+                 description=f"Created department {department.code}")
+    db.commit()
+    db.refresh(department)
+    return DepartmentOut(id=department.id, code=department.code, name=department.name,
+                         short_name=department.short_name, school=department.school,
+                         description=department.description,
+                         is_active=department.is_active)
+
+
+@departments_router.patch("/{department_id}", response_model=DepartmentOut)
+def update_department(
+    department_id: int, payload: DepartmentUpdate, db: DbSession,
+    user: User = Depends(require_permission(P["DEPARTMENT_MANAGE"])),
+) -> DepartmentOut:
+    department = db.get(Department, department_id)
+    if department is None:
+        raise NotFoundError("Department not found.")
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(department, field, value)
+    audit.record(db, action=AuditAction.UPDATE, entity_type="department",
+                 entity_id=department.id, actor=user, description="Updated department")
+    db.commit()
+    db.refresh(department)
+    return DepartmentOut(id=department.id, code=department.code, name=department.name,
+                         short_name=department.short_name, school=department.school,
+                         description=department.description,
+                         is_active=department.is_active)
+
+
+# ── academic calendar lookups ─────────────────────────────────────────────
+@academic_router.get("/years", response_model=list[AcademicYearOut])
+def academic_years(db: DbSession, _: CurrentUser) -> list[AcademicYearOut]:
+    return [AcademicYearOut.model_validate(y) for y in db.scalars(
+        select(AcademicYear).order_by(AcademicYear.start_date.desc())
+    )]
+
+
+@academic_router.get("/semesters", response_model=list[SemesterOut])
+def semesters(db: DbSession, _: CurrentUser,
+              academic_year_id: int | None = None) -> list[SemesterOut]:
+    stmt = select(Semester).order_by(Semester.number)
+    if academic_year_id:
+        stmt = stmt.where(Semester.academic_year_id == academic_year_id)
+    return [
+        SemesterOut(
+            id=s.id, number=s.number, term=s.term.value,
+            academic_year_id=s.academic_year_id,
+            academic_year_label=s.academic_year.label if s.academic_year else None,
+            start_date=s.start_date, end_date=s.end_date, is_current=s.is_current,
+        )
+        for s in db.scalars(stmt)
+    ]
+
+
+# ── own profile ───────────────────────────────────────────────────────────
+@me_router.patch("/profile", response_model=Message)
+def update_profile(payload: ProfileUpdate, db: DbSession,
+                   user: CurrentUser) -> Message:
+    changes = payload.model_dump(exclude_unset=True)
+    user_fields = {"full_name", "phone"}
+    student_fields = {"address", "guardian_name", "guardian_phone"}
+    faculty_fields = {"cabin", "public_email", "public_phone", "specialization", "bio"}
+
+    for field in user_fields & changes.keys():
+        setattr(user, field, changes[field])
+
+    student = db.scalar(select(Student).where(Student.user_id == user.id))
+    if student:
+        for field in student_fields & changes.keys():
+            setattr(student, field, changes[field])
+
+    faculty = db.scalar(select(Faculty).where(Faculty.user_id == user.id))
+    if faculty:
+        for field in faculty_fields & changes.keys():
+            setattr(faculty, field, changes[field])
+
+    audit.record(db, action=AuditAction.UPDATE, entity_type="user", entity_id=user.id,
+                 actor=user, description="Updated own profile",
+                 meta={"fields": sorted(changes)})
+    db.commit()
+    return Message(message="Profile updated.")

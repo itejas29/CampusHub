@@ -1,0 +1,1015 @@
+{
+  "program": {
+    "code": "B.TECH-CE",
+    "name": "B.Tech. Computer Engineering",
+    "short_name": "Computer Engineering",
+    "degree_type": "B.Tech",
+    "duration_years": 4,
+    "total_semesters": 8,
+    "department": {
+      "code": "CSE",
+      "name": "Computer Science and Engineering",
+      "short_name": "CSE",
+      "school": "SoT"
+    }
+  },
+  "curriculum": {
+    "version": "2024-28",
+    "name": "B.Tech. Computer Engineering — Curriculum 2024-28",
+    "effective_from_year": 2024,
+    "effective_to_year": null,
+    "total_credits": 160,
+    "status": "PUBLISHED"
+  },
+  "source": {
+    "url": "https://api.pdeu.ac.in/pdpu/resources/btech-computer-course-structure.pdf",
+    "title": "B.Tech. Computer Engineering — Course Structure",
+    "publisher": "Pandit Deendayal Energy University",
+    "retrieved_at": "2026-08-28",
+    "academic_year": "2024-28",
+    "confidence": "CONFIRMED_OFFICIAL_SOURCE"
+  },
+  "divisions": {
+    "names": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ],
+    "rationale": "No PDEU document states division counts. Derived from the official seat intake in the B.Tech. Admission Rules A.Y. 2026-27 at roughly 60-75 students per division. Editable programme data, not a citation.",
+    "confidence": "DERIVED_FROM_INTAKE"
+  },
+  "semesters": [
+    {
+      "number": 1,
+      "components": [
+        {
+          "code": "2024-28-S1-01",
+          "title": "Humanities – I",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 1,
+          "course": "CSE-001-HUMANITIES-I"
+        },
+        {
+          "code": "2024-28-S1-02",
+          "title": "Mathematics – I",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 2,
+          "course": "CSE-002-MATHEMATICS-I"
+        },
+        {
+          "code": "2024-28-S1-03",
+          "title": "Applied Physics",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 3,
+          "course": "CSE-003-APPLIED-PHYSICS"
+        },
+        {
+          "code": "2024-28-S1-04",
+          "title": "Applied Physics Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 4,
+          "course": "CSE-004-APPLIED-PHYSICS-"
+        },
+        {
+          "code": "2024-28-S1-05",
+          "title": "Environment Science",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 5,
+          "course": "UG-ENVIRONMENT-SCIENCE"
+        },
+        {
+          "code": "2024-28-S1-06",
+          "title": "Workshop Practices",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 6,
+          "course": "UG-WORKSHOP-PRACTICES"
+        },
+        {
+          "code": "2024-28-S1-07",
+          "title": "Biology for Engineers",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 7,
+          "course": "UG-BIOLOGY-FOR-ENGINEERS"
+        },
+        {
+          "code": "2024-28-S1-08",
+          "title": "Computer Programming -I",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 8,
+          "course": "UG-COMPUTER-PROGRAMMING-I"
+        },
+        {
+          "code": "2024-28-S1-09",
+          "title": "Computer Programming -I Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 9,
+          "course": "UG-COMPUTER-PROGRAMMING-I-LABO"
+        },
+        {
+          "code": "2024-28-S1-10",
+          "title": "Universal Human Values",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 10,
+          "course": "UG-UNIVERSAL-HUMAN-VALUES"
+        },
+        {
+          "code": "2024-28-S1-11",
+          "title": "Indian Knowledge System",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 11,
+          "course": "UG-INDIAN-KNOWLEDGE-SYSTEM"
+        }
+      ],
+      "total_credits": 20.0
+    },
+    {
+      "number": 2,
+      "components": [
+        {
+          "code": "2024-28-S2-01",
+          "title": "Humanities – II",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 1,
+          "course": "CSE-005-HUMANITIES-II"
+        },
+        {
+          "code": "2024-28-S2-02",
+          "title": "Mathematics – II",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 2,
+          "course": "CSE-006-MATHEMATICS-II"
+        },
+        {
+          "code": "2024-28-S2-03",
+          "title": "Engineering Chemistry",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 3,
+          "course": "UG-ENGINEERING-CHEMISTRY"
+        },
+        {
+          "code": "2024-28-S2-04",
+          "title": "Engineering Chemistry Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 4,
+          "course": "UG-ENGINEERING-CHEMISTRY-LABOR"
+        },
+        {
+          "code": "2024-28-S2-05",
+          "title": "Elements of Electrical & Electronics Engineering",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 5,
+          "course": "CSE-007-ELEMENTS-OF-ELEC"
+        },
+        {
+          "code": "2024-28-S2-06",
+          "title": "Elements of Electrical & Electronics Engineering Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 6,
+          "course": "CSE-008-ELEMENTS-OF-ELEC"
+        },
+        {
+          "code": "2024-28-S2-07",
+          "title": "Engineering Graphics",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 7,
+          "course": "UG-ENGINEERING-GRAPHICS"
+        },
+        {
+          "code": "2024-28-S2-08",
+          "title": "Yoga, Health & Hygiene OR NCC/NSS",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 8,
+          "course": "UG-YOGA-HEALTH-HYGIENE-OR-NCC-"
+        },
+        {
+          "code": "2024-28-S2-09",
+          "title": "Organizational Behavior",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 9,
+          "course": "CSE-009-ORGANIZATIONAL-B"
+        },
+        {
+          "code": "2024-28-S2-10",
+          "title": "Computer Programming -II",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 10,
+          "course": "UG-COMPUTER-PROGRAMMING-II"
+        },
+        {
+          "code": "2024-28-S2-11",
+          "title": "Computer Programming -II Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 11,
+          "course": "UG-COMPUTER-PROGRAMMING-II-LAB"
+        }
+      ],
+      "total_credits": 20.0
+    },
+    {
+      "number": 3,
+      "components": [
+        {
+          "code": "2024-28-S3-01",
+          "title": "Discrete Mathematics",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 1,
+          "course": "CSE-010-DISCRETE-MATHEMA"
+        },
+        {
+          "code": "2024-28-S3-02",
+          "title": "Database Management System",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 2,
+          "course": "CSE-011-DATABASE-MANAGEM"
+        },
+        {
+          "code": "2024-28-S3-03",
+          "title": "Database Management System Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 3,
+          "course": "CSE-012-DATABASE-MANAGEM"
+        },
+        {
+          "code": "2024-28-S3-04",
+          "title": "Digital Logic and Design",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 4,
+          "course": "CSE-013-DIGITAL-LOGIC-AN"
+        },
+        {
+          "code": "2024-28-S3-05",
+          "title": "Data Structures",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 5,
+          "course": "CSE-014-DATA-STRUCTURES"
+        },
+        {
+          "code": "2024-28-S3-06",
+          "title": "Data Structures Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 6,
+          "course": "CSE-015-DATA-STRUCTURES-"
+        },
+        {
+          "code": "2024-28-S3-07",
+          "title": "Object Oriented Programming",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 7,
+          "course": "CSE-016-OBJECT-ORIENTED-"
+        },
+        {
+          "code": "2024-28-S3-08",
+          "title": "Object Oriented Programming Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 8,
+          "course": "CSE-017-OBJECT-ORIENTED-"
+        },
+        {
+          "code": "CSSI",
+          "title": "Civic and Social Service Internship",
+          "component_type": "INTERNSHIP",
+          "is_elective": false,
+          "source_scope": "ANY",
+          "scope_label": "Approved NGO / social organisation",
+          "credits": 1,
+          "sequence": 101
+        }
+      ],
+      "total_credits": 21.0
+    },
+    {
+      "number": 4,
+      "components": [
+        {
+          "code": "2024-28-S4-01",
+          "title": "Design Thinking",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 1,
+          "course": "CSE-018-DESIGN-THINKING"
+        },
+        {
+          "code": "2024-28-S4-02",
+          "title": "Probability and Statistics Theory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 2,
+          "course": "CSE-019-PROBABILITY-AND-"
+        },
+        {
+          "code": "2024-28-S4-03",
+          "title": "Computer Organization and Architecture",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 3,
+          "course": "CSE-020-COMPUTER-ORGANIZ"
+        },
+        {
+          "code": "2024-28-S4-04",
+          "title": "Software Engineering",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 4,
+          "course": "CSE-021-SOFTWARE-ENGINEE"
+        },
+        {
+          "code": "2024-28-S4-05",
+          "title": "Software Engineering Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 5,
+          "course": "CSE-022-SOFTWARE-ENGINEE"
+        },
+        {
+          "code": "2024-28-S4-06",
+          "title": "Theory of Computation",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 6,
+          "course": "CSE-023-THEORY-OF-COMPUT"
+        },
+        {
+          "code": "2024-28-S4-07",
+          "title": "Design and Analysis of Algorithm",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 7,
+          "course": "CSE-024-DESIGN-AND-ANALY"
+        },
+        {
+          "code": "2024-28-S4-08",
+          "title": "Design and Analysis of Algorithm Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 8,
+          "course": "CSE-025-DESIGN-AND-ANALY"
+        },
+        {
+          "code": "OE1",
+          "title": "Open Elective 1",
+          "component_type": "OPEN_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "OTHER_SCHOOL",
+          "scope_label": "From Other School",
+          "credits": 3,
+          "sequence": 101,
+          "eligibility": {
+            "eligible_schools": [
+              "SoET",
+              "SLS",
+              "SoM",
+              "SoL"
+            ],
+            "exclude_own_department": true,
+            "rule_source": "B.Tech. Electrical Engineering course structure: the open elective basket is announced by the other departments of the School of Technology and the other schools of the university; the offering department's own students are excluded."
+          },
+          "department_basket": [
+            {
+              "course": "CSE-026-OPEN-SOURCE-TECH",
+              "title": "Open-Source Technologies"
+            },
+            {
+              "course": "CSE-027-INTRODUCTION-TO-",
+              "title": "Introduction to Data Science"
+            }
+          ]
+        }
+      ],
+      "total_credits": 23.0
+    },
+    {
+      "number": 5,
+      "components": [
+        {
+          "code": "2024-28-S5-01",
+          "title": "Introduction to Artificial Intelligence (Department Specific)",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 1,
+          "course": "UG-INTRODUCTION-TO-ARTIFICIAL-"
+        },
+        {
+          "code": "2024-28-S5-02",
+          "title": "Engineering Economics",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 2,
+          "course": "UG-ENGINEERING-ECONOMICS"
+        },
+        {
+          "code": "2024-28-S5-03",
+          "title": "Computer Networks",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 3,
+          "course": "CSE-028-COMPUTER-NETWORK"
+        },
+        {
+          "code": "2024-28-S5-04",
+          "title": "Computer Networks Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 4,
+          "course": "CSE-029-COMPUTER-NETWORK"
+        },
+        {
+          "code": "2024-28-S5-05",
+          "title": "Compiler Design",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 5,
+          "course": "CSE-030-COMPILER-DESIGN"
+        },
+        {
+          "code": "2024-28-S5-06",
+          "title": "Compiler Design Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 6,
+          "course": "CSE-031-COMPILER-DESIGN-"
+        },
+        {
+          "code": "2024-28-S5-07",
+          "title": "Operating System",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 7,
+          "course": "CSE-032-OPERATING-SYSTEM"
+        },
+        {
+          "code": "2024-28-S5-08",
+          "title": "Operating System Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 8,
+          "course": "CSE-033-OPERATING-SYSTEM"
+        },
+        {
+          "code": "OE2-MOOC",
+          "title": "Open Elective 2 (NPTEL / SWAYAM / MOOC)",
+          "component_type": "MOOC",
+          "is_elective": true,
+          "source_scope": "EXTERNAL_PLATFORM",
+          "scope_label": "NPTEL / SWAYAM / MOOC certified course",
+          "credits": 3,
+          "sequence": 101
+        },
+        {
+          "code": "PE1",
+          "title": "Program Elective 1",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 102,
+          "options": [
+            {
+              "course": "CSE-034-DATA-MINING-AND-",
+              "title": "Data Mining and Data Warehousing"
+            },
+            {
+              "course": "CSE-035-OBJECT-ORIENTED-",
+              "title": "Object Oriented Modelling and Design"
+            },
+            {
+              "course": "CSE-036-COMPUTER-GRAPHIC",
+              "title": "Computer Graphics"
+            },
+            {
+              "course": "CSE-037-ADVANCED-DATA-ST",
+              "title": "Advanced Data Structure and Algorithms"
+            },
+            {
+              "course": "CSE-038-DATA-COMMUNICATI",
+              "title": "Data Communication"
+            }
+          ]
+        }
+      ],
+      "total_credits": 24.0
+    },
+    {
+      "number": 6,
+      "components": [
+        {
+          "code": "2024-28-S6-01",
+          "title": "Cryptography and Network Security",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 1,
+          "course": "UG-CRYPTOGRAPHY-AND-NETWORK-SE"
+        },
+        {
+          "code": "2024-28-S6-02",
+          "title": "Cryptography and Network Security Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 2,
+          "course": "CSE-039-CRYPTOGRAPHY-AND"
+        },
+        {
+          "code": "2024-28-S6-03",
+          "title": "Web & Mobile Development Essentials",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 3,
+          "course": "CSE-040-WEB-MOBILE-DEVEL"
+        },
+        {
+          "code": "2024-28-S6-04",
+          "title": "Web & Mobile Development Essentials Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 4,
+          "course": "CSE-041-WEB-MOBILE-DEVEL"
+        },
+        {
+          "code": "2024-28-S6-05",
+          "title": "Distributed Computing",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 5,
+          "course": "CSE-042-DISTRIBUTED-COMP"
+        },
+        {
+          "code": "2024-28-S6-06",
+          "title": "Distributed Computing Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 6,
+          "course": "CSE-043-DISTRIBUTED-COMP"
+        },
+        {
+          "code": "OE3",
+          "title": "Open Elective 3",
+          "component_type": "OPEN_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "OTHER_DEPARTMENT_FOET",
+          "scope_label": "From Other Department of FoET",
+          "credits": 3,
+          "sequence": 101,
+          "eligibility": {
+            "eligible_schools": [
+              "SoT",
+              "SoET"
+            ],
+            "exclude_own_department": true,
+            "rule_source": "B.Tech. Electrical Engineering course structure: the open elective basket is announced by the other departments of the School of Technology and the other schools of the university; the offering department's own students are excluded."
+          },
+          "department_basket": [
+            {
+              "course": "CSE-044-WEB-DEVELOPMENT",
+              "title": "Web Development"
+            },
+            {
+              "course": "CSE-045-OBJECT-ORIENTED-",
+              "title": "Object Oriented Programming & Design"
+            }
+          ]
+        },
+        {
+          "code": "PE2",
+          "title": "Program Elective 2",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 102,
+          "options": [
+            {
+              "course": "CSE-046-SOFT-COMPUTING",
+              "title": "Soft Computing"
+            },
+            {
+              "course": "CSE-047-UI-UX-DESIGN",
+              "title": "UI/UX Design"
+            },
+            {
+              "course": "CSE-048-DIGITAL-IMAGE-PR",
+              "title": "Digital Image Processing"
+            },
+            {
+              "course": "UG-BLOCKCHAIN-TECHNOLOGY",
+              "title": "Blockchain Technology"
+            },
+            {
+              "course": "CSE-049-MOBILE-COMPUTING",
+              "title": "Mobile Computing"
+            }
+          ]
+        },
+        {
+          "code": "PE3",
+          "title": "Program Elective 3",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 103,
+          "options": [
+            {
+              "course": "CSE-050-DEEP-LEARNING",
+              "title": "Deep Learning"
+            },
+            {
+              "course": "CSE-051-SECURE-SOFTWARE-",
+              "title": "Secure Software Engineering"
+            },
+            {
+              "course": "UG-COMPUTER-VISION",
+              "title": "Computer Vision"
+            },
+            {
+              "course": "CSE-052-BIG-DATA-ANALYTI",
+              "title": "Big Data Analytics"
+            },
+            {
+              "course": "CSE-053-WIRELESS-SENSOR-",
+              "title": "Wireless Sensor Networks"
+            }
+          ]
+        }
+      ],
+      "total_credits": 20.0
+    },
+    {
+      "number": 7,
+      "components": [
+        {
+          "code": "2024-28-S7-01",
+          "title": "Industry 4.0 (Department Specific)",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 1,
+          "course": "UG-INDUSTRY-4-0-DEPARTMENT-SPE"
+        },
+        {
+          "code": "2024-28-S7-02",
+          "title": "Industry 4.0 Laboratory (Department Specific)",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 2,
+          "course": "CSE-054-INDUSTRY-4-0-LAB"
+        },
+        {
+          "code": "2024-28-S7-03",
+          "title": "Machine Learning",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 3,
+          "course": "UG-MACHINE-LEARNING"
+        },
+        {
+          "code": "2024-28-S7-04",
+          "title": "Machine Learning Laboratory",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 4,
+          "course": "CSE-055-MACHINE-LEARNING"
+        },
+        {
+          "code": "2024-28-S7-05",
+          "title": "Cyber Laws and Ethics",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 5,
+          "course": "CSE-056-CYBER-LAWS-AND-E"
+        },
+        {
+          "code": "SI",
+          "title": "Summer Internship",
+          "component_type": "INTERNSHIP",
+          "is_elective": false,
+          "source_scope": "ANY",
+          "scope_label": "Industry / R&D host organisation",
+          "credits": 2,
+          "sequence": 101
+        },
+        {
+          "code": "OE4",
+          "title": "Open Elective 4",
+          "component_type": "OPEN_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "OTHER_DEPARTMENT_FOET",
+          "scope_label": "From Other Department of FoET",
+          "credits": 3,
+          "sequence": 102,
+          "eligibility": {
+            "eligible_schools": [
+              "SoT",
+              "SoET"
+            ],
+            "exclude_own_department": true,
+            "rule_source": "B.Tech. Electrical Engineering course structure: the open elective basket is announced by the other departments of the School of Technology and the other schools of the university; the offering department's own students are excluded."
+          },
+          "department_basket": [
+            {
+              "course": "CSE-057-GREEN-IT",
+              "title": "Green IT"
+            },
+            {
+              "course": "CSE-058-GLOBAL-DATA-SECU",
+              "title": "Global Data Security & Privacy Laws"
+            }
+          ]
+        },
+        {
+          "code": "PE4",
+          "title": "Program Elective 4",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 103,
+          "options": [
+            {
+              "course": "CSE-059-AGENT-BASED-LEAR",
+              "title": "Agent based Learning"
+            },
+            {
+              "course": "CSE-060-AGILE-AND-DEVOPS",
+              "title": "Agile and DevOps"
+            },
+            {
+              "course": "CSE-061-NATURAL-LANGUAGE",
+              "title": "Natural Language Processing"
+            },
+            {
+              "course": "CSE-062-CLOUD-COMPUTING",
+              "title": "Cloud Computing"
+            },
+            {
+              "course": "UG-INTERNET-OF-THINGS",
+              "title": "Internet of Things"
+            }
+          ]
+        },
+        {
+          "code": "PE5",
+          "title": "Program Elective 5",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 104,
+          "options": [
+            {
+              "course": "CSE-063-MACHINE-LEARNING",
+              "title": "Machine Learning in Cyber Security"
+            },
+            {
+              "course": "CSE-064-WEB-APPLICATION-",
+              "title": "Web Application Testing"
+            },
+            {
+              "course": "CSE-065-SPEECH-PROCESSIN",
+              "title": "Speech Processing"
+            },
+            {
+              "course": "CSE-066-QUANTUM-COMPUTIN",
+              "title": "Quantum Computing"
+            },
+            {
+              "course": "UG-AUTONOMOUS-SYSTEMS",
+              "title": "Autonomous Systems"
+            }
+          ]
+        },
+        {
+          "code": "SEM",
+          "title": "Seminar",
+          "component_type": "PROJECT",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": "Department seminar",
+          "credits": 1,
+          "sequence": 105
+        }
+      ],
+      "total_credits": 20.0
+    },
+    {
+      "number": 8,
+      "components": [
+        {
+          "code": "MP",
+          "title": "Major / Comprehensive Project",
+          "component_type": "PROJECT",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": "Department- or industry-supervised project",
+          "credits": 12,
+          "sequence": 101
+        }
+      ],
+      "total_credits": 12.0
+    }
+  ]
+}

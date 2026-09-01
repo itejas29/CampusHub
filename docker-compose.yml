@@ -1,0 +1,82 @@
+# CampusHub — development stack.
+#
+#   docker compose up --build          # runs the code baked into the images
+#   Frontend  http://localhost:5173
+#   API docs  http://localhost:8000/docs
+#
+# For live-reload while editing source, overlay the dev file as well:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# That overlay bind-mounts your working tree. On macOS it fails with
+# "Resource deadlock avoided" if the project sits in an iCloud-synced folder
+# (~/Desktop or ~/Documents with "Desktop & Documents" sync on) — move the
+# project outside those folders, or use the base stack above.
+name: campushub
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: campushub-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-campushub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-campushub_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-campushub}
+    ports:
+      - "${POSTGRES_PORT_EXPOSED:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-campushub} -d ${POSTGRES_DB:-campushub}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  backend:
+    build:
+      context: ./backend
+      target: base
+    container_name: campushub-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-campushub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-campushub_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-campushub}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DEBUG: ${DEBUG:-true}
+      SECRET_KEY: ${SECRET_KEY:-dev-only-insecure-secret-change-me}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+      STORAGE_BACKEND: ${STORAGE_BACKEND:-local}
+      LOCAL_STORAGE_DIR: /app/uploads
+      SEED_DEFAULT_PASSWORD: ${SEED_DEFAULT_PASSWORD:-Campus@123}
+      # Applies migrations and loads demo data on first boot.
+      SEED_ON_START: ${SEED_ON_START:-true}
+      PYTHONDONTWRITEBYTECODE: "1"
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploads-data:/app/uploads
+
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    container_name: campushub-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      # Vite proxies /api to this origin (see vite.config.ts).
+      VITE_PROXY_TARGET: http://backend:8000
+      VITE_API_BASE_URL: /api/v1
+    ports:
+      - "5173:5173"
+
+volumes:
+  postgres-data:
+  uploads-data:

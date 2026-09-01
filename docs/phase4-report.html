@@ -1,0 +1,1058 @@
+<title>Phase 4 MVP Hardening</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+
+<style>
+  :root {
+    --paper:      #FBFCFD;
+    --surface:    #F1F4F7;
+    --surface-2:  #E7ECF1;
+    --line:       #D8E0E8;
+    --line-soft:  #E7ECF1;
+    --ink:        #0F151C;
+    --ink-muted:  #4A5866;
+    --ink-faint:  #6E7C8A;
+    --accent:     #31577F;
+    --accent-ink: #FFFFFF;
+    --accent-soft:#E3EAF2;
+    --pass:       #1F6F4A;
+    --pass-soft:  #E0EFE7;
+    --config:     #8A5A0B;
+    --config-soft:#F6ECD9;
+    --limit:      #9A4530;
+    --limit-soft: #F7E7E2;
+    --shadow:     0 1px 2px rgba(15,21,28,.05), 0 8px 24px -16px rgba(15,21,28,.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #0E1319;
+      --surface:    #161D25;
+      --surface-2:  #1E2831;
+      --line:       #2A3641;
+      --line-soft:  #202A34;
+      --ink:        #E8EEF4;
+      --ink-muted:  #A3B1BF;
+      --ink-faint:  #7C8B99;
+      --accent:     #8FB4DC;
+      --accent-ink: #0E1319;
+      --accent-soft:#1C2B3B;
+      --pass:       #6FCB9F;
+      --pass-soft:  #14291F;
+      --config:     #E0B368;
+      --config-soft:#2A2113;
+      --limit:      #E39481;
+      --limit-soft: #2C1A16;
+      --shadow:     0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:      #0E1319;
+    --surface:    #161D25;
+    --surface-2:  #1E2831;
+    --line:       #2A3641;
+    --line-soft:  #202A34;
+    --ink:        #E8EEF4;
+    --ink-muted:  #A3B1BF;
+    --ink-faint:  #7C8B99;
+    --accent:     #8FB4DC;
+    --accent-ink: #0E1319;
+    --accent-soft:#1C2B3B;
+    --pass:       #6FCB9F;
+    --pass-soft:  #14291F;
+    --config:     #E0B368;
+    --config-soft:#2A2113;
+    --limit:      #E39481;
+    --limit-soft: #2C1A16;
+    --shadow:     0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.6);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, .ui { font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace; }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0 56px;
+  }
+  @media (min-width: 1040px) {
+    .wrap { grid-template-columns: 208px minmax(0, 1fr); }
+  }
+
+  /* ── masthead ───────────────────────────────────────────── */
+  header.masthead {
+    grid-column: 1 / -1;
+    border-bottom: 1px solid var(--line);
+    padding: 72px 0 36px;
+    margin-bottom: 44px;
+  }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 18px;
+  }
+  h1 {
+    font-size: clamp(34px, 5.4vw, 54px);
+    line-height: 1.05;
+    letter-spacing: -.022em;
+    font-weight: 700;
+    margin: 0 0 20px;
+    text-wrap: balance;
+  }
+  .standfirst {
+    font-size: clamp(18px, 2.1vw, 21px);
+    line-height: 1.5;
+    color: var(--ink-muted);
+    max-width: 62ch;
+    margin: 0;
+  }
+
+  /* ── metrics ────────────────────────────────────────────── */
+  .metrics {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 52px;
+  }
+  .metric { background: var(--surface); padding: 20px 22px; }
+  .metric dt {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 8px;
+  }
+  .metric dd {
+    margin: 0;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 30px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .metric dd small {
+    display: block;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--ink-faint);
+    margin-top: 7px;
+  }
+  .metric.is-pass dd { color: var(--pass); }
+
+  /* ── contents rail ──────────────────────────────────────── */
+  nav.toc { display: none; }
+  @media (min-width: 1040px) {
+    nav.toc {
+      display: block;
+      grid-column: 1;
+      align-self: start;
+      position: sticky;
+      top: 32px;
+    }
+    nav.toc h2 {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      margin: 0 0 14px;
+    }
+    nav.toc ol { list-style: none; margin: 0; padding: 0; counter-reset: toc; }
+    nav.toc li { counter-increment: toc; margin-bottom: 3px; }
+    nav.toc a {
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      gap: 8px;
+      padding: 6px 8px 6px 0;
+      font-family: "IBM Plex Sans", sans-serif;
+      font-size: 13.5px;
+      line-height: 1.35;
+      color: var(--ink-muted);
+      text-decoration: none;
+      border-radius: 3px;
+    }
+    nav.toc a::before {
+      content: counter(toc, decimal-leading-zero);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      color: var(--ink-faint);
+      padding-top: 2px;
+    }
+    nav.toc a:hover { color: var(--ink); background: var(--surface); }
+    nav.toc a:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  }
+
+  /* ── body ───────────────────────────────────────────────── */
+  main { grid-column: 1 / -1; min-width: 0; }
+  @media (min-width: 1040px) { main { grid-column: 2; } }
+
+  section { margin-bottom: 60px; scroll-margin-top: 24px; }
+
+  h2 {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .085em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 6px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  h2 .num {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    color: var(--accent);
+  }
+  h2 + .h2-title {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: clamp(23px, 2.9vw, 29px);
+    font-weight: 600;
+    letter-spacing: -.018em;
+    line-height: 1.2;
+    margin: 0 0 18px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+    text-wrap: balance;
+  }
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -.005em;
+    margin: 32px 0 12px;
+  }
+  p { margin: 0 0 16px; max-width: 68ch; }
+  main > section > p:last-child { margin-bottom: 0; }
+
+  a { color: var(--accent); }
+
+  code {
+    font-size: .845em;
+    background: var(--surface-2);
+    padding: .12em .38em;
+    border-radius: 3px;
+    color: var(--ink);
+    word-break: break-word;
+  }
+
+  /* ── tables ─────────────────────────────────────────────── */
+  .scroll {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    margin: 0 0 20px;
+    background: var(--surface);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  th, td {
+    text-align: left;
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: top;
+  }
+  th {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    background: var(--surface-2);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td code { background: transparent; padding: 0; color: var(--ink-muted); }
+  tr.total td { font-weight: 600; background: var(--surface-2); }
+
+  /* ── chips ──────────────────────────────────────────────── */
+  .chip {
+    display: inline-block;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .chip.pass   { background: var(--pass-soft);   color: var(--pass); }
+  .chip.config { background: var(--config-soft); color: var(--config); }
+  .chip.limit  { background: var(--limit-soft);  color: var(--limit); }
+  .chip.new    { background: var(--accent-soft); color: var(--accent); }
+
+  /* ── callout ────────────────────────────────────────────── */
+  .note {
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+    padding: 16px 20px;
+    border-radius: 0 4px 4px 0;
+    margin: 0 0 22px;
+    font-size: 16px;
+  }
+  .note p { margin: 0; max-width: none; }
+  .note p + p { margin-top: 10px; }
+  .note.security { border-left-color: var(--limit); }
+  .note strong { font-family: "IBM Plex Sans", sans-serif; font-weight: 600; }
+
+  /* ── file lists ─────────────────────────────────────────── */
+  .paths {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    line-height: 2;
+    color: var(--ink-muted);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 14px 18px;
+    margin: 0 0 20px;
+    overflow-x: auto;
+  }
+  .paths span { white-space: nowrap; }
+  .paths span::after { content: " · "; color: var(--ink-faint); }
+  .paths span:last-child::after { content: ""; }
+
+  /* ── numbered limitation list ───────────────────────────── */
+  ol.limits { list-style: none; counter-reset: lim; margin: 0; padding: 0; }
+  ol.limits li {
+    counter-increment: lim;
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line-soft);
+    max-width: 72ch;
+  }
+  ol.limits li:last-child { border-bottom: 0; }
+  ol.limits li::before {
+    content: counter(lim, decimal-leading-zero);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: var(--ink-faint);
+    padding-top: 4px;
+  }
+  ol.limits b {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-weight: 600;
+    font-size: 15.5px;
+    display: block;
+    margin-bottom: 3px;
+  }
+  ol.limits div { font-size: 15.5px; color: var(--ink-muted); }
+
+  footer {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--line);
+    padding-top: 22px;
+    margin-top: 8px;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 13px;
+    color: var(--ink-faint);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
+  html { scroll-behavior: smooth; }
+</style>
+<style>
+  /* ── cited source ───────────────────────────────────────── */
+  /* Curriculum data is university policy data. Every rule on this page that
+     came from a document shows the document. */
+  .source {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 12px;
+    align-items: baseline;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--pass);
+    border-radius: 0 4px 4px 0;
+    padding: 13px 18px;
+    margin: 0 0 20px;
+  }
+  .source.is-partial { border-left-color: var(--config); }
+  .source.is-absent  { border-left-color: var(--limit); }
+  .source dt {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+  .source dd {
+    margin: 0;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+    min-width: 0;
+  }
+  .source dd a { word-break: break-word; }
+  .source blockquote {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--ink-muted);
+  }
+
+  /* ── batch windows ──────────────────────────────────────── */
+  /* The bars encode the actual rule: which admission years a version governs.
+     Two versions of one programme never overlap. */
+  .windows {
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--surface);
+    padding: 16px 18px 12px;
+    margin: 0 0 22px;
+    overflow-x: auto;
+  }
+  .windows table { min-width: 520px; }
+  .windows th, .windows td { border: 0; padding: 5px 10px 5px 0; background: none; }
+  .windows th { font-size: 10.5px; }
+  .wname {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .bar {
+    display: block;
+    height: 22px;
+    border-radius: 3px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 20px;
+    padding: 0 9px;
+    white-space: nowrap;
+  }
+  .bar.is-draft {
+    background: var(--config-soft);
+    border-color: var(--config);
+    color: var(--config);
+    border-style: dashed;
+  }
+
+  /* ── correction list ────────────────────────────────────── */
+  /* Struck text is a factual claim the research disproved, not decoration. */
+  .fix { margin: 0 0 20px; padding: 0; list-style: none; }
+  .fix li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--line-soft);
+    max-width: 74ch;
+  }
+  .fix li:last-child { border-bottom: 0; }
+  .fix s { color: var(--ink-faint); text-decoration-thickness: 1px; }
+  .fix b {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-weight: 600;
+    font-size: 15.5px;
+    display: block;
+    margin-bottom: 3px;
+  }
+  .fix div { font-size: 15.5px; color: var(--ink-muted); }
+
+  .lede {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 15px;
+    color: var(--ink-muted);
+    max-width: 70ch;
+    margin: 0 0 18px;
+  }
+  ul.plain { margin: 0 0 18px; padding-left: 20px; }
+  ul.plain li { margin-bottom: 8px; max-width: 70ch; }
+</style>
+<style>
+  /* ── before / after, for measured work ──────────────────────────────── */
+  /* Phase 4's two honest numbers are query counts and vulnerabilities, so
+     both get a form that shows the delta rather than just the endpoint. */
+  .delta { display: inline-flex; align-items: baseline; gap: 7px; white-space: nowrap; }
+  .delta .was {
+    font-family: "IBM Plex Mono", monospace; font-size: 12.5px;
+    color: var(--ink-faint); text-decoration: line-through;
+  }
+  .delta .now {
+    font-family: "IBM Plex Mono", monospace; font-size: 13px;
+    font-weight: 500; color: var(--pass);
+  }
+  .delta .arrow { color: var(--ink-faint); font-size: 11px; }
+
+  /* ── a closed vulnerability ─────────────────────────────────────────── */
+  .vuln {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--limit);
+    border-radius: 0 4px 4px 0;
+    background: var(--surface);
+    padding: 16px 20px;
+    margin: 0 0 18px;
+  }
+  .vuln.is-fixed { border-left-color: var(--pass); }
+  .vuln h4 {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 15.5px; font-weight: 600; margin: 0 0 4px;
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  }
+  .vuln p { margin: 0 0 8px; font-size: 15.5px; max-width: 68ch; }
+  .vuln p:last-child { margin-bottom: 0; }
+  .vuln pre {
+    margin: 10px 0 0; padding: 11px 14px;
+    background: var(--surface-2); border-radius: 4px;
+    font-family: "IBM Plex Mono", monospace; font-size: 12.5px;
+    line-height: 1.65; overflow-x: auto; color: var(--ink-muted);
+  }
+
+  /* ── lifecycle rail ─────────────────────────────────────────────────── */
+  /* The states are a sequence and the order carries meaning, so they are
+     drawn as one. */
+  .flow {
+    display: flex; flex-wrap: wrap; align-items: stretch; gap: 0;
+    border: 1px solid var(--line); border-radius: 4px;
+    background: var(--surface); overflow: hidden; margin: 0 0 20px;
+  }
+  .flow div {
+    flex: 1 1 130px; min-width: 0; padding: 13px 15px;
+    border-right: 1px solid var(--line);
+  }
+  .flow div:last-child { border-right: 0; }
+  .flow b {
+    display: block; font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px; letter-spacing: .06em; color: var(--accent);
+    margin-bottom: 5px;
+  }
+  .flow span { font-size: 13px; color: var(--ink-muted); line-height: 1.45; }
+
+  /* ── status legend ──────────────────────────────────────────────────── */
+  .legend {
+    display: grid; grid-template-columns: auto 1fr; gap: 9px 14px;
+    align-items: baseline; margin: 0 0 22px;
+    font-size: 14.5px; color: var(--ink-muted);
+  }
+
+  .lede {
+    font-family: "IBM Plex Sans", sans-serif; font-size: 15px;
+    color: var(--ink-muted); max-width: 70ch; margin: 0 0 18px;
+  }
+  ul.plain { margin: 0 0 18px; padding-left: 20px; }
+  ul.plain li { margin-bottom: 9px; max-width: 70ch; }
+  .quiet { color: var(--ink-faint); }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">CampusHub &middot; PDEU Centralised Student Portal</p>
+    <h1>Phase 4 Implementation Report</h1>
+    <p class="standfirst">
+      Elective registration became a workflow, two real vulnerabilities were
+      closed, and two N+1 queries were measured and fixed. This report is as
+      much about what was <em>not</em> done.
+    </p>
+  </header>
+
+  <dl class="metrics">
+    <div class="metric is-pass"><dt>Tests</dt><dd>405<small>296 before · 109 added</small></dd></div>
+    <div class="metric"><dt>Vulnerabilities closed</dt><dd>2<small>both in file access</small></dd></div>
+    <div class="metric"><dt>Query reduction</dt><dd>82%<small>student elective list</small></dd></div>
+    <div class="metric"><dt>Indexes added</dt><dd>0<small>six drafted, all redundant</small></dd></div>
+    <div class="metric"><dt>Migrations</dt><dd>8<small>0008 round-trips</small></dd></div>
+    <div class="metric"><dt>Not production-ready</dt><dd>6<small>blockers listed in §9</small></dd></div>
+  </dl>
+
+  <nav class="toc" aria-label="Contents">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#rounds">Registration rounds</a></li>
+      <li><a href="#profile">Student profile</a></li>
+      <li><a href="#security">Security review</a></li>
+      <li><a href="#performance">Performance</a></li>
+      <li><a href="#database">Database</a></li>
+      <li><a href="#api">API and frontend</a></li>
+      <li><a href="#tests">Tests</a></li>
+      <li><a href="#aws">AWS readiness</a></li>
+      <li><a href="#status">Honest status</a></li>
+      <li><a href="#notdone">Not done</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <section id="legend">
+      <h2><span class="num">00</span> How to read this</h2>
+      <p class="h2-title">Labels, so nothing here reads as a claim it isn&rsquo;t</p>
+      <div class="legend">
+        <span class="chip pass">implemented</span><span>In the codebase and working.</span>
+        <span class="chip pass">verified</span><span>Exercised end to end and observed working.</span>
+        <span class="chip config">configurable</span><span>Supported; the values are an operator or faculty decision.</span>
+        <span class="chip config">faculty</span><span>A university policy question, not a code question.</span>
+        <span class="chip limit">future</span><span>Deliberately not built.</span>
+      </div>
+      <div class="note">
+        <p>
+          <strong>405 passing tests is a quality signal, not a production-readiness
+          claim.</strong> Six things must happen before real students use this, and
+          they are listed in <a href="#status">&sect;09</a>.
+        </p>
+      </div>
+    </section>
+
+    <!-- 1 ─────────────────────────────────────────────────── -->
+    <section id="rounds">
+      <h2><span class="num">01</span> Registration</h2>
+      <p class="h2-title">The deadline is enforced by the server, not the browser</p>
+
+      <p>
+        Elective registration was a pair of dates on each course offering. That
+        cannot express &ldquo;this round covers Semester IV of these programmes,
+        opens Monday, closes Friday, and is locked by the coordinator once demand
+        is in&rdquo;. A round is now a row, and it is the authority.
+      </p>
+
+      <div class="flow">
+        <div><b>DRAFT</b><span>Coordinator attaches courses and sets the window.</span></div>
+        <div><b>OPEN</b><span>Students may submit and revise preferences.</span></div>
+        <div><b>LOCKED</b><span>Preferences frozen. Writes refused.</span></div>
+        <div><b>ALLOCATED</b><span>Allocation has run. Results not yet visible.</span></div>
+        <div><b>PUBLISHED</b><span>Results released; every student notified.</span></div>
+        <div><b>CLOSED</b><span>Round finished.</span></div>
+      </div>
+
+      <p>
+        The student-facing state &mdash; <code>NOT_OPEN</code>,
+        <code>OPEN</code>, <code>SUBMITTED</code>, <code>LOCKED</code>,
+        <code>ALLOCATED</code>, <code>CLOSED</code> &mdash; is <strong>derived</strong>,
+        never stored, from the round, the clock and the student&rsquo;s own rows,
+        so it cannot drift out of step with them.
+      </p>
+
+      <h3>A countdown in the browser is a courtesy, never a control</h3>
+      <p>
+        Every write calls <code>assert_can_submit()</code>. A stale tab, a clock
+        skewed by a day, or a hand-written request is refused with the real
+        reason. Observed against the seeded database:
+      </p>
+      <div class="paths">
+        <span>OE3 state=LOCKED</span><span>POST /electives/preferences &rarr; 409</span><span>&ldquo;Preferences are locked while allocation is prepared.&rdquo;</span>
+      </div>
+      <p>
+        A round whose closing time has passed refuses writes <em>even while its
+        status still reads OPEN</em> &mdash; the deadline wins over the flag.
+      </p>
+
+      <h3>Eligibility uses the curriculum&rsquo;s own vocabulary</h3>
+      <p>
+        Rounds narrow by programme, semester and division, so one round can span
+        an Open Elective basket across programmes or narrow to a few divisions of
+        one. Nothing is hard-coded.
+      </p>
+
+      <div class="note">
+        <p>
+          <strong>Publishing notifies everyone in the round</strong> &mdash;
+          including students who were <em>not</em> allocated a seat. Silence after
+          a deadline is its own kind of failure.
+        </p>
+      </div>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Seeded round</th><th>Status</th><th class="num">Courses</th><th class="num">Eligible</th><th class="num">Submitted</th><th class="num">Allocated</th></tr></thead>
+          <tbody>
+            <tr><td>OE1 &mdash; Semester IV</td><td><span class="chip pass">open</span></td><td class="num">6</td><td class="num">203</td><td class="num">202</td><td class="num">0</td></tr>
+            <tr><td>OE3 &mdash; Semester VI</td><td><span class="chip config">locked</span></td><td class="num">7</td><td class="num">205</td><td class="num">205</td><td class="num">0</td></tr>
+            <tr><td>OE4 &mdash; Semester VII</td><td><span class="chip pass">published</span></td><td class="num">5</td><td class="num">203</td><td class="num">&mdash;</td><td class="num">203</td></tr>
+            <tr><td>PCE1 &mdash; Semester V</td><td><span class="chip pass">open</span></td><td class="num">12</td><td class="num">0</td><td class="num">0</td><td class="num">0</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="lede">
+        Seeded across the lifecycle so a demo shows every state without waiting
+        for a clock.
+      </p>
+    </section>
+
+    <!-- 2 ─────────────────────────────────────────────────── -->
+    <section id="profile">
+      <h2><span class="num">02</span> Student profile</h2>
+      <p class="h2-title">Authorised per section, not per endpoint</p>
+
+      <p>
+        One view assembling Personal, Academic, Internship, Documents, Evaluation
+        and Mentor. &ldquo;Staff&rdquo; is far too wide a rule for a student
+        record: a club administrator has no business reading an internship
+        evaluation, so access is decided section by section.
+      </p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Viewer</th><th>Result</th></tr></thead>
+          <tbody>
+            <tr><td>The student, their mentor, their department admin, super admin</td><td><span class="chip pass">full profile</span></td></tr>
+            <tr><td>An ICT <strong>Open Elective</strong> coordinator</td><td><span class="chip config">personal + academic only</span> &mdash; no evaluation, no mentor</td></tr>
+            <tr><td>A <strong>CSE</strong> Summer Internship coordinator</td><td><span class="chip limit">403</span></td></tr>
+            <tr><td>Club admin · another student</td><td><span class="chip limit">403</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        The response carries <code>visible_sections</code>, so the UI hides a tab
+        the caller may not see rather than rendering an empty one that looks like
+        missing data.
+      </p>
+
+      <div class="vuln is-fixed">
+        <h4>An authorisation flaw a test caught <span class="chip pass">fixed</span></h4>
+        <p>
+          The first draft granted access to anyone holding a <em>mentor grant for
+          the department</em>. A test asserting that the mentor of student A cannot
+          read student B&rsquo;s record failed &mdash; correctly.
+        </p>
+        <p>
+          Mentor access is now earned <strong>per student</strong>: a mentorship
+          assignment, or being the mentor recorded on that student&rsquo;s own
+          internship.
+        </p>
+      </div>
+
+      <div class="paths">
+        <span>Aarav Desai · 22BIT001</span><span>curriculum 2022-R1</span><span>Summer Internship 88%</span><span>12 documents expected, 1 missing</span><span>evaluation 87.2/100</span>
+      </div>
+    </section>
+
+    <!-- 3 ─────────────────────────────────────────────────── -->
+    <section id="security">
+      <h2><span class="num">03</span> Security</h2>
+      <p class="h2-title">Two real vulnerabilities, both in file access</p>
+
+      <div class="vuln is-fixed">
+        <h4>Unauthenticated document exposure <span class="chip pass">fixed</span></h4>
+        <p>
+          Uploads were served from a public <code>/media</code> static mount.
+          <strong>Every stored document &mdash; internship certificates, offer
+          letters, weekly reports &mdash; was readable by anyone who knew or
+          guessed its object key, with no login at all.</strong>
+        </p>
+        <p>The mount is gone. Documents reach clients only through an authorised endpoint.</p>
+      </div>
+
+      <div class="vuln is-fixed">
+        <h4>IDOR on file metadata <span class="chip pass">fixed</span></h4>
+        <p>
+          <code>GET /files/{id}</code> had <strong>no authorisation check</strong>
+          and returned that public URL. Any signed-in user could walk the id space
+          and collect other students&rsquo; certificates.
+        </p>
+        <pre>intruder  &rarr; GET /files/{id}  &rarr; 403
+owner     &rarr; GET /files/{id}  &rarr; 200, storage key absent from the body</pre>
+      </div>
+
+      <h3>Also hardened</h3>
+      <ul class="plain">
+        <li><strong>Magic-byte validation.</strong> <code>Content-Type</code> comes from the browser and is trivially forged; a &ldquo;PDF&rdquo; beginning <code>&lt;script&gt;</code> is now rejected.</li>
+        <li><strong>Filename sanitisation.</strong> Path separators, quotes, newlines and control characters are stripped before storage and before being echoed in a <code>Content-Disposition</code> header &mdash; a header-injection vector.</li>
+        <li><strong>Signed, expiring links</strong> (HMAC, 15 minutes) replace storage URLs, and are issued only after the caller passes the same authorisation check.</li>
+        <li><code>X-Content-Type-Options: nosniff</code> and <code>Cache-Control: private, no-store</code> on every download.</li>
+      </ul>
+
+      <h3>Verified by 30 API-level tests</h3>
+      <p class="lede">
+        Driven through HTTP, because that is where an authorisation gap actually
+        bites: a route that forgot its guard passes every unit test of the logic
+        behind it.
+      </p>
+      <div class="paths">
+        <span>anonymous access</span><span>forged tokens</span><span>refresh-as-access</span><span>login user enumeration</span><span>password hash leakage</span><span>cross-student IDOR</span><span>audit-log permissions</span><span>mass assignment</span><span>SQL injection</span><span>clean 404s</span><span>Summer &ne; CSSI</span><span>ICT &ne; CSE</span><span>mentor &ne; coordinator</span>
+      </div>
+    </section>
+
+    <!-- 4 ─────────────────────────────────────────────────── -->
+    <section id="performance">
+      <h2><span class="num">04</span> Performance</h2>
+      <p class="h2-title">Two N+1 queries, measured then fixed</p>
+
+      <p>
+        Measured against the seeded dataset &mdash; 1,682 students, 526 courses,
+        12 curriculum versions &mdash; counting SQL statements per request.
+      </p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Endpoint</th><th>Latency</th><th>Queries</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Elective components</strong> (student)</td>
+              <td><span class="delta"><span class="was">95 ms</span><span class="arrow">&rarr;</span><span class="now">84 ms</span></span></td>
+              <td><span class="delta"><span class="was">221</span><span class="arrow">&rarr;</span><span class="now">39</span></span></td>
+            </tr>
+            <tr>
+              <td><strong>Curriculum explorer</strong> (admin)</td>
+              <td><span class="delta"><span class="was">97 ms</span><span class="arrow">&rarr;</span><span class="now">18 ms</span></span></td>
+              <td><span class="delta"><span class="was">70</span><span class="arrow">&rarr;</span><span class="now">37</span></span></td>
+            </tr>
+            <tr><td>Student dashboard</td><td>41 ms</td><td class="num">57</td></tr>
+            <tr><td>Student profile</td><td>40 ms</td><td class="num">39</td></tr>
+            <tr><td>Student list (paginated)</td><td>30 ms</td><td class="num">56</td></tr>
+            <tr><td>Notifications</td><td>6 ms</td><td class="num">4</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <ol class="limits">
+        <li><b>Scope resolution re-fetched the same rows per offering</b><div>Every offering in a student&rsquo;s elective list re-resolved the same handful of departments and programmes. Memoised per session &mdash; 82% fewer queries.</div></li>
+        <li><b>The curriculum list loaded every component row to count them</b><div>Twelve curricula &times; ~70 rows, to render six numbers. Replaced with a filtered <code>COUNT</code> &mdash; 81% faster.</div></li>
+        <li><b>A third was caught before it shipped</b><div>The round summary loaded every covered student to call <code>len()</code> on them, which timed out on ICT&rsquo;s cohort. Counting moved into SQL.</div></li>
+      </ol>
+
+      <div class="note">
+        <p>
+          <strong>No Redis. No caching layer.</strong> The queries were the
+          problem; caching them would have hidden it.
+        </p>
+      </div>
+    </section>
+
+    <!-- 5 ─────────────────────────────────────────────────── -->
+    <section id="database">
+      <h2><span class="num">05</span> Database</h2>
+      <p class="h2-title">Six indexes drafted, six removed</p>
+
+      <p>
+        Migration <code>0008_registration_windows</code> adds the rounds table and
+        the foreign key linking offerings to a round. It has been applied and
+        verified to <strong>round-trip</strong> &mdash; downgrade then upgrade &mdash;
+        against the live database.
+      </p>
+
+      <p>
+        The draft also added six composite indexes for the dashboard queries.
+        Checking <code>0001</code> first showed every one of them was redundant:
+      </p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Drafted index</th><th>Why it was dropped</th></tr></thead>
+          <tbody>
+            <tr><td><code>events(status, start_at)</code></td><td><strong>already exists verbatim</strong></td></tr>
+            <tr><td><code>notifications(user_id, is_read)</code></td><td>exists as <code>ix_notifications_user_read</code></td></tr>
+            <tr><td><code>students.user_id</code></td><td>already unique-indexed by the column&rsquo;s own constraint</td></tr>
+            <tr><td><code>elective_preferences(student_id, component_id)</code></td><td>leading column already indexed</td></tr>
+            <tr><td><code>elective_allocations(offering_id, status)</code></td><td>leading column already indexed</td></tr>
+            <tr><td><code>students(department_id, division)</code></td><td>leading column already indexed</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        Redundant indexes cost write throughput and buy nothing.
+        <strong>No new indexes were added</strong> beyond the new table&rsquo;s own.
+      </p>
+    </section>
+
+    <!-- 6 ─────────────────────────────────────────────────── -->
+    <section id="api">
+      <h2><span class="num">06</span> API &amp; frontend</h2>
+      <p class="h2-title">Six new routes, three new screens&rsquo; worth of work</p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Route</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>GET /electives/admin/windows</code></td><td>rounds visible to the caller, with live demand counts</td></tr>
+            <tr><td><code>POST /electives/admin/windows</code></td><td>create a round &mdash; always begins as a draft</td></tr>
+            <tr><td><code>PATCH /electives/admin/windows/{id}</code></td><td><span class="chip config">refused</span> once allocated or published</td></tr>
+            <tr><td><code>POST .../{id}/offerings</code></td><td>attach courses &mdash; draft only</td></tr>
+            <tr><td><code>POST .../{id}/status</code></td><td>drive the lifecycle; publishing notifies students</td></tr>
+            <tr><td><code>GET /student-profile/{id}</code></td><td>the unified profile, authorised per section</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <p>
+          <strong>A pre-existing RBAC gap was closed.</strong> Only department
+          admins held <code>electives:manage</code>, so a <em>scoped</em> elective
+          coordinator &mdash; plain faculty with a coordinator grant &mdash; was
+          locked out of the module they run. The new
+          <code>require_permission_or_coordination</code> guard admits either, and
+          the handler still narrows to the caller&rsquo;s own department.
+        </p>
+      </div>
+
+      <p>
+        Frontend: a tabbed <strong>Student Profile</strong> page whose tabs are
+        driven by the backend&rsquo;s <code>visible_sections</code>; the students
+        list now links to it; and the elective workspace reports the
+        backend&rsquo;s registration decision and its reason rather than computing
+        its own from a countdown. <code>tsc -b</code> clean, production build
+        succeeds.
+      </p>
+    </section>
+
+    <!-- 7 ─────────────────────────────────────────────────── -->
+    <section id="tests">
+      <h2><span class="num">07</span> Tests</h2>
+      <p class="h2-title">109 added, 296 &rarr; 405</p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>File</th><th class="num">Tests</th><th>Covers</th></tr></thead>
+          <tbody>
+            <tr><td><code>test_api_security.py</code></td><td class="num">30</td><td>the security review, driven through HTTP</td></tr>
+            <tr><td><code>test_file_security.py</code></td><td class="num">29</td><td>magic bytes, filename sanitisation, signed tokens</td></tr>
+            <tr><td><code>test_registration_windows.py</code></td><td class="num">24</td><td>state machine, deadline enforcement, eligibility</td></tr>
+            <tr><td><code>test_student_profile.py</code></td><td class="num">13</td><td>per-section authorisation</td></tr>
+            <tr><td><code>test_e2e_scenarios.py</code></td><td class="num">13</td><td>the named end-to-end scenarios</td></tr>
+            <tr class="total"><td>Total</td><td class="num">405</td><td>296 pre-existing, all still passing</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <ul class="plain">
+        <li>Open Elective <code>90 &rarr; [75,15]</code>, <code>150 &rarr; [75,75]</code>, <code>151 &rarr; [75,75,1]</code> &mdash; unchanged by everything Phase 4 added.</li>
+        <li>A round driving a student through open &rarr; submitted &rarr; locked &rarr; allocated, with <strong>no result leaking before publication</strong>.</li>
+        <li>Core Elective <code>10+10+10+10 = 40</code> running as one class with no 75 ceiling &mdash; and the same total across <em>two</em> divisions.</li>
+        <li>Event waitlist &rarr; cancellation &rarr; <strong>auto-promotion with a notification</strong>.</li>
+        <li>CPI is not consulted anywhere in elective scope &mdash; for a 4.1-CPI student or a 9.8-CPI one.</li>
+      </ul>
+    </section>
+
+    <!-- 8 ─────────────────────────────────────────────────── -->
+    <section id="aws">
+      <h2><span class="num">08</span> AWS</h2>
+      <p class="h2-title">CloudFront, EC2, RDS, S3 &mdash; and one deployment trap</p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Concern</th><th>State</th></tr></thead>
+          <tbody>
+            <tr><td>Storage abstraction local &rlarr; S3</td><td><span class="chip pass">implemented</span> one environment variable</td></tr>
+            <tr><td>Environment-driven configuration</td><td><span class="chip pass">implemented</span></td></tr>
+            <tr><td>Migrations</td><td><span class="chip pass">verified</span> 8 revisions, round-trips</td></tr>
+            <tr><td>Health endpoint for the ALB</td><td><span class="chip pass">verified</span> <code>GET /health</code></td></tr>
+            <tr><td>Authorised file access</td><td><span class="chip pass">verified</span></td></tr>
+            <tr><td>TLS · secrets · backups · alarms</td><td><span class="chip config">configurable</span> operator decisions</td></tr>
+            <tr><td>Autoscaling · malware scanning · login rate limiting</td><td><span class="chip limit">future</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note security">
+        <p>
+          <strong>One trap is called out explicitly.</strong>
+          <code>S3_PUBLIC_BASE_URL</code> must be <strong>empty</strong> for the
+          documents bucket. Setting it makes the backend hand out a CloudFront
+          path instead of an authorised download &mdash; re-opening the exact hole
+          Phase 4 closed.
+        </p>
+      </div>
+
+      <p>
+        No Kubernetes, no microservices, no Redis. The application is one FastAPI
+        process and one database; an orchestrator would be infrastructure without
+        a problem to solve. Full detail in <code>docs/DEPLOYMENT.md</code>.
+      </p>
+    </section>
+
+    <!-- 9 ─────────────────────────────────────────────────── -->
+    <section id="status">
+      <h2><span class="num">09</span> Status</h2>
+      <p class="h2-title">Do not present this as production-ready</p>
+
+      <p>
+        It is a credible MVP with two real vulnerabilities closed and measured
+        performance. It is not yet a system to put in front of a thousand
+        students. Before real use, in order:
+      </p>
+
+      <ol class="limits">
+        <li><b>Rate limiting on <code>/auth/login</code></b><div>Nothing throttles password attempts. Add a WAF rate rule at the ALB. <span class="chip limit">future</span></div></li>
+        <li><b>Malware scanning on uploads</b><div>Type validation and no static serving reduce but do not eliminate the risk. <span class="chip limit">future</span></div></li>
+        <li><b>A real password policy and reset flow</b><div>Seeded accounts share one password by design &mdash; a demo affordance, not a production one.</div></li>
+        <li><b>A browser and accessibility pass</b><div>Not done. No breakpoint audit at 375/768/1024/1440, no screen-reader testing. <strong>No WCAG AA claim is made.</strong></div></li>
+        <li><b>A backup restore rehearsal and CloudWatch alarms</b><div>An untested backup is a hope.</div></li>
+        <li><b>A load test at real concurrency</b><div>The dataset has been exercised at 1,682 students; hundreds of simultaneous users have not.</div></li>
+      </ol>
+
+      <h3>University policies still requiring faculty confirmation</h3>
+      <p class="lede">
+        Carried forward from Phase 3B, unchanged and still flagged in the database.
+      </p>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Item</th><th>Handling</th></tr></thead>
+          <tbody>
+            <tr><td>Biotechnology Semesters III&ndash;VIII</td><td>curriculum stays a <strong>draft</strong>; reaches no student</td></tr>
+            <tr><td>Electrical 2024-28</td><td>no published structure exists; <strong>none invented</strong></td></tr>
+            <tr><td>Climate Science &amp; Sustainable Engineering</td><td>admits students, has no curriculum; programme <strong>not created</strong></td></tr>
+            <tr><td>Chemical &ldquo;Program Elective 3&rdquo; printed twice</td><td>imported verbatim with a conflict note</td></tr>
+            <tr><td>Minor allocation &ldquo;pro rata basis&rdquo;</td><td>denominator undefined; CPI ranking implemented, pro-rata unset</td></tr>
+            <tr><td>Division counts</td><td>derived from seat intake, labelled as derived</td></tr>
+            <tr><td>Open Elective 40-minimum / 75-per-section</td><td>departmental, not public; <strong>unchanged</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 10 ────────────────────────────────────────────────── -->
+    <section id="notdone">
+      <h2><span class="num">10</span> Not done</h2>
+      <p class="h2-title">Scope from the brief that this phase did not reach</p>
+
+      <ol class="limits">
+        <li><b>Event discovery page</b><div>Registration, waitlist and auto-promotion all work and are now tested, but the polished discovery surface &mdash; Upcoming / This Week / Registered / Interested / Past with filters &mdash; was not built.</div></li>
+        <li><b>Verification queues</b><div>The underlying review endpoints exist and work; the consolidated &ldquo;Pending Certificates&rdquo; screens do not.</div></li>
+        <li><b>Audit log filters</b><div>The log is written correctly and is permission-gated; its UI still lacks actor / action / date-range filtering.</div></li>
+        <li><b>Coordinator round-management UI</b><div>The API is complete and tested; a coordinator drives rounds through it, not through a screen. The <em>student</em> side of rounds is wired into the UI.</div></li>
+        <li><b>Systematic responsive and accessibility work</b><div>New pages follow existing patterns &mdash; scroll containers on tables, labelled progress bars, semantic headings &mdash; but no audit was performed.</div></li>
+        <li><b>Browser-based testing</b><div>Everything was verified through the API and the test suite. The build compiles and types check; the rendered UI was not clicked through.</div></li>
+      </ol>
+    </section>
+
+  </main>
+
+  <footer>
+    CampusHub Phase 4 &middot; 405 tests passing &middot; 2 vulnerabilities closed &middot;
+    2 N+1 queries fixed &middot; deployment notes in <code>docs/DEPLOYMENT.md</code>
+  </footer>
+
+</div>

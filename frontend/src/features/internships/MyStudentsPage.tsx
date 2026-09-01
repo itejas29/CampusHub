@@ -1,0 +1,206 @@
+import { useQuery } from "@tanstack/react-query";
+import { Users } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Badge, StatusBadge } from "@/components/ui/Badge";
+import { Card, CardHeader } from "@/components/ui/Card";
+import { Select } from "@/components/ui/Form";
+import { Avatar, PageHeader, SearchInput } from "@/components/ui/Misc";
+import { ProgressBar } from "@/components/ui/Stepper";
+import { ErrorState, LoadingState } from "@/components/ui/States";
+import { TBody, TD, TH, THead, TR, TableEmpty, TableWrap } from "@/components/ui/Table";
+import { api, qs } from "@/lib/api";
+import { roman } from "@/lib/utils";
+import type { EnrollmentSummary, InternshipProgram } from "@/types";
+import { StudentDetailDrawer } from "./StudentDetailDrawer";
+
+interface Props {
+  /** "mine" = only students I mentor; "all" = every student I coordinate. */
+  scope?: "mine" | "all";
+  /** Narrow to one internship type, giving CSSI and SI their own screens. */
+  programType?: "CSSI" | "SUMMER";
+  title?: string;
+  description?: string;
+}
+
+export function MyStudentsPage({ scope = "mine", programType, title, description }: Props) {
+  const [programId, setProgramId] = useState<string>("");
+  const [status, setStatus] = useState<string>("");
+  const [search, setSearch] = useState("");
+  const [openId, setOpenId] = useState<number | null>(null);
+
+  const programs = useQuery({
+    queryKey: ["internship-programs"],
+    queryFn: () => api.get<InternshipProgram[]>("/internships/programs"),
+  });
+
+  // When a screen is typed (CSSI / SI) the programme filter is limited to that
+  // type, so the dropdown never offers a programme the screen would hide.
+  const typedPrograms = useMemo(
+    () => (programs.data ?? []).filter((p) => !programType || p.type === programType),
+    [programs.data, programType],
+  );
+
+  const enrollments = useQuery({
+    queryKey: ["internship-enrollments", scope, programType, programId, status],
+    queryFn: () =>
+      api.get<EnrollmentSummary[]>(
+        `/internships/enrollments${qs({
+          mine: scope === "mine" ? true : undefined,
+          program_id: programId || undefined,
+          status: status || undefined,
+        })}`,
+      ),
+  });
+
+  const rows = useMemo(() => {
+    const allowed = new Set(typedPrograms.map((p) => p.id));
+    let list = enrollments.data ?? [];
+    if (programType) list = list.filter((row) => allowed.has(row.program_id));
+    const needle = search.trim().toLowerCase();
+    if (!needle) return list;
+    return list.filter((row) =>
+      `${row.student_name} ${row.roll_number} ${row.organization_name ?? ""}`
+        .toLowerCase()
+        .includes(needle),
+    );
+  }, [enrollments.data, search, programType, typedPrograms]);
+
+  const isCoordinatorView = scope === "all";
+
+  return (
+    <div>
+      <PageHeader
+        title={title ?? (isCoordinatorView ? "Internship students" : "My students")}
+        description={
+          description ??
+          (isCoordinatorView
+            ? "Every student across the internship programmes you coordinate."
+            : "Students assigned to you as faculty mentor. Open a student to review submissions and record evaluation.")
+        }
+        breadcrumbs={[
+          { label: "Internships", to: "/internships" },
+          { label: title ?? (isCoordinatorView ? "Students" : "My students") },
+        ]}
+      />
+
+      <Card>
+        <CardHeader
+          title={`${rows.length} student${rows.length === 1 ? "" : "s"}`}
+          icon={<Users className="h-4 w-4 text-ink-subtle" aria-hidden />}
+          action={
+            <div className="flex flex-wrap items-center gap-2">
+              <SearchInput
+                value={search}
+                onChange={setSearch}
+                placeholder="Name, roll number or organisation"
+                className="w-full sm:w-64"
+              />
+              <Select
+                value={programId}
+                onChange={(e) => setProgramId(e.target.value)}
+                aria-label="Filter by programme"
+                className="w-full sm:w-40"
+              >
+                <option value="">All programmes</option>
+                {typedPrograms.map((program) => (
+                  <option key={program.id} value={program.id}>{program.code}</option>
+                ))}
+              </Select>
+              <Select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                aria-label="Filter by status"
+                className="w-full sm:w-44"
+              >
+                <option value="">All statuses</option>
+                {["REGISTERED", "MENTOR_ASSIGNED", "IN_PROGRESS", "SUBMITTED",
+                  "UNDER_EVALUATION", "COMPLETED"].map((value) => (
+                  <option key={value} value={value}>
+                    {value.replace(/_/g, " ").toLowerCase()}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          }
+        />
+
+        {enrollments.isLoading ? (
+          <LoadingState rows={4} />
+        ) : enrollments.error ? (
+          <ErrorState onRetry={() => enrollments.refetch()} compact />
+        ) : (
+          <TableWrap>
+            <THead>
+              <TH width="24%">Student</TH>
+              <TH width="10%">Roll no.</TH>
+              <TH width="8%">Sem</TH>
+              <TH>Organisation</TH>
+              <TH width="10%">Group</TH>
+              <TH width="16%">Progress</TH>
+              <TH width="14%">Status</TH>
+            </THead>
+            <TBody>
+              {rows.length === 0 ? (
+                <TableEmpty colSpan={7}>
+                  {search || programId || status
+                    ? "No students match these filters."
+                    : isCoordinatorView
+                      ? "No students are enrolled in the programmes you coordinate."
+                      : "No students are assigned to you as mentor yet."}
+                </TableEmpty>
+              ) : (
+                rows.map((row) => (
+                  <TR key={row.id} onClick={() => setOpenId(row.id)}>
+                    <TD>
+                      <div className="flex items-center gap-2.5">
+                        <Avatar name={row.student_name} src={row.avatar_url} size="sm" />
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-ink">{row.student_name}</p>
+                          <p className="truncate text-2xs text-ink-subtle">
+                            {row.department_code}
+                            {row.division && ` · Div ${row.division}`}
+                          </p>
+                        </div>
+                      </div>
+                    </TD>
+                    <TD className="tabular">{row.roll_number}</TD>
+                    <TD>{roman(row.semester)}</TD>
+                    <TD className="text-ink-muted">
+                      {row.organization_name ?? (
+                        <span className="text-ink-subtle">Not set</span>
+                      )}
+                    </TD>
+                    <TD>
+                      {row.group_name ? (
+                        <Badge tone="neutral">{row.group_name}</Badge>
+                      ) : (
+                        <span className="text-ink-subtle">—</span>
+                      )}
+                    </TD>
+                    <TD>
+                      <ProgressBar
+                        value={row.progress_percent}
+                        tone={row.progress_percent === 100 ? "success" : "accent"}
+                        label={row.current_stage ?? undefined}
+                        showValue={false}
+                      />
+                    </TD>
+                    <TD><StatusBadge status={row.status} /></TD>
+                  </TR>
+                ))
+              )}
+            </TBody>
+          </TableWrap>
+        )}
+      </Card>
+
+      {openId !== null && (
+        <StudentDetailDrawer
+          enrollmentId={openId}
+          onClose={() => setOpenId(null)}
+          canOverrideMentor={isCoordinatorView}
+        />
+      )}
+    </div>
+  );
+}

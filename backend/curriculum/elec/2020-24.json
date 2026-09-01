@@ -1,0 +1,391 @@
+{
+  "program": {
+    "code": "B.TECH-ELEC",
+    "name": "B.Tech. Electrical Engineering",
+    "short_name": "Electrical",
+    "degree_type": "B.Tech",
+    "duration_years": 4,
+    "total_semesters": 8,
+    "department": {
+      "code": "EE",
+      "name": "Electrical Engineering",
+      "short_name": "Electrical",
+      "school": "SoET"
+    }
+  },
+  "curriculum": {
+    "version": "2020-24",
+    "name": "B.Tech. Electrical Engineering — Curriculum 2020-24",
+    "effective_from_year": 2020,
+    "effective_to_year": 2023,
+    "total_credits": 172,
+    "status": "PUBLISHED"
+  },
+  "source": {
+    "url": "https://api.pdeu.ac.in/pdpu/resources/btech-electrical-course-structure.pdf",
+    "title": "B.Tech. in Electrical Engineering — Course Structure",
+    "publisher": "Pandit Deendayal Energy University",
+    "retrieved_at": "2026-08-28",
+    "academic_year": "2020-24",
+    "confidence": "CONFIRMED_OFFICIAL_SOURCE"
+  },
+  "divisions": {
+    "names": [
+      "A",
+      "B"
+    ],
+    "rationale": "No PDEU document states division counts. Derived from the official seat intake in the B.Tech. Admission Rules A.Y. 2026-27 at roughly 60-75 students per division. Editable programme data, not a citation.",
+    "confidence": "DERIVED_FROM_INTAKE"
+  },
+  "semesters": [
+    {
+      "number": 1,
+      "components": [],
+      "total_credits": 0
+    },
+    {
+      "number": 2,
+      "components": [],
+      "total_credits": 0
+    },
+    {
+      "number": 3,
+      "components": [
+        {
+          "code": "2020-24-S3-01",
+          "title": "Mathematics-III",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 1,
+          "course": "UG-MATHEMATICS-III"
+        },
+        {
+          "code": "2020-24-S3-02",
+          "title": "Network Analysis",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 2,
+          "course": "EE-001-NETWORK-ANALYSIS"
+        },
+        {
+          "code": "2020-24-S3-03",
+          "title": "Analog & Digital Electronics",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 3,
+          "course": "EE-002-ANALOG-DIGITAL-E"
+        },
+        {
+          "code": "2020-24-S3-04",
+          "title": "Analog & Digital Electronics Lab.",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 4,
+          "course": "EE-003-ANALOG-DIGITAL-E"
+        },
+        {
+          "code": "2020-24-S3-05",
+          "title": "Transformers & Induction Machines",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 5,
+          "course": "EE-004-TRANSFORMERS-IND"
+        },
+        {
+          "code": "2020-24-S3-06",
+          "title": "Transformers & Induction Machines Lab.",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 6,
+          "course": "EE-005-TRANSFORMERS-IND"
+        },
+        {
+          "code": "2020-24-S3-07",
+          "title": "Communication Skills - II",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 1,
+          "sequence": 7,
+          "course": "UG-COMMUNICATION-SKILLS-II"
+        },
+        {
+          "code": "OE1",
+          "title": "Open Elective 1",
+          "component_type": "OPEN_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "OTHER_DEPARTMENT_FOET",
+          "scope_label": "From the open elective basket announced by other departments",
+          "credits": 3,
+          "sequence": 101,
+          "eligibility": {
+            "eligible_schools": [
+              "SoT",
+              "SoET"
+            ],
+            "exclude_own_department": true,
+            "rule_source": "B.Tech. Electrical Engineering course structure: the open elective basket is announced by the other departments of the School of Technology and the other schools of the university; the offering department's own students are excluded."
+          },
+          "department_basket": [
+            {
+              "course": "EE-006-CLIMATE-CHANGE-I",
+              "title": "Climate Change: Impact and Solutions"
+            }
+          ]
+        }
+      ],
+      "total_credits": 19.0
+    },
+    {
+      "number": 4,
+      "components": [
+        {
+          "code": "2020-24-S4-01",
+          "title": "Electrical Power Generation, Transmission and Distribution",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 1,
+          "course": "EE-007-ELECTRICAL-POWER"
+        },
+        {
+          "code": "OE2",
+          "title": "Open Elective II",
+          "component_type": "OPEN_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "OTHER_DEPARTMENT_FOET",
+          "scope_label": "From the open elective basket announced by other departments",
+          "credits": 3,
+          "sequence": 101,
+          "eligibility": {
+            "eligible_schools": [
+              "SoT",
+              "SoET"
+            ],
+            "exclude_own_department": true,
+            "rule_source": "B.Tech. Electrical Engineering course structure: the open elective basket is announced by the other departments of the School of Technology and the other schools of the university; the offering department's own students are excluded."
+          },
+          "department_basket": [
+            {
+              "course": "EE-008-ENERGY-AND-WATER",
+              "title": "Energy and Water Nexus"
+            }
+          ]
+        },
+        {
+          "code": "IO",
+          "title": "Industrial Orientation",
+          "component_type": "INTERNSHIP",
+          "is_elective": false,
+          "source_scope": "ANY",
+          "scope_label": "3 weeks, at the end of Semester IV",
+          "credits": 1,
+          "sequence": 102
+        }
+      ],
+      "total_credits": 8.0
+    },
+    {
+      "number": 5,
+      "components": [
+        {
+          "code": "PE1",
+          "title": "Professional Elective Course – I",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": "Theory with paired laboratory",
+          "credits": 4,
+          "sequence": 101
+        },
+        {
+          "code": "OE3",
+          "title": "Open Elective – III",
+          "component_type": "OPEN_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "OTHER_DEPARTMENT_FOET",
+          "scope_label": "From the open elective basket announced by other departments",
+          "credits": 3,
+          "sequence": 102,
+          "eligibility": {
+            "eligible_schools": [
+              "SoT",
+              "SoET"
+            ],
+            "exclude_own_department": true,
+            "rule_source": "B.Tech. Electrical Engineering course structure: the open elective basket is announced by the other departments of the School of Technology and the other schools of the university; the offering department's own students are excluded."
+          }
+        }
+      ],
+      "total_credits": 7.0
+    },
+    {
+      "number": 6,
+      "components": [
+        {
+          "code": "PE2",
+          "title": "Professional Elective Course – II",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": "Theory with paired laboratory",
+          "credits": 4,
+          "sequence": 101
+        },
+        {
+          "code": "PE3",
+          "title": "Professional Elective Course – III",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": "Theory with paired laboratory",
+          "credits": 4,
+          "sequence": 102
+        },
+        {
+          "code": "OE4",
+          "title": "Open Elective - IV",
+          "component_type": "OPEN_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "OTHER_DEPARTMENT_FOET",
+          "scope_label": "From the open elective basket announced by other departments",
+          "credits": 3,
+          "sequence": 103,
+          "eligibility": {
+            "eligible_schools": [
+              "SoT",
+              "SoET"
+            ],
+            "exclude_own_department": true,
+            "rule_source": "B.Tech. Electrical Engineering course structure: the open elective basket is announced by the other departments of the School of Technology and the other schools of the university; the offering department's own students are excluded."
+          }
+        },
+        {
+          "code": "IT",
+          "title": "Industrial Training / IEP",
+          "component_type": "INTERNSHIP",
+          "is_elective": false,
+          "source_scope": "ANY",
+          "scope_label": "6 weeks in the summer break after Semester VI",
+          "credits": 2,
+          "sequence": 104
+        }
+      ],
+      "total_credits": 13.0
+    },
+    {
+      "number": 7,
+      "components": [
+        {
+          "code": "2020-24-S7-01",
+          "title": "Electrical Machine Design",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 4,
+          "sequence": 1,
+          "course": "EE-009-ELECTRICAL-MACHI"
+        },
+        {
+          "code": "2020-24-S7-02",
+          "title": "Smart Grid: Technologies and Applications",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 3,
+          "sequence": 2,
+          "course": "EE-010-SMART-GRID-TECHN"
+        },
+        {
+          "code": "2020-24-S7-03",
+          "title": "Electricity Sector in India: Policies and Regulations",
+          "component_type": "CORE",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": null,
+          "credits": 2,
+          "sequence": 3,
+          "course": "EE-011-ELECTRICITY-SECT"
+        },
+        {
+          "code": "PE4",
+          "title": "Professional Elective Course – IV",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": "Theory with paired laboratory",
+          "credits": 4,
+          "sequence": 101,
+          "options": [
+            {
+              "course": "EE-012-FACTS-AND-HVDC-P",
+              "title": "FACTS and HVDC Power Transmission"
+            },
+            {
+              "course": "EE-013-DIGITAL-CONTROL",
+              "title": "Digital Control"
+            },
+            {
+              "course": "EE-014-POWER-QUALITY",
+              "title": "Power Quality"
+            },
+            {
+              "course": "EE-015-MODELLING-AND-AN",
+              "title": "Modelling and Analysis of Electrical Machines"
+            }
+          ]
+        },
+        {
+          "code": "PE5",
+          "title": "Professional Elective Course – V",
+          "component_type": "PROGRAM_CORE_ELECTIVE",
+          "is_elective": true,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": "Theory with paired laboratory",
+          "credits": 4,
+          "sequence": 102
+        }
+      ],
+      "total_credits": 17.0
+    },
+    {
+      "number": 8,
+      "components": [
+        {
+          "code": "MP",
+          "title": "Major / Comprehensive Project",
+          "component_type": "PROJECT",
+          "is_elective": false,
+          "source_scope": "SAME_DEPARTMENT",
+          "scope_label": "Students opt for either Major Project or Comprehensive Project",
+          "credits": 13,
+          "sequence": 101
+        }
+      ],
+      "total_credits": 13.0
+    }
+  ]
+}
