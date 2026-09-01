@@ -25,9 +25,37 @@ cd frontend && npm run build   # tsc -b && vite build
 Demo password for every seeded account: `Campus@123`.
 Accounts are listed in [README.md](README.md#demo-accounts).
 
-> **Note on this machine:** the project sits in an iCloud-synced `~/Desktop`
-> folder, which makes `.venv` reads and `git add` extremely slow. Run long
-> commands in the background rather than assuming they hung.
+### iCloud, and why builds fail here
+
+The project sits in an iCloud-synced `~/Desktop` folder. iCloud **evicts** file
+contents to save space, leaving zero-byte "dataless" placeholders. Reading one
+triggers a download, and for a directory of thousands of small files that
+download times out:
+
+```
+[plugin:vite:css] Failed to load PostCSS config:
+Error: Loading PostCSS Plugin failed: ETIMEDOUT: connection timed out, read
+```
+
+That error is not a PostCSS problem. It means `node_modules` was evicted.
+
+**`frontend/node_modules` is therefore a symlink** to
+`~/.campushub-modules/frontend`, outside the synced tree, where iCloud cannot
+touch it. Run `npm ci` normally — it installs through the symlink. If the
+symlink is ever lost, recreate it before installing:
+
+```bash
+cd frontend
+rm -rf node_modules
+mkdir -p ~/.campushub-modules/frontend
+ln -s ~/.campushub-modules/frontend node_modules
+npm ci
+```
+
+`backend/.venv` has the same disease and has not been moved — it is why Python
+commands here take minutes. The same treatment fixes it, or recreate the venv
+outside the synced tree. Either way: **run long commands in the background
+rather than assuming they hung.**
 
 ---
 
