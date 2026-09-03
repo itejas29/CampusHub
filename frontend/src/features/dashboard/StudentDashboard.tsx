@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
-import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { Card, CardAction, CardBody, CardHeader } from "@/components/ui/Card";
 import { LinkButton } from "@/components/ui/Button";
 import { Avatar, PageHeader } from "@/components/ui/Misc";
 import { ProgressBar } from "@/components/ui/Stepper";
@@ -234,7 +234,7 @@ export function StudentDashboard() {
           <Card>
             <CardHeader
               title="Upcoming events"
-              action={<Link to="/events" className="text-xs text-accent hover:underline">All events</Link>}
+              action={<CardAction to="/events">All events</CardAction>}
             />
             {data.upcoming_events.length === 0 ? (
               <EmptyState compact title="No upcoming events" icon={<CalendarDays className="h-5 w-5" aria-hidden />} />
@@ -264,7 +264,7 @@ export function StudentDashboard() {
             <CardHeader
               title="Announcements"
               icon={<Megaphone className="h-4 w-4 text-ink-subtle" aria-hidden />}
-              action={<Link to="/announcements" className="text-xs text-accent hover:underline">All</Link>}
+              action={<CardAction to="/announcements" label="All announcements">All</CardAction>}
             />
             {data.announcements.length === 0 ? (
               <EmptyState compact title="No announcements" />

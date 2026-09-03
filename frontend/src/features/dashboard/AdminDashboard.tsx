@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/Badge";
-import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { Card, CardAction, CardBody, CardHeader } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/Misc";
 import { ProgressBar } from "@/components/ui/Stepper";
 import { StatGrid, StatTile } from "@/components/ui/StatTile";
@@ -171,7 +171,7 @@ export function AdminDashboard() {
 
         <Card>
           <CardHeader title="Upcoming events"
-                      action={<Link to="/admin/events" className="text-xs text-accent hover:underline">Manage</Link>} />
+                      action={<CardAction to="/admin/events" label="Manage events">Manage</CardAction>} />
           {data.upcoming_events.length === 0 ? (
             <EmptyState compact title="No upcoming events" />
           ) : (

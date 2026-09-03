@@ -16,11 +16,21 @@ const panelId = (group: string, key: string) => `${group}-panel-${key}`;
 
 export function Tabs({
   tabs, active, onChange, className, size = "md", group = "tabs",
+  withPanels = false,
 }: {
   tabs: TabItem[]; active: string; onChange: (key: string) => void;
   className?: string; size?: "sm" | "md";
   /** Distinguishes id namespaces when a page renders more than one tab set. */
   group?: string;
+  /**
+   * Set only when the tab content is rendered through <TabPanel> with the same
+   * `group`. `aria-controls` has to point at an element that actually exists —
+   * a reference to a missing id is worse than omitting it, because assistive
+   * technology announces a relationship the user then cannot follow. Every
+   * caller in this app currently renders its content directly rather than in a
+   * TabPanel, so this stays off by default.
+   */
+  withPanels?: boolean;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -69,7 +79,7 @@ export function Tabs({
               role="tab"
               type="button"
               aria-selected={selected}
-              aria-controls={panelId(group, tab.key)}
+              aria-controls={withPanels ? panelId(group, tab.key) : undefined}
               tabIndex={selected ? 0 : -1}
               onClick={() => onChange(tab.key)}
               className={cn(

@@ -5,7 +5,7 @@ import { Link, useParams } from "react-router-dom";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { Card, CardAction, CardBody, CardHeader } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Form";
 import { Avatar, PageHeader, SearchInput } from "@/components/ui/Misc";
 import { EmptyState, ErrorState, SkeletonCards } from "@/components/ui/States";
@@ -210,7 +210,7 @@ export function ClubDetailPage() {
 
           <Card>
             <CardHeader title="Events"
-                        action={<Link to="/events" className="text-xs text-accent hover:underline">All events</Link>} />
+                        action={<CardAction to="/events">All events</CardAction>} />
             {data.events.length === 0 ? (
               <EmptyState compact title="No events published yet" />
             ) : (

@@ -5,7 +5,7 @@ import {
 import { Link } from "react-router-dom";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
-import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { Card, CardAction, CardBody, CardHeader } from "@/components/ui/Card";
 import { Avatar, PageHeader } from "@/components/ui/Misc";
 import { ProgressBar } from "@/components/ui/Stepper";
 import { StatGrid, StatTile } from "@/components/ui/StatTile";
@@ -166,7 +166,7 @@ export function FacultyDashboard() {
             <CardHeader
               title="Meeting requests"
               icon={<CalendarClock className="h-4 w-4 text-ink-subtle" aria-hidden />}
-              action={<Link to="/mentorship" className="text-xs text-accent hover:underline">Manage</Link>}
+              action={<CardAction to="/mentorship" label="Manage mentees">Manage</CardAction>}
             />
             {data.upcoming_meetings.length === 0 ? (
               <EmptyState compact title="No open requests" />
@@ -210,7 +210,7 @@ export function FacultyDashboard() {
 
           <Card>
             <CardHeader title="Announcements"
-                        action={<Link to="/announcements" className="text-xs text-accent hover:underline">All</Link>} />
+                        action={<CardAction to="/announcements" label="All announcements">All</CardAction>} />
             {data.announcements.length === 0 ? (
               <EmptyState compact title="No announcements" />
             ) : (
