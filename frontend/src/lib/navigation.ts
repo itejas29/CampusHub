@@ -25,6 +25,13 @@ export interface NavItem {
    * type. A faculty member never made a mentor sees no student list at all.
    */
   mentorsProgram?: "CSSI" | "SUMMER";
+  /**
+   * Visible only while this semester-gated section applies to the student. The
+   * list comes from the server (`student.visible_sections`), so the menu and
+   * the endpoints answer to one rule instead of the sidebar advertising a page
+   * the API would return empty.
+   */
+  studentSection?: "minors" | "internships";
   children?: NavItem[];
   /** Match nested routes as active (default true for parents). */
   end?: boolean;
@@ -54,7 +61,10 @@ export const NAVIGATION: NavSection[] = [
       { label: "Open Electives", to: "/academics/open-electives", icon: BookOpen, roles: STUDENT },
       { label: "Core Electives", to: "/academics/core-electives", icon: Layers, roles: STUDENT },
       { label: "NPTEL / MOOC", to: "/academics/nptel", icon: BadgeCheck, roles: STUDENT },
-      { label: "Minor Specialisation", to: "/academics/minors", icon: Sparkles, roles: STUDENT },
+      {
+        label: "Minor Specialisation", to: "/academics/minors", icon: Sparkles,
+        roles: STUDENT, studentSection: "minors",
+      },
       { label: "Course Catalogue", to: "/academics/courses", icon: Library, roles: STAFF },
       { label: "Curriculum Explorer", to: "/academics/curriculums", icon: Network, roles: STAFF },
     ],
@@ -62,7 +72,10 @@ export const NAVIGATION: NavSection[] = [
   {
     title: "Internships",
     items: [
-      { label: "My Internships", to: "/internships", icon: Route, roles: STUDENT, end: true },
+      {
+        label: "My Internships", to: "/internships", icon: Route, roles: STUDENT,
+        end: true, studentSection: "internships",
+      },
       {
         label: "CSSI Students", to: "/internships/cssi-students", icon: Users,
         roles: STAFF, mentorsProgram: "CSSI",
@@ -153,11 +166,15 @@ export function visibleSections(
   can: (permission: string) => boolean,
   mentorsProgram: (type: "CSSI" | "SUMMER") => boolean = () => false,
   coordinates: (domain: CoordinationDomain) => boolean = () => false,
+  studentSections: string[] | null = null,
 ): NavSection[] {
   const owned = new Set(roles);
   const allowed = (item: NavItem) => {
     if (item.roles && !item.roles.some((role) => owned.has(role))) return false;
     if (item.mentorsProgram && !mentorsProgram(item.mentorsProgram)) return false;
+    // `null` means "not a student" — staff navigation is unaffected.
+    if (item.studentSection && studentSections
+        && !studentSections.includes(item.studentSection)) return false;
 
     // permission and coordination are alternatives, so a scoped coordinator
     // reaches the screen without the institution-wide permission.

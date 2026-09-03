@@ -15,6 +15,7 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
 import { ApiError, api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { cn, roman } from "@/lib/utils";
+import { MinorRules } from "./MinorRules";
 import type { MinorProgram, MinorWorkspace } from "@/types";
 
 export function MinorsPage() {
@@ -95,6 +96,11 @@ export function MinorsPage() {
           {banner.text}
         </Alert>
       )}
+
+      {/* Rules first: a student has to be able to read what they are signing up
+          to before they are asked to choose, not after, and not from inside a
+          dialog they have to know to open. */}
+      <MinorRules programs={data.programs} />
 
       {!data.is_eligible && data.eligibility_notes.length > 0 && (
         <Alert variant="warning" title="Not eligible yet" className="mb-5">

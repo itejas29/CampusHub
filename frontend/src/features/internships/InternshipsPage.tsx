@@ -87,7 +87,14 @@ export function InternshipsPage() {
           <Card>
             <EmptyState
               title="Not enrolled in an internship yet"
-              description="Enrol in an open programme below to start the workflow."
+              description={
+                (programs.data ?? []).length > 0
+                  ? "Enrol in an open programme below to start the workflow."
+                  // Pointing at a programme list that is empty for this
+                  // semester just sends the student looking for something that
+                  // is not there.
+                  : "Nothing to enrol in at your current semester."
+              }
               icon={<Route className="h-5 w-5" aria-hidden />}
             />
           </Card>
@@ -153,6 +160,14 @@ export function InternshipsPage() {
           <LoadingState rows={2} />
         ) : programs.error ? (
           <ErrorState onRetry={() => programs.refetch()} compact />
+        ) : !(programs.data ?? []).length ? (
+          <Card>
+            <EmptyState
+              title="No internship runs at your semester"
+              description="CSSI runs in Semester III and the Summer Internship from Semester VI. A programme appears here once it concerns you, and your own record stays available afterwards."
+              icon={<Route className="h-5 w-5" aria-hidden />}
+            />
+          </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
             {(programs.data ?? []).map((program) => (

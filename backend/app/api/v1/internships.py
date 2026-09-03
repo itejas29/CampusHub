@@ -393,6 +393,30 @@ def _detail(db, enrollment: InternshipEnrollment) -> EnrollmentDetail:
 
 
 # ── programmes ────────────────────────────────────────────────────────────
+def _student_visible_programs(db, student: Student,
+                              programs: list[InternshipProgram]
+                              ) -> list[InternshipProgram]:
+    """Narrow a programme list to what this student is entitled to see.
+
+    Two independent filters, both server-side. The semester window decides
+    *when* a programme exists for a student; the department decides *whether* it
+    is theirs at all. Without the second, an ICT student was being served the
+    Chemical, Civil, CSE, ECE, Mechanical and Petroleum variants of every
+    programme.
+    """
+    enrolled_ids = set(db.scalars(
+        select(InternshipEnrollment.program_id)
+        .where(InternshipEnrollment.student_id == student.id)
+    ))
+    return [
+        p for p in programs
+        if (p.department_id is None or p.department_id == student.department_id
+            or p.id in enrolled_ids)
+        and engine.student_can_see_program(
+            p, student.current_semester, has_enrollment=p.id in enrolled_ids)
+    ]
+
+
 @router.get("/programs", response_model=list[InternshipProgramOut])
 def list_programs(db: DbSession, user: CurrentUser,
                   type: str | None = Query(None)) -> list[InternshipProgramOut]:
@@ -400,7 +424,10 @@ def list_programs(db: DbSession, user: CurrentUser,
     if type:
         stmt = stmt.where(InternshipProgram.type == type)
     student = db.scalar(select(Student).where(Student.user_id == user.id))
-    return [_program_out(db, p, student) for p in db.scalars(stmt)]
+    programs = list(db.scalars(stmt))
+    if student:
+        programs = _student_visible_programs(db, student, programs)
+    return [_program_out(db, p, student) for p in programs]
 
 
 @router.get("/programs/{program_id}", response_model=InternshipProgramOut)
@@ -409,6 +436,12 @@ def get_program(program_id: int, db: DbSession, user: CurrentUser) -> Internship
     if program is None:
         raise NotFoundError("Internship programme not found.")
     student = db.scalar(select(Student).where(Student.user_id == user.id))
+    # Fetching by id must obey the same rule as the listing, or the filter is
+    # only a suggestion: the id is guessable and the payload is the whole
+    # programme. Reported as "not found" rather than "forbidden" so the response
+    # does not confirm that a programme the student cannot see exists.
+    if student and not _student_visible_programs(db, student, [program]):
+        raise NotFoundError("Internship programme not found.")
     return _program_out(db, program, student)
 
 
@@ -611,7 +644,9 @@ def update_enrollment(enrollment_id: int, payload: EnrollmentUpdate, db: DbSessi
     if enrollment is None:
         raise NotFoundError("Internship record not found.")
     if not _can_manage(user, db, enrollment.program):
-        _assert_is_owner(db, enrollment, user)
+        # Students edit only while the window is open. Ownership alone let a
+        # Semester IV student keep editing a CSSI record that had concluded.
+        _assert_can_submit(db, enrollment, user)
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(enrollment, field, value)
     audit.record(db, action=AuditAction.UPDATE, entity_type="internship_enrollment",
@@ -627,7 +662,7 @@ def upsert_project(enrollment_id: int, payload: ProjectDetailUpdate, db: DbSessi
     enrollment = db.get(InternshipEnrollment, enrollment_id)
     if enrollment is None:
         raise NotFoundError("Internship record not found.")
-    _assert_is_owner(db, enrollment, user)
+    _assert_can_submit(db, enrollment, user)
 
     project = enrollment.project
     if project is None:
@@ -817,7 +852,7 @@ def delete_document(document_id: int, db: DbSession, user: CurrentUser) -> Messa
         raise NotFoundError("Document not found.")
     enrollment = db.get(InternshipEnrollment, doc.enrollment_id)
     if not _can_manage(user, db, enrollment.program):
-        _assert_is_owner(db, enrollment, user)
+        _assert_can_submit(db, enrollment, user)
     if doc.status == SubmissionStatus.APPROVED:
         raise BusinessRuleError("An approved document cannot be removed.")
     db.delete(doc)

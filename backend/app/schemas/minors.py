@@ -40,6 +40,15 @@ class MinorProgramOut(ORMModel):
     coordinator_name: str | None = None
     is_active: bool
     courses: list[MinorCourseOut] = Field(default_factory=list)
+    # Published rules, read from the programme's `rules` JSON. These were
+    # already recorded against the official source but never reached the client,
+    # so a student could not see the conditions they were signing up to.
+    continuation_rule: str | None = None
+    rule_source: str | None = None
+    rule_source_url: str | None = None
+    offered_semesters: list[int] = Field(default_factory=list)
+    # Whether the registration round is currently accepting applications.
+    window_open: bool = True
     # Student context
     is_eligible: bool | None = None
     eligibility_notes: list[str] = Field(default_factory=list)

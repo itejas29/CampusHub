@@ -42,6 +42,11 @@ class StudentContext(ORMModel):
     cpi: float | None = None
     backlog_count: int = 0
     admission_year: int
+    #: Semester-gated sections currently applicable to this student — drives
+    #: navigation, the same way `mentors_programs` does for faculty. Computed
+    #: server-side so the sidebar cannot advertise a section whose data the API
+    #: would refuse to serve.
+    visible_sections: list[str] = Field(default_factory=list)
 
 
 class CoordinationOut(ORMModel):

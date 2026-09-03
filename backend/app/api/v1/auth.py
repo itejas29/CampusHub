@@ -17,6 +17,8 @@ from app.core.security import (
 )
 from app.models.enums import AssignedRole, AuditAction
 from app.models.identity import AcademicYear, Faculty, Semester, Student, User
+from app.models.internships import InternshipEnrollment, InternshipProgram
+from app.models.minors import MinorApplication, MinorEnrollment, MinorProgram
 from app.schemas.auth import (
     AuthResponse, ChangePasswordRequest, CoordinationOut,
     CurrentUser as CurrentUserOut, FacultyContext, LoginRequest, RefreshRequest,
@@ -24,6 +26,8 @@ from app.schemas.auth import (
 )
 from app.schemas.common import Message
 from app.services import audit, scope
+from app.services import internships as internship_service
+from app.services import minors as minor_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -37,12 +41,56 @@ def _tokens(user: User) -> TokenPair:
     )
 
 
+def _student_visible_sections(db, student: Student) -> list[str]:
+    """Which semester-gated sections currently apply to this student.
+
+    The sidebar previously offered "Minor Specialisation" and "My Internships"
+    to every student from Semester I, so a first-year clicked through to a page
+    the API correctly refused to fill. Deciding it here keeps the menu and the
+    endpoints answering to the same rule rather than drifting apart.
+    """
+    sections: list[str] = []
+
+    minor_programs = db.scalars(
+        select(MinorProgram).where(MinorProgram.is_active.is_(True))
+    )
+    engaged_minor_ids = set(db.scalars(
+        select(MinorApplication.minor_program_id)
+        .where(MinorApplication.student_id == student.id)
+    )) | set(db.scalars(
+        select(MinorEnrollment.minor_program_id)
+        .where(MinorEnrollment.student_id == student.id)
+    ))
+    if any(minor_service.student_can_see_minor(
+            p, student, has_application=p.id in engaged_minor_ids)
+           for p in minor_programs):
+        sections.append("minors")
+
+    enrolled_program_ids = set(db.scalars(
+        select(InternshipEnrollment.program_id)
+        .where(InternshipEnrollment.student_id == student.id)
+    ))
+    programs = db.scalars(select(InternshipProgram))
+    if any(
+        (p.department_id is None or p.department_id == student.department_id
+         or p.id in enrolled_program_ids)
+        and internship_service.student_can_see_program(
+            p, student.current_semester,
+            has_enrollment=p.id in enrolled_program_ids)
+        for p in programs
+    ):
+        sections.append("internships")
+
+    return sections
+
+
 def build_current_user(db, user: User) -> CurrentUserOut:
     student_ctx = faculty_ctx = None
 
     student = db.scalar(select(Student).where(Student.user_id == user.id))
     if student:
         student_ctx = StudentContext(
+            visible_sections=_student_visible_sections(db, student),
             id=student.id, roll_number=student.roll_number,
             program_id=student.program_id,
             program_name=student.program.name if student.program else None,

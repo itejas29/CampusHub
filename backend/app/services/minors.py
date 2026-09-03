@@ -41,6 +41,48 @@ from app.models.minors import MinorApplication, MinorEnrollment, MinorProgram
 def utcnow() -> dt.datetime:
     return dt.datetime.now(dt.timezone.utc)
 
+
+def application_window_open(program: MinorProgram,
+                            now: dt.datetime | None = None) -> bool:
+    """Whether the minor's registration round is currently accepting entries.
+
+    An unset bound means "no limit on that side", so a programme with neither
+    date configured is treated as permanently open — that is how the seeded
+    rounds behave and changing it would silently close them.
+    """
+    now = now or utcnow()
+    if program.application_opens_at and now < program.application_opens_at:
+        return False
+    if program.application_closes_at and now > program.application_closes_at:
+        return False
+    return True
+
+
+def student_can_see_minor(program: MinorProgram, student: Student, *,
+                          has_application: bool,
+                          now: dt.datetime | None = None) -> bool:
+    """Whether a minor programme belongs in this student's view.
+
+    Two gates, deliberately coarse:
+
+    * the student has reached the semester the minor opens from, and
+    * the registration round is open.
+
+    Note what is NOT here: CPI and backlog count. A student who is short on
+    either still needs to see the programme and the reason they do not qualify —
+    hiding it would leave them unable to find out why. Those checks belong in
+    check_minor_eligibility(), which blocks the application itself.
+
+    Once the round closes the programme drops out of view, except for a student
+    who actually applied: their own record has to outlive the window, otherwise
+    an allocated seat becomes invisible the moment registration ends.
+    """
+    if has_application:
+        return True
+    if student.current_semester < program.eligible_from_semester:
+        return False
+    return application_window_open(program, now)
+
 # Fields a policy may rank on. Everything is drawn from the application snapshot
 # taken at submission time, so a later CPI revision cannot reorder a closed round.
 RANKABLE_FIELDS: dict[str, str] = {

@@ -56,6 +56,10 @@ def _program_out(db, program: MinorProgram, student: Student | None = None,
     if student:
         result = check_minor_eligibility(student, program)
         eligible, notes = result.eligible, result.reasons
+    # `pro_rata` is deliberately not surfaced: it is recorded as
+    # REQUIRES_FACULTY_CONFIRMATION and unconfirmed policy must not be shown to
+    # students as though it were settled.
+    rules = program.rules or {}
     return MinorProgramOut(
         id=program.id, code=program.code, name=program.name,
         description=program.description, department_id=program.department_id,
@@ -71,6 +75,11 @@ def _program_out(db, program: MinorProgram, student: Student | None = None,
         coordinator_name=coordinator.user.full_name if coordinator else None,
         is_active=program.is_active,
         courses=[_course_out(c) for c in program.courses],
+        continuation_rule=rules.get("continuation_rule"),
+        rule_source=rules.get("source"),
+        rule_source_url=rules.get("source_url"),
+        offered_semesters=[int(s) for s in rules.get("offered_semesters") or []],
+        window_open=minor_service.application_window_open(program),
         is_eligible=eligible, eligibility_notes=notes or [],
         my_application_status=my_status,
     )
@@ -117,10 +126,11 @@ def _enrollment_out(enrollment: MinorEnrollment) -> MinorEnrollmentOut:
 # ── student ───────────────────────────────────────────────────────────────
 @router.get("/workspace", response_model=MinorWorkspace)
 def workspace(db: DbSession, student: CurrentStudent) -> MinorWorkspace:
-    programs = list(db.scalars(
+    all_programs = list(db.scalars(
         select(MinorProgram).where(MinorProgram.is_active.is_(True))
         .order_by(MinorProgram.name)
     ))
+    programs = all_programs
     my_apps = list(db.scalars(
         select(MinorApplication).where(MinorApplication.student_id == student.id)
         .order_by(MinorApplication.preference_order)
@@ -130,13 +140,30 @@ def workspace(db: DbSession, student: CurrentStudent) -> MinorWorkspace:
         select(MinorEnrollment).where(MinorEnrollment.student_id == student.id)
     )
 
+    # A minor a student has applied to, or holds a seat in, stays theirs to see
+    # for good; everything else is gated on semester and the registration round.
+    engaged_ids = {a.minor_program_id for a in my_apps}
+    if enrollment:
+        engaged_ids.add(enrollment.minor_program_id)
+    programs = [
+        p for p in programs
+        if minor_service.student_can_see_minor(
+            p, student, has_application=p.id in engaged_ids)
+    ]
+
     # Overall eligibility: is the student past the earliest allowed semester?
-    earliest = min((p.eligible_from_semester for p in programs), default=3)
+    earliest = min((p.eligible_from_semester for p in all_programs), default=3)
     overall_notes: list[str] = []
     if student.current_semester < earliest:
         overall_notes.append(
             f"Minor registration opens from semester {earliest}. "
             f"You are currently in semester {student.current_semester}."
+        )
+    elif not programs:
+        overall_notes.append(
+            "Minor registration is not open at the moment. Programmes appear "
+            "here while a registration round is running; if you hold a minor "
+            "seat it stays listed."
         )
     return MinorWorkspace(
         is_eligible=not overall_notes,

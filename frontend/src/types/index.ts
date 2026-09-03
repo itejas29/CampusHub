@@ -9,6 +9,8 @@ export interface StudentContext {
   department_id: number; department_code: string | null; current_semester: number;
   division: string | null; batch: string | null; cpi: number | null;
   backlog_count: number; admission_year: number;
+  /** Semester-gated sections currently applicable — see lib/navigation.ts. */
+  visible_sections: string[];
 }
 
 export type CoordinationDomain =
@@ -287,6 +289,11 @@ export interface MinorProgram {
   application_closes_at: string | null; coordinator_name: string | null;
   is_active: boolean; courses: MinorCourse[]; is_eligible: boolean | null;
   eligibility_notes: string[]; my_application_status: string | null;
+  // Published rules, sourced from the programme record rather than restated
+  // in the UI, so the portal never states a policy the data does not carry.
+  continuation_rule: string | null; rule_source: string | null;
+  rule_source_url: string | null; offered_semesters: number[];
+  window_open: boolean;
 }
 
 export interface MinorApplication {

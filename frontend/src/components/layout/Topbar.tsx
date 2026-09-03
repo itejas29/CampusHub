@@ -25,7 +25,8 @@ function GlobalSearch() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const destinations = useMemo(
-    () => visibleSections(user?.roles ?? [], can, mentorsProgram, coordinates)
+    () => visibleSections(user?.roles ?? [], can, mentorsProgram, coordinates,
+                          user?.student?.visible_sections ?? null)
       .flatMap((s) => s.items),
     [user, can, mentorsProgram, coordinates],
   );

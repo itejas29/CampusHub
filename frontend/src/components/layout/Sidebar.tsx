@@ -19,7 +19,8 @@ function itemClass({ isActive }: { isActive: boolean }) {
 
 export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { user, can, mentorsProgram, coordinates, signOut } = useAuth();
-  const sections = visibleSections(user?.roles ?? [], can, mentorsProgram, coordinates);
+  const sections = visibleSections(user?.roles ?? [], can, mentorsProgram, coordinates,
+                                   user?.student?.visible_sections ?? null);
 
   return (
     <div className="flex h-full flex-col bg-surface">

@@ -419,6 +419,30 @@ def phase_note(program, phase: ProgramPhase, current_semester: int | None) -> st
     return None
 
 
+def student_can_see_program(program, current_semester: int | None, *,
+                            has_enrollment: bool) -> bool:
+    """Whether a programme belongs in a student's own view at all.
+
+    HIDDEN means exactly that. A programme whose window has not been announced
+    yet is not the student's business, so it must not be listed *or* fetchable
+    by id — withholding it in the UI while the API still serves its stages,
+    criteria, dates and coordinator is not visibility control, it is decoration.
+
+    A concluded programme stays readable only for a student who actually took
+    it, so their own record survives the window closing. A student who never
+    enrolled has nothing to look at and should not be shown a programme that ran
+    before their time.
+
+    Kept next to program_phase() and free of ORM/session dependencies so the
+    rule can be tested directly.
+    """
+    if has_enrollment:
+        # Never hide a student's own record from them, whatever the phase.
+        return True
+    phase = program_phase(program, current_semester)
+    return phase not in (ProgramPhase.HIDDEN, ProgramPhase.CONCLUDED)
+
+
 def assert_submissions_open(program, current_semester: int | None) -> None:
     """Guard every student-side write behind the programme's semester window."""
     phase = program_phase(program, current_semester)
