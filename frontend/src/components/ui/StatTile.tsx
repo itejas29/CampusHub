@@ -1,6 +1,8 @@
 import type { LucideIcon } from "lucide-react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { listContainer, listItem } from "@/lib/motion";
 
 /**
  * Compact KPI tile. Deliberately plain: value + label + optional hint. No
@@ -31,12 +33,21 @@ export function StatTile({
   );
 
   const classes = cn(
-    "block rounded-lg border border-line bg-surface p-4 shadow-xs transition-colors duration-200",
+    "block h-full rounded-lg border border-line bg-surface p-4 shadow-xs transition-colors duration-200",
     to && "cursor-pointer hover:border-line-strong hover:bg-surface-muted/40",
     className,
   );
 
-  return to ? <Link to={to} className={classes}>{body}</Link> : <div className={classes}>{body}</div>;
+  /*
+   * `variants` without `initial`/`animate` means this inherits the animation
+   * state of a motion parent — StatGrid below. Rendered outside one it simply
+   * stays put, so a tile used on its own is never left invisible.
+   */
+  return (
+    <motion.div variants={listItem} className="h-full">
+      {to ? <Link to={to} className={classes}>{body}</Link> : <div className={classes}>{body}</div>}
+    </motion.div>
+  );
 }
 
 export function StatGrid({
@@ -46,5 +57,18 @@ export function StatGrid({
     3: "sm:grid-cols-3", 4: "sm:grid-cols-2 lg:grid-cols-4",
     5: "sm:grid-cols-3 lg:grid-cols-5", 6: "sm:grid-cols-3 lg:grid-cols-6",
   }[columns];
-  return <div className={cn("grid grid-cols-2 gap-3", cols, className)}>{children}</div>;
+  /*
+   * The stagger lives on the container, so it stays correct no matter how many
+   * tiles a dashboard renders — no per-tile delay to keep in sync.
+   */
+  return (
+    <motion.div
+      variants={listContainer}
+      initial="hidden"
+      animate="shown"
+      className={cn("grid grid-cols-2 gap-3", cols, className)}
+    >
+      {children}
+    </motion.div>
+  );
 }

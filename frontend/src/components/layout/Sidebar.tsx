@@ -1,5 +1,8 @@
 import { GraduationCap, LogOut, X } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { NavLink } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import { drawerLeft, fade } from "@/lib/motion";
 import { Avatar } from "@/components/ui/Misc";
 import { useAuth } from "@/lib/auth";
 import { PROFILE_ITEM, visibleSections } from "@/lib/navigation";
@@ -101,21 +104,64 @@ export function Sidebar() {
 }
 
 export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
-  if (!open) return null;
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+
+  // The drawer covers the page on small screens, so it owes the same keyboard
+  // and scroll behaviour as a dialog: Escape dismisses it, and the page behind
+  // it must not scroll while it is open.
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onCloseRef.current();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
   return (
-    <div className="fixed inset-0 z-50 lg:hidden">
-      <div className="absolute inset-0 bg-ink/40 animate-fade-in" onClick={onClose} aria-hidden />
-      <div className="absolute inset-y-0 left-0 w-64 border-r border-line shadow-lg animate-slide-up">
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close navigation"
-          className="absolute -right-11 top-3 flex h-9 w-9 cursor-pointer items-center justify-center rounded bg-surface text-ink shadow-md"
-        >
-          <X className="h-4 w-4" aria-hidden />
-        </button>
-        <SidebarContent onNavigate={onClose} />
-      </div>
-    </div>
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <motion.div
+            className="absolute inset-0 bg-ink/40"
+            variants={fade}
+            initial="hidden"
+            animate="shown"
+            exit="exit"
+            onClick={onClose}
+            aria-hidden
+          />
+          {/* Enters from the left edge it is anchored to. It previously reused
+              the generic `slide-up` keyframe, so a left-hand drawer animated
+              upwards — the motion pointed at the wrong origin. */}
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation"
+            variants={drawerLeft}
+            initial="hidden"
+            animate="shown"
+            exit="exit"
+            className="absolute inset-y-0 left-0 w-64 border-r border-line bg-surface shadow-lg"
+          >
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close navigation"
+              className="absolute -right-11 top-3 flex h-9 w-9 cursor-pointer items-center justify-center rounded bg-surface text-ink shadow-md"
+            >
+              <X className="h-4 w-4" aria-hidden />
+            </button>
+            <SidebarContent onNavigate={onClose} />
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }

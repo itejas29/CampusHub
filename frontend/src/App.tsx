@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MotionConfig } from "framer-motion";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { NotFoundPage, RequireAccess, RequireAuth } from "@/components/layout/RouteGuards";
@@ -64,6 +65,11 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
+        {/* `reducedMotion="user"` drops transform/layout animation for anyone with
+            the OS setting on, while keeping opacity so the UI still reads as
+            responsive. The CSS block in index.css cannot cover Framer Motion,
+            which animates via inline style rather than CSS transitions. */}
+        <MotionConfig reducedMotion="user">
         <BrowserRouter
           future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
         >
@@ -335,6 +341,7 @@ export default function App() {
             </Routes>
           </AuthProvider>
         </BrowserRouter>
+        </MotionConfig>
       </ThemeProvider>
     </QueryClientProvider>
   );

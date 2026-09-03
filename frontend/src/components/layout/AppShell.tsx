@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
 import { MobileSidebar, Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
+import { slideUp } from "@/lib/motion";
 
 export function AppShell() {
   const [navOpen, setNavOpen] = useState(false);
@@ -20,7 +22,25 @@ export function AppShell() {
         <Topbar onOpenNav={() => setNavOpen(true)} />
         <main className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6">
           <div className="mx-auto w-full max-w-[84rem]">
-            <Outlet />
+            {/*
+              Enter-only, deliberately. Wrapping <Outlet/> in an AnimatePresence
+              with an exit animation looks right but is not: the exiting copy
+              re-reads router context while it animates, so it renders the
+              INCOMING route's content on the way out — the new page fades out
+              and then straight back in.
+
+              Keying on pathname alone remounts on navigation, so a search-param
+              change (a filter, a tab) updates in place rather than replaying the
+              transition on every keystroke.
+            */}
+            <motion.div
+              key={location.pathname}
+              variants={slideUp}
+              initial="hidden"
+              animate="shown"
+            >
+              <Outlet />
+            </motion.div>
           </div>
         </main>
         <footer className="border-t border-line px-4 py-3 text-xs text-ink-subtle sm:px-6">

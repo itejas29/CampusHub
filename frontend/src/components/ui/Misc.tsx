@@ -1,9 +1,12 @@
 import { ChevronRight, Search, Upload, X } from "lucide-react";
 import {
-  useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode,
+  useCallback, useEffect, useId, useRef, useState,
+  type InputHTMLAttributes, type ReactNode,
 } from "react";
 import { Link } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import { cn, initials } from "@/lib/utils";
+import { popoverPanel } from "@/lib/motion";
 
 export function Avatar({
   name, src, size = "md", className,
@@ -232,12 +235,35 @@ export function Divider({ label, className }: { label?: string; className?: stri
 export function Popover({
   trigger, children, align = "right", className, panelClassName,
 }: {
-  trigger: (props: { open: boolean; toggle: () => void }) => ReactNode;
+  trigger: (props: {
+    open: boolean;
+    toggle: () => void;
+    triggerProps: {
+      "aria-expanded": boolean;
+      "aria-haspopup": "menu";
+      "aria-controls": string | undefined;
+    };
+  }) => ReactNode;
   children: (props: { close: () => void }) => ReactNode;
   align?: "left" | "right"; className?: string; panelClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const panelId = useId();
+
+  /**
+   * Returning focus to the trigger matters for keyboard users: dismissing the
+   * panel with Escape used to drop focus onto <body>, which restarts tabbing
+   * from the top of the document and loses the user's place entirely.
+   */
+  const focusTrigger = useCallback(() => {
+    triggerRef.current
+      ?.querySelector<HTMLElement>('button, a[href], [tabindex]:not([tabindex="-1"])')
+      ?.focus();
+  }, []);
+
+  const close = useCallback(() => setOpen(false), []);
 
   useEffect(() => {
     if (!open) return;
@@ -245,7 +271,10 @@ export function Popover({
       if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
     }
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+        focusTrigger();
+      }
     }
     document.addEventListener("mousedown", onClick);
     document.addEventListener("keydown", onKey);
@@ -253,22 +282,40 @@ export function Popover({
       document.removeEventListener("mousedown", onClick);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, focusTrigger]);
 
   return (
     <div ref={ref} className={cn("relative", className)}>
-      {trigger({ open, toggle: () => setOpen((v) => !v) })}
-      {open && (
-        <div
-          className={cn(
-            "absolute z-40 mt-1.5 min-w-[15rem] rounded-lg border border-line bg-surface p-1 shadow-lg animate-slide-up",
-            align === "right" ? "right-0" : "left-0",
-            panelClassName,
-          )}
-        >
-          {children({ close: () => setOpen(false) })}
-        </div>
-      )}
+      <div ref={triggerRef} className="contents">
+        {trigger({
+          open,
+          toggle: () => setOpen((v) => !v),
+          triggerProps: {
+            "aria-expanded": open,
+            "aria-haspopup": "menu",
+            "aria-controls": open ? panelId : undefined,
+          },
+        })}
+      </div>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            id={panelId}
+            variants={popoverPanel}
+            initial="hidden"
+            animate="shown"
+            exit="exit"
+            style={{ transformOrigin: align === "right" ? "top right" : "top left" }}
+            className={cn(
+              "absolute z-40 mt-1.5 min-w-[15rem] rounded-lg border border-line bg-surface p-1 shadow-lg",
+              align === "right" ? "right-0" : "left-0",
+              panelClassName,
+            )}
+          >
+            {children({ close })}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

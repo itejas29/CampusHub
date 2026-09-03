@@ -126,12 +126,12 @@ function NotificationBell() {
   return (
     <Popover
       panelClassName="w-[22rem] max-w-[calc(100vw-1.5rem)] p-0"
-      trigger={({ toggle, open }) => (
+      trigger={({ toggle, open, triggerProps }) => (
         <button
           type="button"
           onClick={toggle}
           aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}
-          aria-expanded={open}
+          {...triggerProps}
           className={cn(
             "relative flex h-9 w-9 cursor-pointer items-center justify-center rounded text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink",
             open && "bg-surface-muted text-ink",
@@ -254,12 +254,12 @@ export function Topbar({ onOpenNav }: { onOpenNav: () => void }) {
         <NotificationBell />
 
         <Popover
-          trigger={({ toggle: t, open }) => (
+          trigger={({ toggle: t, open, triggerProps }) => (
             <button
               type="button"
               onClick={t}
-              aria-expanded={open}
               aria-label="Account menu"
+              {...triggerProps}
               className={cn(
                 "flex cursor-pointer items-center gap-2 rounded p-1 transition-colors hover:bg-surface-muted",
                 open && "bg-surface-muted",
