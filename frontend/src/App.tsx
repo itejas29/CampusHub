@@ -1,3 +1,4 @@
+import { lazy } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MotionConfig } from "framer-motion";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
@@ -6,45 +7,84 @@ import { NotFoundPage, RequireAccess, RequireAuth } from "@/components/layout/Ro
 import { AuthProvider } from "@/lib/auth";
 import { ThemeProvider } from "@/lib/theme";
 
+// Route components are loaded on demand. The portal has 40 routes across
+// student, faculty and administration areas, and no one account type ever
+// reaches most of them — shipping all of it in the first response made the
+// initial download pay for screens the viewer has no permission to open.
+//
+// Named exports need the default-shape adapter React.lazy expects. Two pages
+// exported from one module resolve to the same chunk, so listing them
+// separately costs nothing.
 import { LoginPage } from "@/features/auth/LoginPage";
-import { DashboardPage } from "@/features/dashboard/DashboardPage";
-import { AdminDashboard } from "@/features/dashboard/AdminDashboard";
 
-import { CourseCataloguePage } from "@/features/academics/CourseCataloguePage";
-import { CurriculumExplorerPage } from "@/features/academics/CurriculumExplorerPage";
-import { CurriculumPage } from "@/features/academics/CurriculumPage";
-import { ElectiveListPage } from "@/features/academics/ElectiveListPage";
-import { ElectiveWorkspacePage } from "@/features/academics/ElectiveWorkspacePage";
-import { MinorsPage } from "@/features/academics/MinorsPage";
-import { NptelPage } from "@/features/academics/NptelPage";
-
-import { InternshipRecordPage } from "@/features/internships/InternshipRecordPage";
-import { InternshipsPage } from "@/features/internships/InternshipsPage";
-import { MyStudentsPage } from "@/features/internships/MyStudentsPage";
-import { ProgramsAdminPage } from "@/features/internships/ProgramsAdminPage";
-
-import { CalendarPage } from "@/features/community/CalendarPage";
-import { ClubDetailPage, ClubsPage } from "@/features/community/ClubsPage";
-import { EventDetailRedirect, EventsPage } from "@/features/community/EventsPage";
-
-import { AnnouncementsPage } from "@/features/engagement/AnnouncementsPage";
-import { FacultyDirectoryPage } from "@/features/engagement/FacultyDirectoryPage";
-import { MenteesPage } from "@/features/engagement/MenteesPage";
-import { MentorshipPage } from "@/features/engagement/MentorshipPage";
-
-import { AuditLogPage } from "@/features/admin/AuditLogPage";
-import { CurriculumAdminPage } from "@/features/admin/CurriculumAdminPage";
-import { StudentProfilePage } from "@/features/people/StudentProfilePage";
-import { DepartmentsPage } from "@/features/admin/DepartmentsPage";
-import { ElectiveAdminPage } from "@/features/admin/ElectiveAdminPage";
-import { EventsAdminPage } from "@/features/admin/EventsAdminPage";
-import { FacultyAdminPage } from "@/features/admin/FacultyAdminPage";
-import { MinorAdminPage } from "@/features/admin/MinorAdminPage";
-import { NptelAdminPage } from "@/features/admin/NptelAdminPage";
-import { RoleAssignmentsPage } from "@/features/admin/RoleAssignmentsPage";
-import { StudentsAdminPage } from "@/features/admin/StudentsAdminPage";
-
-import { ProfilePage } from "@/features/profile/ProfilePage";
+const AdminDashboard = lazy(() =>
+  import("@/features/dashboard/AdminDashboard").then((m) => ({ default: m.AdminDashboard })));
+const AnnouncementsPage = lazy(() =>
+  import("@/features/engagement/AnnouncementsPage").then((m) => ({ default: m.AnnouncementsPage })));
+const AuditLogPage = lazy(() =>
+  import("@/features/admin/AuditLogPage").then((m) => ({ default: m.AuditLogPage })));
+const CalendarPage = lazy(() =>
+  import("@/features/community/CalendarPage").then((m) => ({ default: m.CalendarPage })));
+const ClubDetailPage = lazy(() =>
+  import("@/features/community/ClubsPage").then((m) => ({ default: m.ClubDetailPage })));
+const ClubsPage = lazy(() =>
+  import("@/features/community/ClubsPage").then((m) => ({ default: m.ClubsPage })));
+const CourseCataloguePage = lazy(() =>
+  import("@/features/academics/CourseCataloguePage").then((m) => ({ default: m.CourseCataloguePage })));
+const CurriculumAdminPage = lazy(() =>
+  import("@/features/admin/CurriculumAdminPage").then((m) => ({ default: m.CurriculumAdminPage })));
+const CurriculumExplorerPage = lazy(() =>
+  import("@/features/academics/CurriculumExplorerPage").then((m) => ({ default: m.CurriculumExplorerPage })));
+const CurriculumPage = lazy(() =>
+  import("@/features/academics/CurriculumPage").then((m) => ({ default: m.CurriculumPage })));
+const DashboardPage = lazy(() =>
+  import("@/features/dashboard/DashboardPage").then((m) => ({ default: m.DashboardPage })));
+const DepartmentsPage = lazy(() =>
+  import("@/features/admin/DepartmentsPage").then((m) => ({ default: m.DepartmentsPage })));
+const ElectiveAdminPage = lazy(() =>
+  import("@/features/admin/ElectiveAdminPage").then((m) => ({ default: m.ElectiveAdminPage })));
+const ElectiveListPage = lazy(() =>
+  import("@/features/academics/ElectiveListPage").then((m) => ({ default: m.ElectiveListPage })));
+const ElectiveWorkspacePage = lazy(() =>
+  import("@/features/academics/ElectiveWorkspacePage").then((m) => ({ default: m.ElectiveWorkspacePage })));
+const EventDetailRedirect = lazy(() =>
+  import("@/features/community/EventsPage").then((m) => ({ default: m.EventDetailRedirect })));
+const EventsAdminPage = lazy(() =>
+  import("@/features/admin/EventsAdminPage").then((m) => ({ default: m.EventsAdminPage })));
+const EventsPage = lazy(() =>
+  import("@/features/community/EventsPage").then((m) => ({ default: m.EventsPage })));
+const FacultyAdminPage = lazy(() =>
+  import("@/features/admin/FacultyAdminPage").then((m) => ({ default: m.FacultyAdminPage })));
+const FacultyDirectoryPage = lazy(() =>
+  import("@/features/engagement/FacultyDirectoryPage").then((m) => ({ default: m.FacultyDirectoryPage })));
+const InternshipRecordPage = lazy(() =>
+  import("@/features/internships/InternshipRecordPage").then((m) => ({ default: m.InternshipRecordPage })));
+const InternshipsPage = lazy(() =>
+  import("@/features/internships/InternshipsPage").then((m) => ({ default: m.InternshipsPage })));
+const MenteesPage = lazy(() =>
+  import("@/features/engagement/MenteesPage").then((m) => ({ default: m.MenteesPage })));
+const MentorshipPage = lazy(() =>
+  import("@/features/engagement/MentorshipPage").then((m) => ({ default: m.MentorshipPage })));
+const MinorAdminPage = lazy(() =>
+  import("@/features/admin/MinorAdminPage").then((m) => ({ default: m.MinorAdminPage })));
+const MinorsPage = lazy(() =>
+  import("@/features/academics/MinorsPage").then((m) => ({ default: m.MinorsPage })));
+const MyStudentsPage = lazy(() =>
+  import("@/features/internships/MyStudentsPage").then((m) => ({ default: m.MyStudentsPage })));
+const NptelAdminPage = lazy(() =>
+  import("@/features/admin/NptelAdminPage").then((m) => ({ default: m.NptelAdminPage })));
+const NptelPage = lazy(() =>
+  import("@/features/academics/NptelPage").then((m) => ({ default: m.NptelPage })));
+const ProfilePage = lazy(() =>
+  import("@/features/profile/ProfilePage").then((m) => ({ default: m.ProfilePage })));
+const ProgramsAdminPage = lazy(() =>
+  import("@/features/internships/ProgramsAdminPage").then((m) => ({ default: m.ProgramsAdminPage })));
+const RoleAssignmentsPage = lazy(() =>
+  import("@/features/admin/RoleAssignmentsPage").then((m) => ({ default: m.RoleAssignmentsPage })));
+const StudentProfilePage = lazy(() =>
+  import("@/features/people/StudentProfilePage").then((m) => ({ default: m.StudentProfilePage })));
+const StudentsAdminPage = lazy(() =>
+  import("@/features/admin/StudentsAdminPage").then((m) => ({ default: m.StudentsAdminPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {

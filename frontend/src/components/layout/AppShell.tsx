@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { MobileSidebar, Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { slideUp } from "@/lib/motion";
+import { LoadingState } from "@/components/ui/States";
 
 export function AppShell() {
   const [navOpen, setNavOpen] = useState(false);
@@ -39,7 +40,15 @@ export function AppShell() {
               initial="hidden"
               animate="shown"
             >
-              <Outlet />
+              {/*
+                The boundary sits inside the shell, not around the router, so a
+                page chunk loading leaves the sidebar, topbar and breadcrumb in
+                place. Hoisting it above AppShell would blank the whole window
+                on every first visit to a route.
+              */}
+              <Suspense fallback={<LoadingState rows={4} />}>
+                <Outlet />
+              </Suspense>
             </motion.div>
           </div>
         </main>
