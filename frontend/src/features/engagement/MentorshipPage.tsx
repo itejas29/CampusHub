@@ -1,21 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  CalendarPlus, Mail, MapPin, MessageSquare, Phone, UserSquare2,
+  CalendarPlus, Mail, MapPin, MessageSquare, Phone, UserSquare2, Users2,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { Card, CardAction, CardBody, CardHeader } from "@/components/ui/Card";
 import { FormField, Input, Select, Textarea } from "@/components/ui/Form";
 import { Modal } from "@/components/ui/Modal";
-import { Avatar, DetailList, PageHeader } from "@/components/ui/Misc";
+import { Avatar, DetailList, PageHeader, SearchInput } from "@/components/ui/Misc";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
+import { MenteeTable } from "@/features/engagement/MenteeTable";
 import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDateTime, relativeTime } from "@/lib/format";
 import { humanise } from "@/lib/utils";
-import type { Meeting, MentorProfile } from "@/types";
+import type { Meeting, MenteeRow, MentorProfile } from "@/types";
 
 export function MentorshipPage() {
   const { user } = useAuth();
@@ -23,6 +24,7 @@ export function MentorshipPage() {
   const [requestOpen, setRequestOpen] = useState(false);
   const [decide, setDecide] = useState<Meeting | null>(null);
   const [banner, setBanner] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
+  const [menteeSearch, setMenteeSearch] = useState("");
 
   const isStudent = Boolean(user?.student);
 
@@ -37,6 +39,22 @@ export function MentorshipPage() {
     queryFn: () => api.get<Meeting[]>("/mentorship/meetings"),
   });
 
+  // Faculty only. The endpoint scopes to the caller's own active assignments,
+  // so a faculty member who mentors nobody gets an empty list, not everyone's.
+  const mentees = useQuery({
+    queryKey: ["my-mentees"],
+    queryFn: () => api.get<MenteeRow[]>("/mentorship/my-mentees"),
+    enabled: !isStudent,
+  });
+
+  const menteeRows = useMemo(() => {
+    const needle = menteeSearch.trim().toLowerCase();
+    if (!needle) return mentees.data ?? [];
+    return (mentees.data ?? []).filter((row) =>
+      `${row.full_name} ${row.roll_number}`.toLowerCase().includes(needle),
+    );
+  }, [mentees.data, menteeSearch]);
+
   function invalidate() {
     void queryClient.invalidateQueries({ queryKey: ["meetings"] });
     void queryClient.invalidateQueries({ queryKey: ["calendar"] });
@@ -50,7 +68,7 @@ export function MentorshipPage() {
         description={
           isStudent
             ? "Your assigned faculty mentor, meeting requests and mentorship announcements."
-            : "Meeting requests raised by your mentees."
+            : "The students you mentor, and the meeting requests they raise."
         }
         breadcrumbs={[{ label: "Support" }, { label: "Mentor–Mentee" }]}
         actions={
@@ -201,6 +219,47 @@ export function MentorshipPage() {
           )}
         </Card>
       </div>
+
+      {!isStudent && (
+        <Card className="mt-5">
+          <CardHeader
+            title={
+              mentees.data
+                ? `${mentees.data.length} mentee${mentees.data.length === 1 ? "" : "s"}`
+                : "My mentees"
+            }
+            description="Students assigned to you for academic mentorship this academic year."
+            icon={<Users2 className="h-4 w-4 text-ink-subtle" aria-hidden />}
+            action={
+              <div className="flex items-center gap-3">
+                {Boolean(mentees.data?.length) && (
+                  <SearchInput
+                    value={menteeSearch} onChange={setMenteeSearch}
+                    placeholder="Name or roll number" className="w-full sm:w-56"
+                  />
+                )}
+                <CardAction to="/mentorship/mentees" label="Open the full mentee list">
+                  View all
+                </CardAction>
+              </div>
+            }
+          />
+          {mentees.isLoading ? (
+            <LoadingState rows={4} />
+          ) : mentees.error ? (
+            <ErrorState onRetry={() => mentees.refetch()} compact />
+          ) : !mentees.data?.length ? (
+            <EmptyState
+              compact
+              title="No mentees assigned"
+              description="The department administrator assigns mentees each academic year."
+              icon={<Users2 className="h-5 w-5" aria-hidden />}
+            />
+          ) : (
+            <MenteeTable rows={menteeRows} search={menteeSearch} />
+          )}
+        </Card>
+      )}
 
       {requestOpen && (
         <RequestMeetingModal
