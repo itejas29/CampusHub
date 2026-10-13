@@ -188,8 +188,10 @@ NAMED_STUDENTS = [
     # Semester II — CSSI has been floated to them but is not yet open.
     ("Ishaan Bhatt", "25BIT041", 2, "A", 8.22, 0, 2025),
     ("Nisha Rawal", "25BIT042", 2, "B", 7.88, 0, 2025),
-    # Semester I — Freshers Induction & Foundation core.
-    ("Devansh Joshi", "25BIT091", 1, "A", 8.50, 0, 2025),
+    # Semester I — Freshers Induction & Foundation core. No CPI: it is
+    # cumulative over completed semesters, and a first-semester student has
+    # no results on record yet.
+    ("Devansh Joshi", "25BIT091", 1, "A", None, 0, 2025),
     # Semester V — Program Core Elective & MOOC credits.
     ("Kavya Patel", "23BIT051", 5, "A", 8.35, 0, 2023),
     # Semester VIII — Capstone Project & Degree Completion.
@@ -630,33 +632,38 @@ EVENTS = [
      None, "Version control fundamentals for first-year students."),
 ]
 
+# (title, body, category, priority, audience, pinned, audience reference)
+# The reference is a semester number for SEMESTER and an internship programme
+# code for INTERNSHIP_PROGRAM. A notice about one semester's slot, or one
+# programme's reports, is addressed to those students — not broadcast to a
+# first-year who has neither.
 ANNOUNCEMENTS = [
     ("Open Elective preference window is now open",
      "The preference window for Open Elective 3 (Semester VI) is open until the end "
      "of this month. Submit your ranked preferences from Academics → Open Electives. "
      "Preferences submitted after the deadline will not be considered.",
-     "ACADEMIC", "HIGH", "ALL", True),
+     "ACADEMIC", "HIGH", "SEMESTER", True, 6),
     ("NPTEL Semester V registration guidelines",
      "Students in Semester V must register for an NPTEL or SWAYAM course of at least "
      "8 weeks. Record your platform registration ID in the portal and upload the "
      "certificate once results are declared. Exam fees are paid directly on the "
      "NPTEL portal.",
-     "ACADEMIC", "NORMAL", "ALL", False),
+     "ACADEMIC", "NORMAL", "SEMESTER", False, 5),
     ("CSSI group allocations published",
      "Faculty group allocations for the Community and Social Service Internship have "
      "been published. Check Internships → CSSI to see your assigned faculty mentor "
      "and group.",
-     "INTERNSHIP", "NORMAL", "ALL", False),
+     "INTERNSHIP", "NORMAL", "INTERNSHIP_PROGRAM", False, "CSSI-2025"),
     ("Summer Internship: weekly report cadence",
      "Weekly reports are due every Monday for the duration of the internship. Your "
      "faculty mentor reviews each submission; unreviewed reports do not count toward "
      "the reporting criterion.",
-     "INTERNSHIP", "NORMAL", "ALL", False),
+     "INTERNSHIP", "NORMAL", "INTERNSHIP_PROGRAM", False, "SI-2025"),
     ("Minor specialisation applications open from Semester III",
      "Applications for minor specialisations are open to students from Semester III "
      "onward. A minor must be taken in a department other than your own. Eligibility "
      "thresholds are listed against each minor.",
-     "ACADEMIC", "NORMAL", "ALL", False),
+     "ACADEMIC", "NORMAL", "ALL", False, None),
 ]
 
 

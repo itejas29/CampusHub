@@ -25,7 +25,7 @@ from app.schemas.auth import (
     StudentContext, TokenPair,
 )
 from app.schemas.common import Message
-from app.services import audit, scope
+from app.services import audit, eligibility, scope
 from app.services import internships as internship_service
 from app.services import minors as minor_service
 
@@ -48,8 +48,12 @@ def _student_visible_sections(db, student: Student) -> list[str]:
     to every student from Semester I, so a first-year clicked through to a page
     the API correctly refused to fill. Deciding it here keeps the menu and the
     endpoints answering to the same rule rather than drifting apart.
+
+    The elective sections follow the student's own curriculum the same way: none
+    is offered before the semester that curriculum first places such a slot in.
     """
-    sections: list[str] = []
+    sections: list[str] = eligibility.reached_elective_sections(
+        eligibility.components_for_semester(db, student), student.current_semester)
 
     minor_programs = db.scalars(
         select(MinorProgram).where(MinorProgram.is_active.is_(True))

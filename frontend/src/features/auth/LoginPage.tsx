@@ -120,11 +120,11 @@ const STUDENT_ACCOUNTS: DemoAccount[] = [
     semester: 4,
   },
   {
-    name: "Mira Kulkarni",
+    name: "Sameer Shah",
     role: "Student (Sem V)",
     dept: "EE",
     roll: "23BEE101",
-    email: "mira.kulkarni.101@campushub.example.com",
+    email: "sameer.shah.101@campushub.example.com",
     domain: "Electrical Eng · MOOC Certifications",
     semester: 5,
   },

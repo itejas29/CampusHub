@@ -31,7 +31,7 @@ export interface NavItem {
    * the endpoints answer to one rule instead of the sidebar advertising a page
    * the API would return empty.
    */
-  studentSection?: "minors" | "internships";
+  studentSection?: "minors" | "internships" | "open_electives" | "core_electives" | "nptel";
   children?: NavItem[];
   /** Match nested routes as active (default true for parents). */
   end?: boolean;
@@ -58,9 +58,20 @@ export const NAVIGATION: NavSection[] = [
     title: "Academics",
     items: [
       { label: "Curriculum", to: "/academics/curriculum", icon: Library, roles: STUDENT },
-      { label: "Open Electives", to: "/academics/open-electives", icon: BookOpen, roles: STUDENT },
-      { label: "Core Electives", to: "/academics/core-electives", icon: Layers, roles: STUDENT },
-      { label: "NPTEL / MOOC", to: "/academics/nptel", icon: BadgeCheck, roles: STUDENT },
+      // Offered from the semester the student's own curriculum first places such
+      // a slot in — a first-year sees none of the three.
+      {
+        label: "Open Electives", to: "/academics/open-electives", icon: BookOpen,
+        roles: STUDENT, studentSection: "open_electives",
+      },
+      {
+        label: "Core Electives", to: "/academics/core-electives", icon: Layers,
+        roles: STUDENT, studentSection: "core_electives",
+      },
+      {
+        label: "NPTEL / MOOC", to: "/academics/nptel", icon: BadgeCheck,
+        roles: STUDENT, studentSection: "nptel",
+      },
       {
         label: "Minor Specialisation", to: "/academics/minors", icon: Sparkles,
         roles: STUDENT, studentSection: "minors",

@@ -227,11 +227,17 @@ def elective_path(component, *, detail: bool = True) -> str:
     Open and Core electives are separate screens, so a single "/electives" path
     404s. The component's own type decides which one, rather than every caller
     guessing.
+
+    A MOOC/NPTEL slot has its own screen and no per-component workspace: sending
+    it to the Open Elective workspace opened a preference form for a slot that
+    is settled by registering one external course.
     """
     from app.models.enums import ComponentType
 
+    component_type = getattr(component, "component_type", None)
+    if component_type == ComponentType.MOOC:
+        return "/academics/nptel"
     base = ("/academics/core-electives"
-            if getattr(component, "component_type", None)
-            == ComponentType.PROGRAM_CORE_ELECTIVE
+            if component_type == ComponentType.PROGRAM_CORE_ELECTIVE
             else "/academics/open-electives")
     return f"{base}/{component.id}" if detail else base

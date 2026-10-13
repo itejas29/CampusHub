@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from app.models.academics import (
     Course, CourseOffering, Curriculum, CurriculumComponent, as_utc,
 )
-from app.models.enums import OfferingStatus, SourceScope
+from app.models.enums import ComponentType, OfferingStatus, SourceScope
 from app.models.identity import Student
 from app.models.minors import MinorProgram
 from app.services import curriculum as curriculum_engine
@@ -53,6 +53,31 @@ def components_for_semester(
     if curriculum is None:
         return []
     return curriculum_engine.components_for(db, curriculum, semester_number)
+
+
+#: The sidebar section each kind of student-chosen slot is acted on in.
+ELECTIVE_SECTIONS = {
+    ComponentType.OPEN_ELECTIVE: "open_electives",
+    ComponentType.PROGRAM_CORE_ELECTIVE: "core_electives",
+    ComponentType.MOOC: "nptel",
+}
+
+
+def reached_elective_sections(components, current_semester: int) -> list[str]:
+    """Elective sections that already concern a student, from their curriculum.
+
+    A section applies once the curriculum has placed a slot of that kind in a
+    semester the student has reached — the same unlock rule as
+    `student_can_access_component`. A first-year in a programme whose first Open
+    Elective sits in Semester IV is therefore offered none of them, and a
+    curriculum with no MOOC slot at all never offers NPTEL. Past semesters keep
+    their section: that is where an allocation already made is read.
+    """
+    reached = {
+        c.component_type for c in components
+        if c.semester_number <= current_semester
+    }
+    return [section for kind, section in ELECTIVE_SECTIONS.items() if kind in reached]
 
 
 def student_can_access_component(

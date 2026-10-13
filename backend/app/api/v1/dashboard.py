@@ -17,9 +17,9 @@ from app.models.academics import (
 from app.models.community import Club, Event, EventRegistration
 from app.models.engagement import Announcement, MentorAssignment, MentorMeeting
 from app.models.enums import (
-    AllocationStatus, EnrollmentStatus, EventStatus, MeetingStatus,
-    MinorApplicationStatus, RegistrationStatus, StageStatus, SubmissionStatus,
-    VerificationStatus,
+    AllocationStatus, ComponentType, EnrollmentStatus, EventStatus, MeetingStatus,
+    MinorApplicationStatus, PreferenceStatus, RegistrationStatus, StageStatus,
+    SubmissionStatus, VerificationStatus,
 )
 from app.models.identity import Department, Faculty, Student, User
 from app.models.internships import (
@@ -32,10 +32,12 @@ from app.schemas.admin import (
     ActivityItem, AdminDashboard, BreakdownItem, DeadlineItem, FacultyDashboard,
     ProgressItem, StatCard, StudentDashboard,
 )
+from app.services import announcements as announcement_audience
 from app.services import documents as docs
 from app.services import serializers
 from app.services import internships as engine
 from app.services.eligibility import components_for_semester
+from app.services.requirements import current_mooc_registration, requirement_state
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -75,11 +77,11 @@ def _event_dicts(db, limit: int = 5, student: Student | None = None) -> list[dic
     ]
 
 
-def _announcement_dicts(db, limit: int = 4) -> list[dict]:
-    now = utcnow()
+def _announcement_dicts(db, user: User, limit: int = 4) -> list[dict]:
+    # The same audience rule as the Announcements page. This panel once had no
+    # audience filter, and showed every account every notice.
     rows = db.scalars(
-        select(Announcement).where(Announcement.is_published.is_(True))
-        .where((Announcement.expires_at.is_(None)) | (Announcement.expires_at > now))
+        announcement_audience.visible_to(db, user)
         .order_by(Announcement.is_pinned.desc(), Announcement.published_at.desc())
         .limit(limit)
     )
@@ -115,10 +117,26 @@ def student_dashboard(db: DbSession, user: CurrentUser) -> StudentDashboard:
         EventRegistration.student_id == student.id,
         EventRegistration.status != RegistrationStatus.CANCELLED,
     ))
-    pending_components = [
-        c for c in components
-        if c.is_elective and c.id not in {a.curriculum_component_id for a in allocations}
-    ]
+    allocated_ids = {a.curriculum_component_id for a in allocations}
+    # A MOOC slot is settled by a registration, never by an allocation.
+    mooc_rows: dict[int, list[MoocRegistration]] = {}
+    for registration in db.scalars(select(MoocRegistration).where(
+        MoocRegistration.student_id == student.id
+    )):
+        mooc_rows.setdefault(registration.curriculum_component_id, []).append(registration)
+    ranked_ids = set(db.scalars(select(ElectivePreference.curriculum_component_id).where(
+        ElectivePreference.student_id == student.id,
+        ElectivePreference.status == PreferenceStatus.SUBMITTED,
+    )))
+    states = {
+        c.id: requirement_state(
+            c, allocated=c.id in allocated_ids,
+            preferences_submitted=c.id in ranked_ids,
+            mooc_registration=current_mooc_registration(mooc_rows.get(c.id, ())),
+        )
+        for c in components
+    }
+    pending_components = [c for c in components if states[c.id].needs_action]
 
     stats = [
         StatCard(key="semester", label="Current semester",
@@ -127,9 +145,13 @@ def student_dashboard(db: DbSession, user: CurrentUser) -> StudentDashboard:
         StatCard(key="cpi", label="CPI",
                  value=float(student.cpi) if student.cpi is not None else 0,
                  hint=f"{student.backlog_count} backlog(s)"),
+        # Linked to the slot that is actually waiting. A semester with no
+        # elective slot at all (I-III for most programmes) has nowhere to send
+        # the student, so it carries no link rather than a guess.
         StatCard(key="pending_electives", label="Elective actions pending",
                  value=len(pending_components),
-                 link="/academics/open-electives"),
+                 link=(serializers.elective_path(pending_components[0])
+                       if pending_components else None)),
         StatCard(key="events", label="Events registered", value=registered_events,
                  link="/events"),
     ]
@@ -143,13 +165,14 @@ def student_dashboard(db: DbSession, user: CurrentUser) -> StudentDashboard:
                 CourseOffering.registration_closes_at.is_not(None),
             )
         )
-        submitted = _count(db, select(ElectivePreference).where(
-            ElectivePreference.student_id == student.id,
-            ElectivePreference.curriculum_component_id == component.id,
-        ))
+        if component.component_type == ComponentType.MOOC:
+            # No preference list here — the student registers one course.
+            step = (" — registration was not accepted, register again"
+                    if mooc_rows.get(component.id) else " — register a course")
+        else:
+            step = " — submit preferences"
         action_items.append(DeadlineItem(
-            title=f"{component.title}"
-                  + (" — preferences submitted" if submitted else " — submit preferences"),
+            title=f"{component.title}{step}",
             due_at=closes, context=component.scope_label or component.code,
             link=serializers.elective_path(component), kind="elective",
         ))
@@ -225,9 +248,7 @@ def student_dashboard(db: DbSession, user: CurrentUser) -> StudentDashboard:
                     "component_type": c.component_type.value,
                     "scope_label": c.scope_label,
                     "credits": float(c.credits),
-                    "status": ("Allocated"
-                               if c.id in {a.curriculum_component_id for a in allocations}
-                               else ("Core" if not c.is_elective else "Action needed")),
+                    "status": states[c.id].label,
                 }
                 for c in components
             ],
@@ -237,7 +258,7 @@ def student_dashboard(db: DbSession, user: CurrentUser) -> StudentDashboard:
         stats=stats, curriculum_semester=semester_view,
         action_items=action_items[:6], progress=progress,
         upcoming_events=_event_dicts(db, student=student),
-        announcements=_announcement_dicts(db), mentor=mentor,
+        announcements=_announcement_dicts(db, user), mentor=mentor,
     )
 
 
@@ -354,7 +375,7 @@ def faculty_dashboard(db: DbSession, user: CurrentUser,
             }
             for m in open_meetings
         ],
-        announcements=_announcement_dicts(db),
+        announcements=_announcement_dicts(db, user),
     )
 
 

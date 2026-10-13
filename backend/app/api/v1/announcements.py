@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime as dt
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import or_, select
+from sqlalchemy import select
 
 from app.core.deps import CurrentUser, DbSession, require_permission
 from app.core.errors import NotFoundError
@@ -15,6 +15,7 @@ from app.schemas.common import Message
 from app.schemas.engagement import (
     AnnouncementCreate, AnnouncementOut, AnnouncementUpdate,
 )
+from app.services import announcements as announcement_audience
 from app.services import audit, notifications
 from app.services.serializers import file_url
 
@@ -45,64 +46,10 @@ def _out(db, announcement: Announcement) -> AnnouncementOut:
     )
 
 
-def _visible_to(db, user: User):
-    """Audience filter — evaluated server-side so scoping is not client trust."""
-    now = dt.datetime.now(dt.timezone.utc)
-    student = db.scalar(select(Student).where(Student.user_id == user.id))
-    faculty = db.scalar(select(Faculty).where(Faculty.user_id == user.id))
-
-    conditions = [Announcement.audience_type == AudienceType.ALL]
-    for role in user.roles:
-        conditions.append(
-            (Announcement.audience_type == AudienceType.ROLE)
-            & (Announcement.audience_ref_value == role.value)
-        )
-    if student:
-        conditions.append(
-            (Announcement.audience_type == AudienceType.DEPARTMENT)
-            & (Announcement.audience_ref_id == student.department_id)
-        )
-        conditions.append(
-            (Announcement.audience_type == AudienceType.PROGRAM)
-            & (Announcement.audience_ref_id == student.program_id)
-        )
-        conditions.append(
-            (Announcement.audience_type == AudienceType.SEMESTER)
-            & (Announcement.audience_ref_id == student.current_semester)
-        )
-        mentor_ids = list(db.scalars(
-            select(MentorAssignment.faculty_id).where(
-                MentorAssignment.student_id == student.id,
-                MentorAssignment.is_active.is_(True),
-            )
-        ))
-        if mentor_ids:
-            conditions.append(
-                (Announcement.audience_type == AudienceType.MENTEES)
-                & (Announcement.audience_ref_id.in_(mentor_ids))
-            )
-    if faculty:
-        conditions.append(
-            (Announcement.audience_type == AudienceType.DEPARTMENT)
-            & (Announcement.audience_ref_id == faculty.department_id)
-        )
-        conditions.append(
-            (Announcement.audience_type == AudienceType.MENTEES)
-            & (Announcement.audience_ref_id == faculty.id)
-        )
-
-    stmt = select(Announcement).where(
-        Announcement.is_published.is_(True),
-        or_(Announcement.expires_at.is_(None), Announcement.expires_at > now),
-        or_(*conditions),
-    )
-    return stmt
-
-
 @router.get("", response_model=list[AnnouncementOut])
 def list_announcements(db: DbSession, user: CurrentUser,
                        limit: int = Query(50, ge=1, le=200)) -> list[AnnouncementOut]:
-    stmt = _visible_to(db, user).order_by(
+    stmt = announcement_audience.visible_to(db, user).order_by(
         Announcement.is_pinned.desc(), Announcement.published_at.desc()
     ).limit(limit)
     return [_out(db, a) for a in db.scalars(stmt)]

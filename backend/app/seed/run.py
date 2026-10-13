@@ -1523,10 +1523,12 @@ def seed_community(db, students, faculty_by_code, club_admin_user) -> None:
 
 def seed_engagement(db, students, faculty_by_code, admin_user, departments) -> None:
     log("Announcements, meetings and notifications…")
-    for title, body, category, priority, audience, pinned in D.ANNOUNCEMENTS:
+    program_ids = dict(db.execute(select(InternshipProgram.code, InternshipProgram.id)).all())
+    for title, body, category, priority, audience, pinned, ref in D.ANNOUNCEMENTS:
         db.add(Announcement(
             title=title, body=body, category=AnnouncementCategory(category),
             priority=Priority(priority), audience_type=AudienceType(audience),
+            audience_ref_id=program_ids[ref] if isinstance(ref, str) else ref,
             published_by_user_id=admin_user.id,
             published_at=NOW - dt.timedelta(days=rng.randint(1, 14)),
             expires_at=NOW + dt.timedelta(days=45), is_pinned=pinned,
@@ -1576,24 +1578,41 @@ def seed_engagement(db, students, faculty_by_code, admin_user, departments) -> N
         ))
     db.flush()
 
-    notification_specs = [
-        (NotificationType.ELECTIVE_DEADLINE, "Open Elective 3 closes in 5 days",
-         "Submit your ranked preferences before the window closes.",
-         "/academics/open-electives", Priority.HIGH),
-        (NotificationType.EVENT_ANNOUNCEMENT, "New event: HackTheCampus 2.0",
-         "Registrations are open. 150 seats.", "/events", Priority.NORMAL),
-        (NotificationType.INTERNSHIP_STAGE, "Internship stage approved",
-         "Your faculty mentor approved the Proof of Work stage.",
-         "/internships", Priority.NORMAL),
-    ]
+    # A notification is a claim about one student, so each goes only to the
+    # students it is true of. Sending all three to everyone told a first-year
+    # that "Open Elective 3 closes in 5 days" and that a mentor had approved an
+    # internship stage they are years away from.
+    furthest_approved_stage: dict[int, str] = {}
+    for student_id, stage_name in db.execute(
+        select(InternshipEnrollment.student_id, InternshipStage.name)
+        .join(EnrollmentStageProgress,
+              EnrollmentStageProgress.enrollment_id == InternshipEnrollment.id)
+        .join(InternshipStage, InternshipStage.id == EnrollmentStageProgress.stage_id)
+        .where(EnrollmentStageProgress.status == StageStatus.APPROVED)
+        .order_by(InternshipStage.sequence)
+    ):
+        furthest_approved_stage[student_id] = stage_name
+
     for student in students:
-        for index, (ntype, title, message, link, priority) in enumerate(
-            notification_specs
-        ):
+        specs = [(NotificationType.EVENT_ANNOUNCEMENT, "New event: HackTheCampus 2.0",
+                  "Registrations are open. 150 seats.", "/events", Priority.NORMAL, False)]
+        # Open Elective 3 is a Semester VI slot in both ICT schemes.
+        if student.current_semester == 6:
+            specs.insert(0, (
+                NotificationType.ELECTIVE_DEADLINE, "Open Elective 3 closes in 5 days",
+                "Submit your ranked preferences before the window closes.",
+                "/academics/open-electives", Priority.HIGH, False))
+        stage_name = furthest_approved_stage.get(student.id)
+        if stage_name:
+            specs.append((
+                NotificationType.INTERNSHIP_STAGE, "Internship stage approved",
+                f"Your faculty mentor approved the {stage_name} stage.",
+                "/internships", Priority.NORMAL, True))
+        for ntype, title, message, link, priority, is_read in specs:
             db.add(Notification(
                 user_id=student.user_id, type=ntype, title=title, message=message,
-                link=link, priority=priority, is_read=index == 2,
-                read_at=NOW - dt.timedelta(days=1) if index == 2 else None,
+                link=link, priority=priority, is_read=is_read,
+                read_at=NOW - dt.timedelta(days=1) if is_read else None,
             ))
     for faculty in faculty_by_code.values():
         db.add(Notification(
