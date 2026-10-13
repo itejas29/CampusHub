@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Bell, Check, Menu, Moon, Search, Sun,
+  Bell, Check, Menu, Moon, PanelLeftClose, PanelLeftOpen, Search, Sun,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -216,7 +216,15 @@ function NotificationBell() {
   );
 }
 
-export function Topbar({ onOpenNav }: { onOpenNav: () => void }) {
+export function Topbar({
+  onOpenNav,
+  collapsed = false,
+  onToggleCollapse,
+}: {
+  onOpenNav: () => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+}) {
   const { user, signOut } = useAuth();
   const { theme, toggle } = useTheme();
   const context = user?.student
@@ -227,10 +235,27 @@ export function Topbar({ onOpenNav }: { onOpenNav: () => void }) {
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-line bg-surface/95 px-4 backdrop-blur-md supports-[backdrop-filter]:bg-surface/80 sm:px-6">
       <Button
         variant="ghost" size="icon" onClick={onOpenNav} aria-label="Open navigation"
-        className="lg:hidden h-8 w-8"
+        className="lg:hidden h-8 w-8 cursor-pointer"
       >
         <Menu className="h-4.5 w-4.5" aria-hidden />
       </Button>
+
+      {onToggleCollapse && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onToggleCollapse}
+          aria-label={collapsed ? "Expand sidebar (Ctrl+B)" : "Collapse sidebar (Ctrl+B)"}
+          title={collapsed ? "Expand sidebar (Ctrl+B)" : "Collapse sidebar (Ctrl+B)"}
+          className="hidden lg:flex h-8 w-8 text-ink-muted hover:text-ink hover:bg-surface-muted cursor-pointer"
+        >
+          {collapsed ? (
+            <PanelLeftOpen className="h-4.5 w-4.5" />
+          ) : (
+            <PanelLeftClose className="h-4.5 w-4.5" />
+          )}
+        </Button>
+      )}
 
       <GlobalSearch />
 

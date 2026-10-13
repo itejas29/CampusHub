@@ -7,7 +7,36 @@ import { slideUp } from "@/lib/motion";
 
 export function AppShell() {
   const [navOpen, setNavOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("campushub_sidebar_collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
   const location = useLocation();
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("campushub_sidebar_collapsed", String(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  // Keyboard shortcut Ctrl+B or Cmd+B to toggle sidebar collapse
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        toggleSidebar();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Scroll back to the top on navigation, like a real multi-page portal.
   useEffect(() => {
@@ -16,10 +45,14 @@ export function AppShell() {
 
   return (
     <div className="flex min-h-screen bg-canvas">
-      <Sidebar />
+      <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar} />
       <MobileSidebar open={navOpen} onClose={() => setNavOpen(false)} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar onOpenNav={() => setNavOpen(true)} />
+      <div className="flex min-w-0 flex-1 flex-col transition-all duration-200">
+        <Topbar
+          onOpenNav={() => setNavOpen(true)}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={toggleSidebar}
+        />
         <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-7">
           <div className="mx-auto w-full max-w-[84rem]">
             {/*
