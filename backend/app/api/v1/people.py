@@ -235,6 +235,23 @@ def update_faculty(
     return faculty_out(faculty)
 
 
+@faculty_router.delete("/{faculty_id}", response_model=Message)
+def delete_faculty(
+    faculty_id: int, db: DbSession,
+    user: User = Depends(require_permission(P["FACULTY_MANAGE"])),
+) -> Message:
+    faculty = db.get(Faculty, faculty_id)
+    if faculty is None:
+        raise NotFoundError("Faculty member not found.")
+    name = faculty.user.full_name
+    code = faculty.employee_code
+    faculty.user.is_active = False
+    audit.record(db, action=AuditAction.DELETE, entity_type="faculty",
+                 entity_id=faculty.id, actor=user, description=f"Deactivated faculty {code}")
+    db.commit()
+    return Message(message=f"Faculty member {name} ({code}) has been deactivated.")
+
+
 # ── departments ───────────────────────────────────────────────────────────
 @departments_router.get("", response_model=list[DepartmentOut])
 def list_departments(db: DbSession, _: CurrentUser) -> list[DepartmentOut]:

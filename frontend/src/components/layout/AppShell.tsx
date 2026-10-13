@@ -20,7 +20,7 @@ export function AppShell() {
       <MobileSidebar open={navOpen} onClose={() => setNavOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onOpenNav={() => setNavOpen(true)} />
-        <main className="min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6">
+        <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-7">
           <div className="mx-auto w-full max-w-[84rem]">
             {/*
               Enter-only, deliberately. Wrapping <Outlet/> in an AnimatePresence
@@ -43,8 +43,12 @@ export function AppShell() {
             </motion.div>
           </div>
         </main>
-        <footer className="border-t border-line px-4 py-3 text-xs text-ink-subtle sm:px-6">
-          CampusHub · Pandit Deendayal Energy University · Phase 2 preview
+        <footer className="border-t border-line px-4 py-3 sm:px-6">
+          <p className="text-xs text-ink-subtle">
+            CampusHub · Pandit Deendayal Energy University
+            <span className="mx-1.5 opacity-40">·</span>
+            <span className="opacity-60">Phase 2</span>
+          </p>
         </footer>
       </div>
     </div>

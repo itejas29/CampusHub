@@ -14,7 +14,7 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
 import { ApiError, api } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { humanise, roman } from "@/lib/utils";
-import type { EnrollmentDetail, FacultyRow } from "@/types";
+import type { EnrollmentDetail, MentorCapacity } from "@/types";
 
 const TABS = [
   { key: "personal", label: "Personal" },
@@ -472,6 +472,7 @@ export function StudentDetailDrawer({
       {mentorOpen && data && (
         <MentorOverrideModal
           enrollmentId={enrollmentId}
+          programId={data.program_id}
           currentMentorId={data.mentor_faculty_id}
           onClose={() => setMentorOpen(false)}
           onDone={() => { setMentorOpen(false); invalidate(); }}
@@ -482,25 +483,25 @@ export function StudentDetailDrawer({
 }
 
 function MentorOverrideModal({
-  enrollmentId, currentMentorId, onClose, onDone,
+  enrollmentId, programId, currentMentorId, onClose, onDone,
 }: {
-  enrollmentId: number; currentMentorId: number | null;
+  enrollmentId: number; programId: number; currentMentorId: number | null;
   onClose: () => void; onDone: () => void;
 }) {
   const [facultyId, setFacultyId] = useState(String(currentMentorId ?? ""));
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const faculty = useQuery({
-    queryKey: ["faculty"],
-    queryFn: () => api.get<FacultyRow[]>("/faculty"),
+  const mentors = useQuery({
+    queryKey: ["mentor-capacity", programId],
+    queryFn: () => api.get<MentorCapacity[]>(`/internships/programs/${programId}/mentors-capacity`),
   });
 
   const override = useMutation({
     mutationFn: () =>
       api.post(`/internships/enrollments/${enrollmentId}/mentor`, {
         mentor_faculty_id: facultyId ? Number(facultyId) : null,
-        reason,
+        reason: reason.trim() || "Coordinator assigned mentor (max 10 limit enforced)",
       }),
     onSuccess: onDone,
     onError: (err) =>
@@ -510,13 +511,12 @@ function MentorOverrideModal({
   return (
     <Modal
       open onClose={onClose} size="sm" title="Change faculty mentor"
-      description="This override is recorded in the audit log."
+      description="1 mentor has a maximum of 10 students under university academic policy."
       footer={
         <>
           <Button variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
           <Button
             size="sm" loading={override.isPending}
-            disabled={reason.trim().length < 3}
             onClick={() => override.mutate()}
           >
             Save change
@@ -526,19 +526,28 @@ function MentorOverrideModal({
     >
       <div className="space-y-4">
         {error && <Alert variant="danger">{error}</Alert>}
-        <FormField label="New faculty mentor">
+
+        <div className="rounded border border-primary/20 bg-primary/5 p-2.5 text-xs text-primary">
+          <strong>Academic Rule:</strong> Each faculty mentor can supervise a maximum of 10 students. Faculty who already have 10 students are disabled.
+        </div>
+
+        <FormField label="Faculty mentor (Max 10 students)">
           <Select value={facultyId} onChange={(e) => setFacultyId(e.target.value)}>
             <option value="">Unassigned</option>
-            {(faculty.data ?? []).map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.full_name} — {member.department_code} ({member.mentee_count} mentees)
-              </option>
-            ))}
+            {(mentors.data ?? []).map((member) => {
+              const isCurrent = member.faculty_id === currentMentorId;
+              const isFull = member.assigned_count >= 10 && !isCurrent;
+              return (
+                <option key={member.faculty_id} value={member.faculty_id} disabled={isFull}>
+                  {member.name} — {member.department_code ?? "Faculty"} ({member.assigned_count}/10 mentees{isFull ? " - FULL" : ""})
+                </option>
+              );
+            })}
           </Select>
         </FormField>
         <FormField
-          label="Reason for the change" required
-          hint="Stored with the audit entry so the change can be explained later."
+          label="Reason for the change"
+          hint="Stored with the audit entry so the change can be tracked."
         >
           <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3}
                     placeholder="e.g. Balancing group loads before the review week." />

@@ -7,14 +7,14 @@ export function LoadingState({
   label = "Loading…", className, rows = 3,
 }: { label?: string; className?: string; rows?: number }) {
   return (
-    <div className={cn("space-y-2 p-5", className)} role="status" aria-live="polite">
+    <div className={cn("space-y-3 p-5", className)} role="status" aria-live="polite">
       <span className="sr-only">{label}</span>
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="flex items-center gap-3">
-          <div className="skeleton h-9 w-9 shrink-0 rounded-full" />
-          <div className="flex-1 space-y-1.5">
-            <div className="skeleton h-3 rounded" style={{ width: `${70 - i * 12}%` }} />
-            <div className="skeleton h-2.5 rounded" style={{ width: `${45 - i * 8}%` }} />
+        <div key={i} className="flex items-center gap-3.5">
+          <div className="skeleton h-10 w-10 shrink-0 rounded-lg" />
+          <div className="flex-1 space-y-2">
+            <div className="skeleton h-3.5 rounded-md" style={{ width: `${75 - i * 15}%` }} />
+            <div className="skeleton h-2.5 rounded-md" style={{ width: `${50 - i * 10}%` }} />
           </div>
         </div>
       ))}
@@ -26,11 +26,17 @@ export function SkeletonCards({ count = 3 }: { count?: number }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="rounded-lg border border-line bg-surface p-5">
-          <div className="skeleton h-3.5 w-1/2 rounded" />
-          <div className="skeleton mt-3 h-2.5 w-full rounded" />
-          <div className="skeleton mt-2 h-2.5 w-4/5 rounded" />
-          <div className="skeleton mt-5 h-7 w-24 rounded" />
+        <div key={i} className="rounded-xl border border-line bg-surface p-5 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div className="skeleton h-4 w-1/3 rounded" />
+            <div className="skeleton h-5 w-16 rounded-full" />
+          </div>
+          <div className="skeleton mt-4 h-3 w-full rounded" />
+          <div className="skeleton mt-2 h-3 w-4/5 rounded" />
+          <div className="mt-6 flex items-center justify-between pt-2">
+            <div className="skeleton h-7 w-24 rounded-md" />
+            <div className="skeleton h-4 w-16 rounded" />
+          </div>
         </div>
       ))}
     </div>
@@ -51,12 +57,12 @@ export function EmptyState({
         className,
       )}
     >
-      <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-surface-muted text-ink-subtle">
+      <div className="mb-3.5 flex h-12 w-12 items-center justify-center rounded-xl border border-line/60 bg-surface-muted/60 text-ink-subtle shadow-xs">
         {icon ?? <Inbox className="h-5 w-5" aria-hidden />}
       </div>
-      <h3 className="text-md font-semibold text-ink">{title}</h3>
+      <h3 className="text-sm font-semibold tracking-tight text-ink">{title}</h3>
       {description && (
-        <p className="mt-1 max-w-sm text-sm text-ink-muted">{description}</p>
+        <p className="mt-1.5 max-w-sm text-xs leading-relaxed text-ink-muted">{description}</p>
       )}
       {action && <div className="mt-4">{action}</div>}
     </div>
@@ -78,16 +84,16 @@ export function ErrorState({
       )}
       role="alert"
     >
-      <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-danger-soft text-danger">
+      <div className="mb-3.5 flex h-12 w-12 items-center justify-center rounded-xl border border-danger/20 bg-danger-soft text-danger shadow-xs">
         <AlertCircle className="h-5 w-5" aria-hidden />
       </div>
-      <h3 className="text-md font-semibold text-ink">{title}</h3>
-      <p className="mt-1 max-w-md text-sm text-ink-muted">
+      <h3 className="text-sm font-semibold tracking-tight text-ink">{title}</h3>
+      <p className="mt-1.5 max-w-md text-xs leading-relaxed text-ink-muted">
         {message ?? "The request could not be completed. Please try again."}
       </p>
       {onRetry && (
         <Button
-          variant="secondary" size="sm" className="mt-4" onClick={onRetry}
+          variant="secondary" size="sm" className="mt-4 shadow-xs" onClick={onRetry}
           icon={<RefreshCw className="h-3.5 w-3.5" aria-hidden />}
         >
           Try again

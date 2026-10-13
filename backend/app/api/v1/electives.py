@@ -160,6 +160,10 @@ def my_elective_components(
             label = "Upcoming"
         elif pref_counts.get(component.id):
             label = "Preferences submitted"
+        elif component.semester_number < student.current_semester:
+            # Past-semester slot with no allocation record — already handled
+            # outside the portal (or before it existed).
+            label = "Completed"
         else:
             label = "Not started"
         offerings = _eligible_offerings(db, student, component)

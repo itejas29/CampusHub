@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Users } from "lucide-react";
+import { UserCheck, Users } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Form";
@@ -81,6 +82,17 @@ export function MyStudentsPage({ scope = "mine", programType, title, description
           { label: "Internships", to: "/internships" },
           { label: title ?? (isCoordinatorView ? "Students" : "My students") },
         ]}
+        actions={
+          isCoordinatorView ? (
+            <Link
+              to="/internships/mentor-assignment"
+              className="inline-flex h-9 items-center gap-1.5 rounded bg-primary px-3 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-primary-hover"
+            >
+              <UserCheck className="h-3.5 w-3.5" />
+              Assign Mentors (Max 10 / mentor)
+            </Link>
+          ) : undefined
+        }
       />
 
       <Card>
@@ -131,17 +143,18 @@ export function MyStudentsPage({ scope = "mine", programType, title, description
         ) : (
           <TableWrap>
             <THead>
-              <TH width="24%">Student</TH>
+              <TH width="20%">Student</TH>
               <TH width="10%">Roll no.</TH>
-              <TH width="8%">Sem</TH>
+              <TH width="6%">Sem</TH>
               <TH>Organisation</TH>
-              <TH width="10%">Group</TH>
-              <TH width="16%">Progress</TH>
-              <TH width="14%">Status</TH>
+              <TH width="9%">Group</TH>
+              <TH width="14%">Progress</TH>
+              <TH width="11%">Status</TH>
+              <TH width="16%">Faculty Mentor</TH>
             </THead>
             <TBody>
               {rows.length === 0 ? (
-                <TableEmpty colSpan={7}>
+                <TableEmpty colSpan={8}>
                   {search || programId || status
                     ? "No students match these filters."
                     : isCoordinatorView
@@ -163,7 +176,7 @@ export function MyStudentsPage({ scope = "mine", programType, title, description
                         </div>
                       </div>
                     </TD>
-                    <TD className="tabular">{row.roll_number}</TD>
+                    <TD className="tabular font-mono text-xs">{row.roll_number}</TD>
                     <TD>{roman(row.semester)}</TD>
                     <TD className="text-ink-muted">
                       {row.organization_name ?? (
@@ -186,6 +199,13 @@ export function MyStudentsPage({ scope = "mine", programType, title, description
                       />
                     </TD>
                     <TD><StatusBadge status={row.status} /></TD>
+                    <TD>
+                      {row.mentor_name ? (
+                        <Badge tone="brand">{row.mentor_name}</Badge>
+                      ) : (
+                        <Badge tone="warning">Unassigned</Badge>
+                      )}
+                    </TD>
                   </TR>
                 ))
               )}

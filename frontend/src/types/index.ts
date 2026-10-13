@@ -423,6 +423,19 @@ export interface MentorSummary {
   specialization: string | null; avatar_url: string | null;
 }
 
+export interface MentorCapacity {
+  faculty_id: number;
+  name: string;
+  employee_code: string | null;
+  department_code: string | null;
+  designation: string | null;
+  avatar_url: string | null;
+  assigned_count: number;
+  max_capacity: number;
+  remaining_capacity: number;
+  is_full: boolean;
+}
+
 export type DocumentStatus =
   | "NOT_SUBMITTED" | "DRAFT" | "SUBMITTED" | "UNDER_REVIEW"
   | "VERIFIED" | "REJECTED" | "APPROVED" | "REVISION_REQUESTED";

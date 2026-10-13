@@ -78,6 +78,8 @@ def _build(db, curriculum: Curriculum, student: Student | None = None,
                 status_label = "Allocated"
             elif not component.is_elective:
                 status_label = "Core"
+            elif component.semester_number < student.current_semester:
+                status_label = "Completed"
             elif unlocked:
                 status_label = "Action needed"
             else:

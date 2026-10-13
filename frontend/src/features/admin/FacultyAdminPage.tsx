@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { UserCog } from "lucide-react";
+import { Edit2, Plus, Trash2, UserCog } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Form";
 import { Avatar, PageHeader, SearchInput } from "@/components/ui/Misc";
@@ -9,10 +10,14 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
 import { TBody, TD, TH, THead, TR, TableEmpty, TableWrap } from "@/components/ui/Table";
 import { api, qs } from "@/lib/api";
 import type { DepartmentRow, FacultyRow } from "@/types";
+import { AddFacultyModal, DeleteFacultyModal, EditFacultyModal } from "./FacultyFormModals";
 
 export function FacultyAdminPage() {
   const [search, setSearch] = useState("");
   const [departmentId, setDepartmentId] = useState("");
+  const [addOpen, setAddOpen] = useState(false);
+  const [editMember, setEditMember] = useState<FacultyRow | null>(null);
+  const [deleteMember, setDeleteMember] = useState<FacultyRow | null>(null);
 
   const departments = useQuery({
     queryKey: ["departments"],
@@ -28,11 +33,20 @@ export function FacultyAdminPage() {
   });
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
-        title="Faculty"
-        description="Faculty records, mentorship load and public contact details."
+        title="Faculty Management"
+        description="Faculty records, mentorship allocations, designations and departmental profiles."
         breadcrumbs={[{ label: "Administration" }, { label: "Faculty" }]}
+        actions={
+          <Button
+            size="sm"
+            icon={<Plus className="h-4 w-4" />}
+            onClick={() => setAddOpen(true)}
+          >
+            Add New Teacher
+          </Button>
+        }
       />
 
       <Card>
@@ -41,13 +55,23 @@ export function FacultyAdminPage() {
           icon={<UserCog className="h-4 w-4 text-ink-subtle" aria-hidden />}
           action={
             <div className="flex flex-wrap items-center gap-2">
-              <SearchInput value={search} onChange={setSearch}
-                           placeholder="Name or specialisation" className="w-full sm:w-60" />
-              <Select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}
-                      aria-label="Filter by department" className="w-full sm:w-40">
+              <SearchInput
+                value={search}
+                onChange={setSearch}
+                placeholder="Name or specialisation"
+                className="w-full sm:w-60"
+              />
+              <Select
+                value={departmentId}
+                onChange={(e) => setDepartmentId(e.target.value)}
+                aria-label="Filter by department"
+                className="w-full sm:w-40"
+              >
                 <option value="">All departments</option>
                 {(departments.data ?? []).map((department) => (
-                  <option key={department.id} value={department.id}>{department.code}</option>
+                  <option key={department.id} value={department.id}>
+                    {department.code}
+                  </option>
                 ))}
               </Select>
             </div>
@@ -59,22 +83,25 @@ export function FacultyAdminPage() {
         ) : error ? (
           <ErrorState onRetry={() => refetch()} compact />
         ) : !data?.length ? (
-          <EmptyState title="No faculty records"
-                      icon={<UserCog className="h-5 w-5" aria-hidden />} />
+          <EmptyState
+            title="No faculty records"
+            icon={<UserCog className="h-5 w-5" aria-hidden />}
+          />
         ) : (
           <TableWrap>
             <THead>
-              <TH width="24%">Name</TH>
-              <TH width="12%">Code</TH>
-              <TH width="10%">Dept</TH>
-              <TH width="18%">Designation</TH>
+              <TH width="22%">Name</TH>
+              <TH width="12%">Employee Code</TH>
+              <TH width="8%">Dept</TH>
+              <TH width="16%">Designation</TH>
               <TH>Specialisation</TH>
               <TH width="10%">Cabin</TH>
-              <TH width="10%" align="right">Mentees</TH>
+              <TH width="8%" align="right">Mentees</TH>
+              <TH width="12%" align="right">Actions</TH>
             </THead>
             <TBody>
               {data.length === 0 ? (
-                <TableEmpty colSpan={7}>No faculty match these filters.</TableEmpty>
+                <TableEmpty colSpan={8}>No faculty match these filters.</TableEmpty>
               ) : (
                 data.map((member) => (
                   <TR key={member.id}>
@@ -87,15 +114,39 @@ export function FacultyAdminPage() {
                         </div>
                       </div>
                     </TD>
-                    <TD className="tabular">{member.employee_code}</TD>
+                    <TD className="tabular font-mono text-xs">{member.employee_code}</TD>
                     <TD>{member.department_code}</TD>
                     <TD className="text-ink-muted">{member.designation}</TD>
                     <TD className="text-ink-muted">{member.specialization ?? "—"}</TD>
                     <TD className="text-ink-muted">{member.cabin ?? "—"}</TD>
                     <TD align="right">
-                      {member.mentee_count > 0
-                        ? <Badge tone="accent">{member.mentee_count}</Badge>
-                        : <span className="text-ink-subtle">0</span>}
+                      {member.mentee_count > 0 ? (
+                        <Badge tone="accent">{member.mentee_count}</Badge>
+                      ) : (
+                        <span className="text-ink-subtle">0</span>
+                      )}
+                    </TD>
+                    <TD align="right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          icon={<Edit2 className="h-3.5 w-3.5" />}
+                          onClick={() => setEditMember(member)}
+                          className="h-7 px-2 text-xs"
+                          aria-label={`Edit ${member.full_name}`}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          icon={<Trash2 className="h-3.5 w-3.5" />}
+                          onClick={() => setDeleteMember(member)}
+                          className="h-7 px-2 text-xs"
+                          aria-label={`Deactivate ${member.full_name}`}
+                        />
+                      </div>
                     </TD>
                   </TR>
                 ))
@@ -104,6 +155,35 @@ export function FacultyAdminPage() {
           </TableWrap>
         )}
       </Card>
+
+      {/* Add Faculty Modal */}
+      {addOpen && (
+        <AddFacultyModal
+          open={addOpen}
+          onClose={() => setAddOpen(false)}
+          onDone={() => setAddOpen(false)}
+        />
+      )}
+
+      {/* Edit Faculty Modal */}
+      {editMember && (
+        <EditFacultyModal
+          open={!!editMember}
+          member={editMember}
+          onClose={() => setEditMember(null)}
+          onDone={() => setEditMember(null)}
+        />
+      )}
+
+      {/* Delete Faculty Modal */}
+      {deleteMember && (
+        <DeleteFacultyModal
+          open={!!deleteMember}
+          member={deleteMember}
+          onClose={() => setDeleteMember(null)}
+          onDone={() => setDeleteMember(null)}
+        />
+      )}
     </div>
   );
 }

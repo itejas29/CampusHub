@@ -7,27 +7,36 @@
    value is a space-separated RGB triple so Tailwind's <alpha-value> works. */
 @layer base {
   :root {
+    /* Surfaces */
     --c-canvas: 248 250 252;
     --c-surface: 255 255 255;
     --c-surface-muted: 241 245 249;
+    --c-surface-raised: 255 255 255;
+
+    /* Borders */
     --c-line: 226 232 240;
     --c-line-strong: 203 213 225;
+
+    /* Text */
     --c-ink: 15 23 42;
     --c-ink-muted: 71 85 105;
-    --c-ink-subtle: 85 98 116;
+    --c-ink-subtle: 100 116 139;
 
+    /* Brand — PDEU institutional navy */
     --c-brand: 30 58 95;
     --c-brand-soft: 232 238 245;
     --c-brand-fg: 255 255 255;
 
-    --c-accent: 29 78 216;
+    /* Accent — interactive blue */
+    --c-accent: 37 99 235;
     --c-accent-soft: 219 234 254;
     --c-accent-fg: 255 255 255;
 
-    --c-success: 22 101 52;
+    /* Semantic */
+    --c-success: 21 128 61;
     --c-success-soft: 220 252 231;
     --c-success-fg: 255 255 255;
-    --c-warning: 133 77 14;
+    --c-warning: 161 98 7;
     --c-warning-soft: 254 243 199;
     --c-danger: 185 28 28;
     --c-danger-soft: 254 226 226;
@@ -35,38 +44,70 @@
     --c-info: 7 89 133;
     --c-info-soft: 224 242 254;
     --c-info-fg: 255 255 255;
+
+    /* Sidebar-specific tokens (light) */
+    --c-sidebar-bg: 255 255 255;
+    --c-sidebar-border: 226 232 240;
+    --c-sidebar-item-active-bg: 232 238 245;
+    --c-sidebar-item-active-text: 30 58 95;
+    --c-sidebar-item-hover-bg: 241 245 249;
+    --c-sidebar-logo-bg: 30 58 95;
+    --c-sidebar-logo-fg: 255 255 255;
+    --c-sidebar-section-text: 100 116 139;
+    --c-sidebar-item-text: 71 85 105;
+    --c-sidebar-item-icon: 100 116 139;
   }
 
   .dark {
-    --c-canvas: 10 15 26;
-    --c-surface: 19 26 41;
-    --c-surface-muted: 27 36 54;
-    --c-line: 39 51 74;
-    --c-line-strong: 55 71 100;
+    /* Surfaces */
+    --c-canvas: 9 14 24;
+    --c-surface: 15 22 36;
+    --c-surface-muted: 22 32 50;
+    --c-surface-raised: 22 32 50;
+
+    /* Borders */
+    --c-line: 36 50 74;
+    --c-line-strong: 52 70 100;
+
+    /* Text */
     --c-ink: 241 245 249;
-    --c-ink-muted: 165 180 200;
-    --c-ink-subtle: 147 163 186;
+    --c-ink-muted: 160 178 200;
+    --c-ink-subtle: 134 153 178;
 
+    /* Brand */
     --c-brand: 147 180 224;
-    --c-brand-soft: 27 40 62;
-    --c-brand-fg: 10 15 26;
+    --c-brand-soft: 24 38 62;
+    --c-brand-fg: 9 14 24;
 
+    /* Accent */
     --c-accent: 96 165 250;
-    --c-accent-soft: 25 45 78;
+    --c-accent-soft: 22 42 78;
     --c-accent-fg: 8 14 26;
 
+    /* Semantic */
     --c-success: 74 222 128;
-    --c-success-soft: 20 51 36;
-    --c-success-fg: 10 15 26;
+    --c-success-soft: 18 50 34;
+    --c-success-fg: 9 14 24;
     --c-warning: 251 191 36;
-    --c-warning-soft: 56 43 12;
+    --c-warning-soft: 52 40 10;
     --c-danger: 248 113 113;
-    --c-danger-soft: 62 26 26;
-    /* The dark-mode danger is a light red, so its foreground must be dark. */
-    --c-danger-fg: 10 15 26;
+    --c-danger-soft: 58 22 22;
+    --c-danger-fg: 9 14 24;
     --c-info: 56 189 248;
-    --c-info-soft: 12 44 64;
-    --c-info-fg: 10 15 26;
+    --c-info-soft: 10 42 62;
+    --c-info-fg: 9 14 24;
+
+    /* Sidebar-specific tokens (dark — deeper, slightly richer than canvas) */
+    --c-sidebar-bg: 12 18 30;
+    --c-sidebar-border: 30 42 62;
+    --c-sidebar-item-active-bg: 24 38 62;
+    --c-sidebar-item-active-text: 147 180 224;
+    --c-sidebar-item-hover-bg: 20 30 48;
+    --c-sidebar-logo-bg: 147 180 224;
+    --c-sidebar-logo-fg: 12 18 30;
+    --c-sidebar-section-text: 90 110 140;
+    --c-sidebar-item-text: 130 150 175;
+    --c-sidebar-item-icon: 90 110 140;
   }
 
   * {
@@ -75,6 +116,7 @@
 
   html {
     -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
   }
 
   body {
@@ -83,32 +125,34 @@
     line-height: 1.5;
   }
 
-  /* Headings inherit their container's colour (body already sets text-ink), so
-     a heading inside a coloured surface is not forced back to the dark ink. */
   h1, h2, h3, h4 {
     @apply font-heading;
     font-weight: 600;
-    letter-spacing: -0.011em;
+    letter-spacing: -0.014em;
   }
 
-  /* Visible focus everywhere — never removed, only restyled. */
+  /* Visible focus ring — accessible but refined */
   :focus-visible {
-    @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-canvas rounded-sm;
+    @apply outline-none ring-2 ring-accent/70 ring-offset-2 ring-offset-canvas rounded-sm;
   }
 
   ::selection {
-    @apply bg-accent/20;
+    @apply bg-accent/15 text-ink;
   }
 
-  /* Discreet scrollbars that still show position. */
-  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  /* Refined scrollbars */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    @apply bg-line-strong rounded;
-    border: 3px solid transparent;
+    @apply rounded-full;
+    background: rgb(var(--c-line-strong) / 0.7);
+    border: 1px solid transparent;
     background-clip: content-box;
   }
-  ::-webkit-scrollbar-thumb:hover { @apply bg-ink-subtle; }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--c-ink-subtle) / 0.5);
+    background-clip: content-box;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
@@ -121,11 +165,12 @@
 }
 
 @layer components {
-  /* Numeric/identifier text: roll numbers, course codes, marks. */
+  /* ── Numeric / code text ─────────────────────────────────────────────── */
   .tabular {
     @apply font-mono text-[0.8125rem] tabular-nums;
   }
 
+  /* ── Skeleton shimmer ────────────────────────────────────────────────── */
   .skeleton {
     @apply relative overflow-hidden bg-surface-muted rounded;
   }
@@ -134,13 +179,140 @@
     @apply absolute inset-0 -translate-x-full;
     background-image: linear-gradient(
       90deg,
-      transparent,
-      rgb(var(--c-surface) / 0.6),
-      transparent
+      transparent 0%,
+      rgb(var(--c-surface) / 0.55) 50%,
+      transparent 100%
     );
-    animation: shimmer 1.4s infinite;
+    animation: shimmer 1.6s ease-in-out infinite;
   }
   @media (prefers-reduced-motion: reduce) {
     .skeleton::after { animation: none; }
   }
+
+  /* ── Sidebar nav items ───────────────────────────────────────────────── */
+  .sidebar-item {
+    @apply flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm
+           font-medium transition-all duration-150 cursor-pointer select-none;
+    color: rgb(var(--c-sidebar-item-text));
+  }
+  .sidebar-item:hover {
+    background: rgb(var(--c-sidebar-item-hover-bg));
+    color: rgb(var(--c-ink));
+  }
+  .sidebar-item-icon {
+    color: rgb(var(--c-sidebar-item-icon));
+  }
+  .sidebar-item.active {
+    background: rgb(var(--c-sidebar-item-active-bg));
+    color: rgb(var(--c-sidebar-item-active-text));
+    font-weight: 600;
+  }
+  .sidebar-item.active .sidebar-item-icon {
+    color: rgb(var(--c-sidebar-item-active-text));
+  }
+
+  /* ── Page header separator ───────────────────────────────────────────── */
+  .page-header-rule {
+    @apply border-b border-line mb-6 pb-5;
+  }
+
+  /* ── Premium card hover lift ─────────────────────────────────────────── */
+  .card-lift {
+    @apply transition-all duration-200;
+  }
+  .card-lift:hover {
+    @apply shadow-md -translate-y-px;
+  }
+
+  /* ── Topbar search ───────────────────────────────────────────────────── */
+  .topbar-search {
+    @apply h-9 w-full rounded-md border border-line bg-canvas pl-9 pr-14 text-sm
+           text-ink transition-all duration-150 placeholder:text-ink-subtle;
+  }
+  .topbar-search:hover {
+    @apply border-line-strong;
+  }
+  .topbar-search:focus {
+    @apply border-accent/60 ring-2 ring-accent/20 outline-none bg-surface;
+  }
+
+  /* ── Stitch Design System Classes ─────────────────────────────────────── */
+  .card-luxe-shadow {
+    box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.04), 0 10px 15px -3px rgba(15, 23, 42, 0.06);
+  }
+
+  .hover-lift {
+    transition: transform 200ms ease, box-shadow 200ms ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px -4px rgba(2, 36, 72, 0.1), 0 4px 8px -2px rgba(2, 36, 72, 0.04);
+  }
+
+  .glass-sidebar {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .dark .glass-sidebar {
+    background: rgba(15, 22, 36, 0.85);
+  }
+
+  .glass-topbar {
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .dark .glass-topbar {
+    background: rgba(15, 22, 36, 0.82);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(229, 238, 255, 0.3);
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 9999px;
+  }
+}
+
+@layer utilities {
+  /* Numeric column in tables */
+  .num { @apply tabular-nums font-mono; }
+}
+
+/* ── Keyframes ───────────────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgb(var(--c-accent) / 0.3); }
+  70%  { box-shadow: 0 0 0 6px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
 }

@@ -8,27 +8,28 @@ type Size = "sm" | "md" | "lg" | "icon";
 
 const VARIANTS: Record<Variant, string> = {
   primary:
-    "bg-brand text-brand-fg hover:bg-brand/90 active:bg-brand/95 shadow-xs " +
-    "disabled:bg-brand/50",
+    "bg-brand text-brand-fg hover:bg-brand/90 active:bg-brand/95 shadow-sm " +
+    "disabled:bg-brand/50 disabled:shadow-none",
   secondary:
     "bg-surface text-ink border border-line-strong hover:bg-surface-muted " +
-    "active:bg-surface-muted shadow-xs",
-  ghost: "text-ink-muted hover:bg-surface-muted hover:text-ink",
-  danger: "bg-danger text-danger-fg hover:bg-danger/90 shadow-xs disabled:bg-danger/50",
-  subtle: "bg-accent-soft text-accent hover:bg-accent-soft/70",
+    "active:bg-surface-muted shadow-xs disabled:shadow-none",
+  ghost: "text-ink-muted hover:bg-surface-muted hover:text-ink active:bg-surface-muted/80",
+  danger:
+    "bg-danger text-danger-fg hover:bg-danger/90 shadow-sm disabled:bg-danger/50 disabled:shadow-none",
+  subtle: "bg-accent-soft text-accent hover:bg-accent-soft/70 active:bg-accent-soft/60",
 };
 
 const SIZES: Record<Size, string> = {
-  sm: "h-8 px-3 text-xs gap-1.5",
-  md: "h-9 px-3.5 text-sm gap-2",
-  lg: "h-11 px-5 text-base gap-2",
-  // 40px hit target for icon-only controls.
-  icon: "h-9 w-9 justify-center",
+  sm: "h-8 px-3 text-xs gap-1.5 rounded-md",
+  md: "h-9 px-3.5 text-sm gap-2 rounded-md",
+  lg: "h-10 px-5 text-sm gap-2 rounded-lg",
+  // 36px hit target for icon-only controls.
+  icon: "h-9 w-9 justify-center rounded-md",
 };
 
 const BASE =
-  "inline-flex items-center justify-center rounded font-medium whitespace-nowrap " +
-  "transition-colors duration-200 cursor-pointer select-none " +
+  "inline-flex items-center justify-center font-medium whitespace-nowrap " +
+  "transition-all duration-150 cursor-pointer select-none " +
   "disabled:cursor-not-allowed disabled:opacity-60";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -53,7 +54,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       {...props}
     >
       {loading ? (
-        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
       ) : (
         icon
       )}

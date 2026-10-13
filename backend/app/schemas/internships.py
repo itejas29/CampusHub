@@ -408,7 +408,41 @@ class StageReviewRequest(BaseModel):
 class MentorOverrideRequest(BaseModel):
     mentor_faculty_id: int | None = None
     group_id: int | None = None
-    reason: str = Field(min_length=3, max_length=500)
+    reason: str = Field(default="Assigned by coordinator", min_length=1, max_length=500)
+
+
+class MentorCapacityOut(BaseModel):
+    faculty_id: int
+    name: str
+    employee_code: str | None = None
+    department_code: str | None = None
+    designation: str | None = None
+    avatar_url: str | None = None
+    assigned_count: int
+    max_capacity: int = 10
+    remaining_capacity: int
+    is_full: bool
+
+
+class StudentMentorAssignment(BaseModel):
+    enrollment_id: int
+    mentor_faculty_id: int | None = None
+
+
+class BatchMentorAssignRequest(BaseModel):
+    assignments: list[StudentMentorAssignment] = []
+    auto_distribute: bool = False
+    rebalance: bool = False
+    allocate_by_roll_no: bool = False
+    faculty_ids: list[int] | None = None
+    min_students_per_mentor: int = 2
+    max_students_per_mentor: int = 10
+    reason: str = "Roll number-wise mentor allocation"
+
+
+class BatchMentorAssignResponse(BaseModel):
+    assigned_count: int
+    message: str
 
 
 # ── expected-vs-actual documents ──────────────────────────────────────────

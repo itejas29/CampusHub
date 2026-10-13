@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-surface" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CSSI Mentor Allocation Engine — CampusHub PDEU</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&amp;family=Lexend:wght@400;500;600;700&amp;family=Public+Sans:wght@400;500;600;700&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "secondary-fixed-dim": "#b4c5ff",
+            "on-primary-container": "#8aa4cf",
+            "tertiary-fixed": "#eaddff",
+            "surface": "#f8f9ff",
+            "error-container": "#ffdad6",
+            "secondary": "#0051d5",
+            "primary-fixed": "#d5e3ff",
+            "on-tertiary-fixed-variant": "#5a00c6",
+            "tertiary-fixed-dim": "#d2bbff",
+            "surface-container-highest": "#d3e4fe",
+            "on-primary-fixed": "#001c3b",
+            "surface-tint": "#455f87",
+            "surface-bright": "#f8f9ff",
+            "on-tertiary": "#ffffff",
+            "inverse-surface": "#213145",
+            "secondary-fixed": "#dbe1ff",
+            "on-secondary-fixed-variant": "#003ea8",
+            "secondary-container": "#316bf3",
+            "surface-container-low": "#eff4ff",
+            "on-primary": "#ffffff",
+            "on-background": "#0b1c30",
+            "surface-variant": "#d3e4fe",
+            "primary-container": "#1e3a5f",
+            "outline-variant": "#c4c6cf",
+            "on-secondary": "#ffffff",
+            "on-tertiary-container": "#b48fff",
+            "inverse-on-surface": "#eaf1ff",
+            "surface-dim": "#cbdbf5",
+            "primary": "#022448",
+            "on-secondary-container": "#fefcff",
+            "inverse-primary": "#adc8f5",
+            "primary-fixed-dim": "#adc8f5",
+            "tertiary-container": "#4a00a4",
+            "on-error": "#ffffff",
+            "background": "#f8f9ff",
+            "on-primary-fixed-variant": "#2d486d",
+            "on-error-container": "#93000a",
+            "surface-container-lowest": "#ffffff",
+            "outline": "#74777f",
+            "on-surface-variant": "#43474e",
+            "error": "#ba1a1a",
+            "surface-container": "#e5eeff",
+            "on-tertiary-fixed": "#25005a",
+            "on-secondary-fixed": "#00174b",
+            "tertiary": "#2f006f",
+            "surface-container-high": "#dce9ff",
+            "on-surface": "#0b1c30"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-sm": "0.5rem",
+            "space-lg": "1.5rem",
+            "margin": "2rem",
+            "space-xs": "0.25rem",
+            "space-md": "1rem",
+            "gutter": "1.5rem",
+            "space-xl": "2rem"
+          },
+          "fontFamily": {
+            "headline-lg": ["Lexend", "sans-serif"],
+            "body-sm": ["\"Source Sans 3\"", "sans-serif"],
+            "body-lg": ["\"Source Sans 3\"", "sans-serif"],
+            "label-sm": ["Public Sans", "sans-serif"],
+            "headline-xl": ["Lexend", "sans-serif"],
+            "label-md": ["Public Sans", "sans-serif"],
+            "headline-md": ["Lexend", "sans-serif"],
+            "body-md": ["\"Source Sans 3\"", "sans-serif"],
+            "mono": ["\"JetBrains Mono\"", "monospace"]
+          },
+          "fontSize": {
+            "headline-lg": ["1.75rem", { "lineHeight": "2.25rem", "fontWeight": "600" }],
+            "body-sm": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "400" }],
+            "body-lg": ["1.125rem", { "lineHeight": "1.75rem", "fontWeight": "400" }],
+            "label-sm": ["0.75rem", { "lineHeight": "1rem", "fontWeight": "600" }],
+            "headline-xl": ["2.25rem", { "lineHeight": "2.75rem", "fontWeight": "700" }],
+            "label-md": ["0.875rem", { "lineHeight": "1.25rem", "fontWeight": "600" }],
+            "headline-md": ["1.25rem", { "lineHeight": "1.75rem", "fontWeight": "600" }],
+            "body-md": ["1rem", { "lineHeight": "1.5rem", "fontWeight": "400" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      font-size: 1.25rem;
+      line-height: 1;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(229, 238, 255, 0.4);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #8aa4cf;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="h-full flex overflow-hidden font-body-md text-on-surface bg-surface antialiased select-none">
+<!-- ========================================================================= -->
+<!-- 1. LEFT SIDEBAR (260px wide, Glassmorphic / Institutional Slate & Navy)   -->
+<!-- ========================================================================= -->
+<aside class="w-[260px] flex-shrink-0 bg-primary flex flex-col justify-between text-surface-container-lowest border-r border-outline/20 z-30 shadow-lg select-none">
+<div class="flex flex-col h-full overflow-hidden">
+<!-- PDEU Brand Header -->
+<div class="p-space-md border-b border-outline/20 bg-primary/95 flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center text-on-primary font-headline-md font-bold shadow-sm">
+<span class="text-sm tracking-wider">PDEU</span>
+</div>
+<div class="flex flex-col leading-tight min-w-0">
+<span class="font-headline-md text-xs text-surface font-bold tracking-tight truncate">CampusHub PDEU</span>
+<span class="font-label-sm text-[10px] text-surface-variant truncate">Knowledge Corridor • Raisan</span>
+</div>
+</div>
+<!-- User Profile Card -->
+<div class="px-space-md py- space-sm my-space-xs mx-space-sm rounded-lg bg-primary-container/60 border border-outline/10 flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold font-label-md text-xs border border-secondary-fixed">
+          SI
+        </div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-xs text-surface font-semibold truncate">Prof. Sneha Iyer</span>
+<span class="font-label-sm text-[10px] text-on-primary-container truncate">CSSI Lead • ICT Dept.</span>
+</div>
+<span class="material-symbols-outlined text-xs text-on-primary-container ml-auto">verified</span>
+</div>
+<!-- Navigation Links Container -->
+<nav class="flex-1 overflow-y-auto custom-scrollbar px-space-sm py-space-xs space-y-space-md text-xs">
+<!-- Group: Main -->
+<div>
+<div class="px-space-sm py-1 font-label-sm text-[10px] font-bold tracking-wider text-on-primary-container/70 uppercase">Main</div>
+<a class="flex items-center gap-2.5 px-space-sm py-1.5 rounded-lg text-surface-variant hover:text-surface hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">dashboard</span>
+<span class="font-label-md text-xs">Dashboard</span>
+</a>
+</div>
+<!-- Group: Academics -->
+<div>
+<div class="px-space-sm py-1 font-label-sm text-[10px] font-bold tracking-wider text-on-primary-container/70 uppercase">Academics</div>
+<a class="flex items-center gap-2.5 px-space-sm py-1.5 rounded-lg text-surface-variant hover:text-surface hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">menu_book</span>
+<span class="font-label-md text-xs">Course Catalogue</span>
+</a>
+<a class="flex items-center gap-2.5 px-space-sm py-1.5 rounded-lg text-surface-variant hover:text-surface hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">account_tree</span>
+<span class="font-label-md text-xs">Curriculum Explorer</span>
+</a>
+</div>
+<!-- Group: Internships (Active Section) -->
+<div>
+<div class="px-space-sm py-1 font-label-sm text-[10px] font-bold tracking-wider text-on-primary-container/70 uppercase">Internships &amp; CSSI</div>
+<a class="flex items-center justify-between px-space-sm py-1.5 rounded-lg text-surface-variant hover:text-surface hover:bg-white/5 transition-colors" href="#">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-[18px]">groups</span>
+<span class="font-label-md text-xs">CSSI Students</span>
+</div>
+<span class="bg-secondary/40 text-secondary-fixed text-[10px] font-mono px-1.5 py-0.5 rounded-full font-semibold">203</span>
+</a>
+<a class="flex items-center gap-2.5 px-space-sm py-1.5 rounded-lg text-surface-variant hover:text-surface hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">domain</span>
+<span class="font-label-md text-xs">SI Students</span>
+</a>
+<a class="flex items-center gap-2.5 px-space-sm py-1.5 rounded-lg text-surface-variant hover:text-surface hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">badge</span>
+<span class="font-label-md text-xs">All Students</span>
+</a>
+<!-- Active Item -->
+<a class="flex items-center gap-2.5 px-space-sm py-1.5 rounded-lg bg-secondary text-on-primary font-semibold shadow-sm transition-all" href="#">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">assignment_ind</span>
+<span class="font-label-md text-xs tracking-wide">Assign Mentors</span>
+<span class="w-1.5 h-1.5 rounded-full bg-white ml-auto"></span>
+</a>
+<a class="flex items-center gap-2.5 px-space-sm py-1.5 rounded-lg text-surface-variant hover:text-surface hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">school</span>
+<span class="font-label-md text-xs">Programmes</span>
+</a>
+</div>
+<!-- Group: Mentorship & Connect -->
+<div>
+<div class="px-space-sm py-1 font-label-sm text-[10px] font-bold tracking-wider text-on-primary-container/70 uppercase">Mentorship &amp; Connect</div>
+<a class="flex items-center justify-between px-space-sm py-1.5 rounded-lg text-surface-variant hover:text-surface hover:bg-white/5 transition-colors" href="#">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-[18px]">handshake</span>
+<span class="font-label-md text-xs">Mentor-Mentee</span>
+</div>
+<span class="bg-primary-container text-on-primary-container text-[10px] font-mono px-1.5 py-0.5 rounded-full">12</span>
+</a>
+<a class="flex items-center gap-2.5 px-space-sm py-1.5 rounded-lg text-surface-variant hover:text-surface hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">supervised_user_circle</span>
+<span class="font-label-md text-xs">Faculty Directory</span>
+</a>
+<a class="flex items-center gap-2.5 px-space-sm py-1.5 rounded-lg text-surface-variant hover:text-surface hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">campaign</span>
+<span class="font-label-md text-xs">University Circulars</span>
+</a>
+</div>
+</nav>
+<!-- Sidebar Footer -->
+<div class="p-space-sm border-t border-outline/20 bg-primary/80 flex items-center justify-between text-xs text-on-primary-container">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+<span class="font-label-sm text-[11px] text-surface-variant">Portal Online (v2.4)</span>
+</div>
+<button class="p-1 hover:text-surface hover:bg-white/10 rounded transition-colors" title="Switch Account / Sign Out">
+<span class="material-symbols-outlined text-sm">logout</span>
+</button>
+</div>
+</div>
+</aside>
+<!-- ========================================================================= -->
+<!-- 2. MAIN APPLICATION CANVAS                                                -->
+<!-- ========================================================================= -->
+<div class="flex-1 flex flex-col h-full overflow-hidden bg-surface">
+<!-- TOP HEADER / APP BAR -->
+<header class="h-14 bg-surface-container-lowest/80 backdrop-blur-md border-b border-outline-variant/30 px-space-lg flex items-center justify-between z-20 flex-shrink-0">
+<!-- Breadcrumb & Search -->
+<div class="flex items-center gap-space-md flex-1 max-w-2xl">
+<div class="flex items-center gap-1.5 font-label-md text-xs text-on-surface-variant">
+<span class="hover:text-primary cursor-pointer">CampusHub</span>
+<span class="text-outline-variant">/</span>
+<span class="hover:text-primary cursor-pointer">Internships</span>
+<span class="text-outline-variant">/</span>
+<span class="hover:text-primary cursor-pointer">CSSI</span>
+<span class="text-outline-variant">/</span>
+<span class="text-primary font-semibold">Assign Mentors</span>
+</div>
+<div class="relative w-80">
+<span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-outline text-sm">search</span>
+<input class="w-full pl-8 pr-3 py-1 text-xs rounded-lg bg-surface-container-low border border-outline-variant/50 text-on-surface placeholder:text-outline focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary font-body-sm transition-all" placeholder="Search student roll number, faculty, NGO... [Ctrl+K]" type="text"/>
+</div>
+</div>
+<!-- Action Items & University Emblem Badge -->
+<div class="flex items-center gap-space-sm">
+<!-- Trailing action links -->
+<button class="hidden lg:flex items-center gap-1 text-xs font-label-md text-on-surface-variant hover:text-secondary px-2 py-1 rounded transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="help_outline">help_outline</span>
+<span>Help Desk</span>
+</button>
+<button class="px-2.5 py-1 text-xs font-label-md bg-error-container text-error rounded-lg hover:bg-error hover:text-on-error transition-colors font-medium border border-error/20 flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">emergency</span>
+<span>Emergency Contacts</span>
+</button>
+<!-- Divider -->
+<div class="h-5 w-px bg-outline-variant/40 mx-1"></div>
+<!-- Icons -->
+<button class="p-1.5 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-full relative transition-colors">
+<span class="material-symbols-outlined text-base">calendar_month</span>
+</button>
+<button class="p-1.5 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-full relative transition-colors">
+<span class="material-symbols-outlined text-base">notifications</span>
+<span class="absolute top-1 right-1 w-3.5 h-3.5 bg-error text-on-error rounded-full text-[9px] font-bold flex items-center justify-center font-mono">5</span>
+</button>
+<!-- PDEU Seal Indicator -->
+<div class="flex items-center gap-2 pl-2 border-l border-outline-variant/30">
+<div class="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-on-primary text-[10px] font-bold ring-1 ring-secondary/50">
+            PDEU
+          </div>
+<span class="hidden xl:inline text-[11px] font-label-sm font-semibold text-primary">School of Technology</span>
+</div>
+</div>
+</header>
+<!-- CONTENT WORKSPACE (SCROLLABLE VIEWPORT) -->
+<main class="flex-1 overflow-y-auto custom-scrollbar p-space-lg space-y-space-md">
+<!-- ========================================================================= -->
+<!-- 2. PAGE HEADER SECTION WITH METADATA BADGES & CTAS                        -->
+<!-- ========================================================================= -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md border border-outline-variant/30 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-space-md">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded bg-secondary-fixed text-on-secondary-fixed-variant text-[11px] font-label-sm uppercase tracking-wider font-semibold">ICT Dept. Engine</span>
+<h1 class="font-headline-lg text-xl text-primary font-bold tracking-tight">CSSI Mentor Allocation Engine</h1>
+<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-medium flex items-center gap-1 border border-emerald-200">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Active Session
+            </span>
+</div>
+<p class="font-body-sm text-xs text-on-surface-variant flex items-center gap-2">
+<span>Cohort: <strong class="text-on-surface">B.Tech ICT 2024–28 (2nd Year)</strong></span>
+<span>•</span>
+<span>Total Students: <strong class="text-on-surface font-mono">203</strong></span>
+<span>•</span>
+<span>Community &amp; Social Service Internship (CSSI-202)</span>
+</p>
+<div class="flex flex-wrap items-center gap-2 pt-1">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-label-sm bg-surface-container text-on-surface-variant border border-outline-variant/40">
+<span class="material-symbols-outlined text-xs">gavel</span> Policy: Min 2, Max 10 students / mentor
+            </span>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-label-sm bg-surface-container text-on-surface-variant border border-outline-variant/40">
+<span class="material-symbols-outlined text-xs">format_list_numbered</span> Allocation: Sequential Roll No.
+            </span>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-label-sm bg-secondary-container/10 text-secondary border border-secondary/20">
+<span class="material-symbols-outlined text-xs">event</span> Term: Winter 2025
+            </span>
+</div>
+</div>
+<!-- Primary Action Cluster -->
+<div class="flex items-center gap-2 flex-shrink-0">
+<button class="px-3 py-1.5 text-xs font-label-md rounded-lg border border-primary text-primary hover:bg-surface-container-low transition-colors flex items-center gap-1.5 font-medium">
+<span class="material-symbols-outlined text-xs">file_download</span>
+<span>Export CSV/Excel</span>
+</button>
+<button class="px-4 py-1.5 text-xs font-label-md rounded-lg bg-primary hover:bg-primary-container text-on-primary transition-all shadow-sm flex items-center gap-1.5 font-semibold">
+<span class="material-symbols-outlined text-xs">lock</span>
+<span>Batch Finalize &amp; Lock</span>
+</button>
+</div>
+</div>
+<!-- ========================================================================= -->
+<!-- 3. TOP CONTROLS & BATCH TOOLBAR                                           -->
+<!-- ========================================================================= -->
+<div class="bg-surface-container-low rounded-xl px-space-md py-2.5 border border-outline-variant/30 flex flex-wrap items-center justify-between gap-space-md shadow-sm">
+<!-- Left Filter controls -->
+<div class="flex items-center flex-wrap gap-2.5">
+<button class="px-2.5 py-1 text-xs font-label-md rounded-lg bg-surface-container-lowest border border-outline-variant/60 hover:border-secondary text-primary hover:bg-surface-container transition-all flex items-center gap-1.5 shadow-xs">
+<span class="material-symbols-outlined text-xs text-secondary">casino</span>
+<span>Randomly Select Faculty</span>
+</button>
+<div class="relative">
+<button class="px-3 py-1 text-xs font-label-md rounded-lg bg-surface-container-lowest border border-outline-variant/60 text-on-surface flex items-center gap-2 shadow-xs">
+<span class="material-symbols-outlined text-xs text-primary">filter_list</span>
+<span>Faculty Directory: <strong>21 / 28 Selected</strong></span>
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+<span class="material-symbols-outlined text-xs text-outline">expand_more</span>
+</button>
+</div>
+<!-- Strict Cap Toggle -->
+<label class="inline-flex items-center gap-2 cursor-pointer bg-surface-container-lowest px-2.5 py-1 rounded-lg border border-outline-variant/40">
+<input checked="" class="rounded border-outline text-secondary focus:ring-0 text-xs w-3.5 h-3.5" type="checkbox"/>
+<span class="font-label-sm text-xs text-on-surface">Strict Cap (10 max)</span>
+</label>
+</div>
+<!-- Right Quick Trigger actions -->
+<div class="flex items-center gap-2 ml-auto">
+<div class="relative w-44">
+<span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-outline text-xs">tune</span>
+<input class="w-full pl-6 pr-2 py-1 text-[11px] rounded-lg bg-surface-container-lowest border border-outline-variant/60 text-on-surface focus:outline-none focus:border-secondary font-body-sm" placeholder="Filter table view..." type="text"/>
+</div>
+<button class="px-2.5 py-1 text-xs font-label-md rounded-lg border border-error/30 text-error hover:bg-error-container/40 transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">restart_alt</span>
+<span>Reset</span>
+</button>
+<button class="px-3 py-1 text-xs font-label-md rounded-lg bg-secondary hover:bg-secondary-container text-on-secondary transition-all shadow-sm flex items-center gap-1.5 font-bold">
+<span class="material-symbols-outlined text-xs text-white">bolt</span>
+<span>Auto-Allocate Roll No Wise</span>
+</button>
+</div>
+</div>
+<!-- ========================================================================= -->
+<!-- 4. STATISTICS STRIP (4 KPI CARDS)                                         -->
+<!-- ========================================================================= -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
+<!-- Metric 1: Total Students -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md border border-outline-variant/30 shadow-sm relative overflow-hidden group hover:translate-y-[-2px] transition-all">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-xs text-on-surface-variant font-medium">Total Students</span>
+<span class="material-symbols-outlined text-secondary text-base">groups</span>
+</div>
+<div class="mt-2 flex items-baseline gap-2">
+<span class="font-headline-lg text-2xl font-bold font-mono text-primary">203</span>
+<span class="text-xs text-emerald-700 font-medium">93.6% Mapped</span>
+</div>
+<div class="mt-2 flex items-center justify-between text-[11px] text-on-surface-variant">
+<span>Allocated: <strong class="text-emerald-700 font-mono">190</strong></span>
+<span>Remaining: <strong class="text-error font-mono">13</strong></span>
+</div>
+<!-- Progress bar -->
+<div class="w-full bg-surface-container h-1.5 rounded-full mt-2 overflow-hidden">
+<div class="bg-emerald-600 h-full rounded-full transition-all" style="width: 93.6%"></div>
+</div>
+</div>
+<!-- Metric 2: Participating Mentors -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md border border-outline-variant/30 shadow-sm relative overflow-hidden group hover:translate-y-[-2px] transition-all">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-xs text-on-surface-variant font-medium">Selected Mentors</span>
+<span class="material-symbols-outlined text-primary text-base">psychology</span>
+</div>
+<div class="mt-2 flex items-baseline gap-2">
+<span class="font-headline-lg text-2xl font-bold font-mono text-primary">21</span>
+<span class="text-[11px] text-on-surface-variant">Faculty Members</span>
+</div>
+<div class="mt-2 flex items-center justify-between text-[11px] text-on-surface-variant">
+<span>ICT &amp; Allied Depts</span>
+<!-- Avatar cluster -->
+<div class="flex -space-x-1.5 overflow-hidden">
+<span class="inline-block h-4 w-4 rounded-full ring-1 ring-white bg-secondary text-[8px] text-white flex items-center justify-center font-bold">SP</span>
+<span class="inline-block h-4 w-4 rounded-full ring-1 ring-white bg-primary text-[8px] text-white flex items-center justify-center font-bold">KP</span>
+<span class="inline-block h-4 w-4 rounded-full ring-1 ring-white bg-tertiary-container text-[8px] text-white flex items-center justify-center font-bold">DP</span>
+<span class="inline-block h-4 w-4 rounded-full ring-1 ring-white bg-surface-container-highest text-[8px] text-primary flex items-center justify-center font-bold">+18</span>
+</div>
+</div>
+<div class="w-full bg-surface-container h-1.5 rounded-full mt-2 overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 75%"></div>
+</div>
+</div>
+<!-- Metric 3: Average Mentor Load -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md border border-outline-variant/30 shadow-sm relative overflow-hidden group hover:translate-y-[-2px] transition-all">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-xs text-on-surface-variant font-medium">Average Mentor Load</span>
+<span class="material-symbols-outlined text-tertiary text-base">speed</span>
+</div>
+<div class="mt-2 flex items-baseline gap-2">
+<span class="font-headline-lg text-2xl font-bold font-mono text-primary">9.2</span>
+<span class="text-xs text-on-surface-variant font-mono">/ 10 max</span>
+</div>
+<div class="mt-2 flex items-center justify-between text-[11px] text-on-surface-variant">
+<span>Capacity Utilized: <strong class="text-primary font-mono">92%</strong></span>
+<span class="text-[10px] bg-secondary-fixed text-on-secondary-fixed-variant px-1 rounded">Optimal</span>
+</div>
+<div class="w-full bg-surface-container h-1.5 rounded-full mt-2 overflow-hidden">
+<div class="bg-amber-500 h-full rounded-full" style="width: 92%"></div>
+</div>
+</div>
+<!-- Metric 4: Allocation Status -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md border border-outline-variant/30 shadow-sm relative overflow-hidden group hover:translate-y-[-2px] transition-all">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-xs text-on-surface-variant font-medium">Allocation Status</span>
+<span class="material-symbols-outlined text-amber-600 text-base">hourglass_top</span>
+</div>
+<div class="mt-2 flex items-baseline gap-2">
+<span class="font-headline-md text-lg font-bold text-amber-700">Ready to Finalize</span>
+</div>
+<div class="mt-2 flex items-center justify-between text-[11px] text-on-surface-variant">
+<span class="text-amber-800 font-medium">Requires 13 Remaining</span>
+<span class="text-[10px] text-error font-semibold">1 Faculty Free</span>
+</div>
+<div class="w-full bg-surface-container h-1.5 rounded-full mt-2 overflow-hidden">
+<div class="bg-gradient-to-r from-emerald-500 to-amber-500 h-full rounded-full" style="width: 85%"></div>
+</div>
+</div>
+</div>
+<!-- ========================================================================= -->
+<!-- 5. MAIN SPLIT VIEW (HIGH DENSITY TWO COLUMN WORKSPACE)                    -->
+<!-- ========================================================================= -->
+<div class="grid grid-cols-12 gap-space-md items-start">
+<!-- ============================================================== -->
+<!-- LEFT PANEL (40% width / 5 Cols): Participating Faculty Mentors -->
+<!-- ============================================================== -->
+<div class="col-span-12 xl:col-span-5 bg-surface-container-lowest rounded-xl border border-outline-variant/30 shadow-sm flex flex-col h-[760px] overflow-hidden">
+<!-- Card Header -->
+<div class="p-space-sm px-space-md border-b border-outline-variant/30 bg-surface-container-low/50 flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-sm">co_present</span>
+<h3 class="font-headline-md text-xs font-bold text-primary">Participating Faculty Mentors</h3>
+<span class="bg-primary/10 text-primary text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold">21</span>
+</div>
+<label class="flex items-center gap-1.5 text-[11px] text-on-surface-variant cursor-pointer font-label-sm">
+<input checked="" class="rounded border-outline text-secondary text-xs w-3 h-3" type="checkbox"/>
+<span>Select All</span>
+</label>
+</div>
+<!-- Filter Faculty Input -->
+<div class="relative">
+<span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-outline text-xs">search</span>
+<input class="w-full pl-7 pr-3 py-1 text-xs rounded-lg bg-surface-container-lowest border border-outline-variant/60 text-on-surface placeholder:text-outline focus:outline-none focus:border-secondary font-body-sm" placeholder="Filter by area of expertise or name..." type="text"/>
+</div>
+</div>
+<!-- Scrollable Faculty Card List -->
+<div class="flex-1 overflow-y-auto custom-scrollbar p-space-sm space-y-2">
+<!-- Mentor 1: Dr. Samir Patel -->
+<div class="p-2.5 rounded-lg border border-outline-variant/40 bg-surface-container-low/40 hover:bg-surface-container-low transition-all shadow-xs">
+<div class="flex items-start justify-between gap-2">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-primary-container text-on-primary font-bold text-xs flex items-center justify-center font-label-md">
+                    SP
+                  </div>
+<div>
+<h4 class="font-headline-md text-xs font-bold text-primary leading-tight">Dr. Samir Patel</h4>
+<p class="font-body-sm text-[10px] text-on-surface-variant truncate">Prof. &amp; HoD • Cloud &amp; Distributed Systems</p>
+</div>
+</div>
+<span class="bg-emerald-100 text-emerald-800 text-[10px] font-label-sm px-1.5 py-0.5 rounded font-semibold border border-emerald-200">
+                  Maxed Out [10/10]
+                </span>
+</div>
+<!-- Load Bar -->
+<div class="mt-2">
+<div class="flex justify-between text-[10px] font-label-sm text-on-surface-variant mb-0.5">
+<span class="text-on-surface">Load Capacity: 100%</span>
+<span class="font-mono text-primary font-bold">10 / 10 Students</span>
+</div>
+<div class="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
+<div class="bg-emerald-600 h-full rounded-full" style="width: 100%"></div>
+</div>
+</div>
+<!-- Range Mapped Pill & Actions -->
+<div class="mt-2 pt-1.5 border-t border-outline-variant/20 flex items-center justify-between text-[10px]">
+<span class="font-mono font-medium text-secondary bg-secondary-fixed/50 px-1.5 py-0.5 rounded">
+                  Roll 24BIT001 – 24BIT010
+                </span>
+<div class="flex items-center gap-1">
+<button class="px-1.5 py-0.5 text-on-surface-variant hover:text-primary rounded hover:bg-white text-[10px]">View (10)</button>
+<button class="px-1.5 py-0.5 text-secondary hover:text-primary rounded hover:bg-white text-[10px]">Reassign</button>
+</div>
+</div>
+</div>
+<!-- Mentor 2: Prof. Kuntal Patel -->
+<div class="p-2.5 rounded-lg border border-outline-variant/40 bg-surface-container-low/40 hover:bg-surface-container-low transition-all shadow-xs">
+<div class="flex items-start justify-between gap-2">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-secondary text-on-secondary font-bold text-xs flex items-center justify-center font-label-md">
+                    KP
+                  </div>
+<div>
+<h4 class="font-headline-md text-xs font-bold text-primary leading-tight">Prof. Kuntal Patel</h4>
+<p class="font-body-sm text-[10px] text-on-surface-variant truncate">Assoc. Prof. • Cyber Security &amp; Networks</p>
+</div>
+</div>
+<span class="bg-emerald-100 text-emerald-800 text-[10px] font-label-sm px-1.5 py-0.5 rounded font-semibold border border-emerald-200">
+                  Full [10/10]
+                </span>
+</div>
+<div class="mt-2">
+<div class="flex justify-between text-[10px] font-label-sm text-on-surface-variant mb-0.5">
+<span class="text-on-surface">Load Capacity: 100%</span>
+<span class="font-mono text-primary font-bold">10 / 10 Students</span>
+</div>
+<div class="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
+<div class="bg-emerald-600 h-full rounded-full" style="width: 100%"></div>
+</div>
+</div>
+<div class="mt-2 pt-1.5 border-t border-outline-variant/20 flex items-center justify-between text-[10px]">
+<span class="font-mono font-medium text-secondary bg-secondary-fixed/50 px-1.5 py-0.5 rounded">
+                  Roll 24BIT011 – 24BIT020
+                </span>
+<div class="flex items-center gap-1">
+<button class="px-1.5 py-0.5 text-on-surface-variant hover:text-primary rounded hover:bg-white text-[10px]">View (10)</button>
+<button class="px-1.5 py-0.5 text-secondary hover:text-primary rounded hover:bg-white text-[10px]">Reassign</button>
+</div>
+</div>
+</div>
+<!-- Mentor 3: Dr. Dhaval Pujara -->
+<div class="p-2.5 rounded-lg border border-secondary/30 bg-surface-container-lowest hover:bg-surface-container-low transition-all shadow-xs ring-1 ring-secondary/10">
+<div class="flex items-start justify-between gap-2">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-tertiary-container text-on-tertiary font-bold text-xs flex items-center justify-center font-label-md">
+                    DP
+                  </div>
+<div>
+<h4 class="font-headline-md text-xs font-bold text-primary leading-tight">Dr. Dhaval Pujara</h4>
+<p class="font-body-sm text-[10px] text-on-surface-variant truncate">Director SOT • Wireless &amp; IoT</p>
+</div>
+</div>
+<span class="bg-amber-100 text-amber-800 text-[10px] font-label-sm px-1.5 py-0.5 rounded font-semibold border border-amber-200">
+                  1 Slot Left [9/10]
+                </span>
+</div>
+<div class="mt-2">
+<div class="flex justify-between text-[10px] font-label-sm text-on-surface-variant mb-0.5">
+<span class="text-on-surface">Load Capacity: 90%</span>
+<span class="font-mono text-primary font-bold">9 / 10 Students</span>
+</div>
+<div class="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
+<div class="bg-amber-500 h-full rounded-full" style="width: 90%"></div>
+</div>
+</div>
+<div class="mt-2 pt-1.5 border-t border-outline-variant/20 flex items-center justify-between text-[10px]">
+<span class="font-mono font-medium text-secondary bg-secondary-fixed/50 px-1.5 py-0.5 rounded">
+                  Roll 24BIT021 – 24BIT029
+                </span>
+<div class="flex items-center gap-1">
+<button class="px-1.5 py-0.5 bg-secondary text-white font-medium rounded hover:bg-secondary-container text-[10px]">+ Add 1</button>
+<button class="px-1.5 py-0.5 text-secondary hover:text-primary rounded hover:bg-white text-[10px]">Reassign</button>
+</div>
+</div>
+</div>
+<!-- Mentor 4: Dr. Shweta Shah -->
+<div class="p-2.5 rounded-lg border border-outline-variant/40 bg-surface-container-low/40 hover:bg-surface-container-low transition-all shadow-xs">
+<div class="flex items-start justify-between gap-2">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-primary text-on-primary font-bold text-xs flex items-center justify-center font-label-md">
+                    SS
+                  </div>
+<div>
+<h4 class="font-headline-md text-xs font-bold text-primary leading-tight">Dr. Shweta Shah</h4>
+<p class="font-body-sm text-[10px] text-on-surface-variant truncate">Assoc. Prof. • AI &amp; Energy Analytics</p>
+</div>
+</div>
+<span class="bg-emerald-100 text-emerald-800 text-[10px] font-label-sm px-1.5 py-0.5 rounded font-semibold border border-emerald-200">
+                  Full [10/10]
+                </span>
+</div>
+<div class="mt-2">
+<div class="flex justify-between text-[10px] font-label-sm text-on-surface-variant mb-0.5">
+<span class="text-on-surface">Load Capacity: 100%</span>
+<span class="font-mono text-primary font-bold">10 / 10 Students</span>
+</div>
+<div class="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
+<div class="bg-emerald-600 h-full rounded-full" style="width: 100%"></div>
+</div>
+</div>
+<div class="mt-2 pt-1.5 border-t border-outline-variant/20 flex items-center justify-between text-[10px]">
+<span class="font-mono font-medium text-secondary bg-secondary-fixed/50 px-1.5 py-0.5 rounded">
+                  Roll 24BIT030 – 24BIT039
+                </span>
+<div class="flex items-center gap-1">
+<button class="px-1.5 py-0.5 text-on-surface-variant hover:text-primary rounded hover:bg-white text-[10px]">View (10)</button>
+<button class="px-1.5 py-0.5 text-secondary hover:text-primary rounded hover:bg-white text-[10px]">Reassign</button>
+</div>
+</div>
+</div>
+<!-- Mentor 5: Dr. Mazhar Hadidi -->
+<div class="p-2.5 rounded-lg border border-outline-variant/40 bg-surface-container-low/40 hover:bg-surface-container-low transition-all shadow-xs">
+<div class="flex items-start justify-between gap-2">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high text-primary font-bold text-xs flex items-center justify-center font-label-md">
+                    MH
+                  </div>
+<div>
+<h4 class="font-headline-md text-xs font-bold text-primary leading-tight">Dr. Mazhar Hadidi</h4>
+<p class="font-body-sm text-[10px] text-on-surface-variant truncate">Assist. Prof. • Machine Learning</p>
+</div>
+</div>
+<span class="bg-amber-100 text-amber-800 text-[10px] font-label-sm px-1.5 py-0.5 rounded font-semibold border border-amber-200">
+                  2 Slots Open [8/10]
+                </span>
+</div>
+<div class="mt-2">
+<div class="flex justify-between text-[10px] font-label-sm text-on-surface-variant mb-0.5">
+<span class="text-on-surface">Load Capacity: 80%</span>
+<span class="font-mono text-primary font-bold">8 / 10 Students</span>
+</div>
+<div class="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
+<div class="bg-amber-500 h-full rounded-full" style="width: 80%"></div>
+</div>
+</div>
+<div class="mt-2 pt-1.5 border-t border-outline-variant/20 flex items-center justify-between text-[10px]">
+<span class="font-mono font-medium text-secondary bg-secondary-fixed/50 px-1.5 py-0.5 rounded">
+                  Roll 24BIT040 – 24BIT047
+                </span>
+<div class="flex items-center gap-1">
+<button class="px-1.5 py-0.5 bg-secondary text-white font-medium rounded hover:bg-secondary-container text-[10px]">+ Add 2</button>
+<button class="px-1.5 py-0.5 text-secondary hover:text-primary rounded hover:bg-white text-[10px]">Reassign</button>
+</div>
+</div>
+</div>
+<!-- Mentor 6: Prof. Rutvij Jhaveri -->
+<div class="p-2.5 rounded-lg border border-outline-variant/40 bg-surface-container-low/40 hover:bg-surface-container-low transition-all shadow-xs">
+<div class="flex items-start justify-between gap-2">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-primary-container text-on-primary font-bold text-xs flex items-center justify-center font-label-md">
+                    RJ
+                  </div>
+<div>
+<h4 class="font-headline-md text-xs font-bold text-primary leading-tight">Prof. Rutvij Jhaveri</h4>
+<p class="font-body-sm text-[10px] text-on-surface-variant truncate">Assoc. Prof. • Blockchain &amp; InfoSec</p>
+</div>
+</div>
+<span class="bg-amber-100 text-amber-800 text-[10px] font-label-sm px-1.5 py-0.5 rounded font-semibold border border-amber-200">
+                  [9/10]
+                </span>
+</div>
+<div class="mt-2">
+<div class="flex justify-between text-[10px] font-label-sm text-on-surface-variant mb-0.5">
+<span class="text-on-surface">Load Capacity: 90%</span>
+<span class="font-mono text-primary font-bold">9 / 10 Students</span>
+</div>
+<div class="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
+<div class="bg-amber-500 h-full rounded-full" style="width: 90%"></div>
+</div>
+</div>
+<div class="mt-2 pt-1.5 border-t border-outline-variant/20 flex items-center justify-between text-[10px]">
+<span class="font-mono font-medium text-secondary bg-secondary-fixed/50 px-1.5 py-0.5 rounded">
+                  Roll 24BIT048 – 24BIT056
+                </span>
+<div class="flex items-center gap-1">
+<button class="px-1.5 py-0.5 text-on-surface-variant hover:text-primary rounded hover:bg-white text-[10px]">View (9)</button>
+<button class="px-1.5 py-0.5 text-secondary hover:text-primary rounded hover:bg-white text-[10px]">Reassign</button>
+</div>
+</div>
+</div>
+<!-- Mentor 7: Prof. Sneha Iyer (Target User) -->
+<div class="p-2.5 rounded-lg border border-secondary/40 bg-secondary-fixed/20 hover:bg-secondary-fixed/30 transition-all shadow-xs">
+<div class="flex items-start justify-between gap-2">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-secondary text-white font-bold text-xs flex items-center justify-center font-label-md">
+                    SI
+                  </div>
+<div>
+<h4 class="font-headline-md text-xs font-bold text-primary leading-tight">Prof. Sneha Iyer</h4>
+<p class="font-body-sm text-[10px] text-secondary font-medium truncate">Assoc. Prof. &amp; CSSI Lead</p>
+</div>
+</div>
+<span class="bg-emerald-100 text-emerald-800 text-[10px] font-label-sm px-1.5 py-0.5 rounded font-semibold border border-emerald-200">
+                  Full [10/10]
+                </span>
+</div>
+<div class="mt-2">
+<div class="flex justify-between text-[10px] font-label-sm text-on-surface-variant mb-0.5">
+<span class="text-on-surface">Load Capacity: 100%</span>
+<span class="font-mono text-primary font-bold">10 / 10 Students</span>
+</div>
+<div class="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
+<div class="bg-emerald-600 h-full rounded-full" style="width: 100%"></div>
+</div>
+</div>
+<div class="mt-2 pt-1.5 border-t border-outline-variant/20 flex items-center justify-between text-[10px]">
+<span class="font-mono font-medium text-secondary bg-secondary-fixed px-1.5 py-0.5 rounded">
+                  Roll 24BIT058 – 24BIT067
+                </span>
+<div class="flex items-center gap-1">
+<button class="px-1.5 py-0.5 text-on-surface-variant hover:text-primary rounded hover:bg-white text-[10px]">View (10)</button>
+<button class="px-1.5 py-0.5 text-secondary hover:text-primary rounded hover:bg-white text-[10px]">Reassign</button>
+</div>
+</div>
+</div>
+<!-- Mentor 8: Dr. Jigarkumar Shah (Available) -->
+<div class="p-2.5 rounded-lg border border-dashed border-outline-variant/80 bg-surface-container-lowest hover:bg-surface-container-low transition-all">
+<div class="flex items-start justify-between gap-2">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-surface-container-high text-outline font-bold text-xs flex items-center justify-center font-label-md">
+                    JS
+                  </div>
+<div>
+<h4 class="font-headline-md text-xs font-bold text-primary leading-tight">Dr. Jigarkumar Shah</h4>
+<p class="font-body-sm text-[10px] text-on-surface-variant truncate">Assist. Prof. • Embedded Systems</p>
+</div>
+</div>
+<span class="bg-surface-container-high text-on-surface-variant text-[10px] font-label-sm px-1.5 py-0.5 rounded font-semibold">
+                  Available (0 Students)
+                </span>
+</div>
+<div class="mt-2">
+<div class="flex justify-between text-[10px] font-label-sm text-on-surface-variant mb-0.5">
+<span class="text-on-surface">Load Capacity: 0%</span>
+<span class="font-mono text-primary font-bold">0 / 10 Students</span>
+</div>
+<div class="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
+<div class="bg-outline-variant h-full rounded-full" style="width: 0%"></div>
+</div>
+</div>
+<div class="mt-2 pt-1.5 border-t border-outline-variant/20 flex items-center justify-between text-[10px]">
+<span class="text-outline text-[10px]">Unassigned mentor</span>
+<button class="px-2 py-0.5 bg-primary text-white font-medium rounded hover:bg-primary-container text-[10px] flex items-center gap-1">
+<span class="material-symbols-outlined text-[10px]">add</span> Assign Cohort Range
+                </button>
+</div>
+</div>
+</div>
+<!-- Left Footer summary -->
+<div class="p-2 border-t border-outline-variant/30 bg-surface-container-low/70 flex items-center justify-between text-[11px] text-on-surface-variant font-label-sm">
+<span>Showing 8 of 21 Active Faculty</span>
+<button class="text-secondary hover:underline font-semibold flex items-center gap-0.5">
+<span>View All 21 Mentors</span>
+<span class="material-symbols-outlined text-xs">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- ============================================================== -->
+<!-- RIGHT PANEL (60% width / 7 Cols): Cohort & Roll Allocations     -->
+<!-- ============================================================== -->
+<div class="col-span-12 xl:col-span-7 bg-surface-container-lowest rounded-xl border border-outline-variant/30 shadow-sm flex flex-col h-[760px] overflow-hidden">
+<!-- Card Header & View Tabs -->
+<div class="p-space-sm px-space-md border-b border-outline-variant/30 bg-surface-container-low/50 flex flex-wrap items-center justify-between gap-2">
+<div>
+<h3 class="font-headline-md text-xs font-bold text-primary">Student Cohort &amp; Roll Number Allocation</h3>
+<p class="font-body-sm text-[11px] text-on-surface-variant">Class: 2nd Year B.Tech ICT • Section A &amp; B Combined</p>
+</div>
+<!-- Segmented Switch View Tabs -->
+<div class="bg-surface-container p-0.5 rounded-lg flex items-center text-xs">
+<button class="px-3 py-1 rounded-md text-xs font-label-md bg-white text-primary font-semibold shadow-xs flex items-center gap-1.5">
+<span class="material-symbols-outlined text-xs">table_rows</span>
+<span>Individual Table (203)</span>
+</button>
+<button class="px-3 py-1 rounded-md text-xs font-label-md text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1.5">
+<span class="material-symbols-outlined text-xs">view_agenda</span>
+<span>Batch View (Ranges)</span>
+</button>
+</div>
+</div>
+<!-- BATCH RANGE SUMMARY ACCORDION STRIP -->
+<div class="p-space-sm bg-surface-container-low/30 border-b border-outline-variant/20 flex items-center gap-2 overflow-x-auto custom-scrollbar flex-shrink-0 text-[11px]">
+<span class="text-on-surface-variant font-label-sm text-[10px] uppercase font-bold tracking-wider whitespace-nowrap">Mapped Batches:</span>
+<div class="flex items-center gap-1 px-2 py-1 rounded-md bg-white border border-outline-variant/40 whitespace-nowrap shadow-xs">
+<span class="font-mono text-secondary font-semibold">24BIT001–010</span>
+<span class="text-outline-variant">•</span>
+<span class="text-primary font-medium">Dr. Samir Patel</span>
+<span class="text-emerald-600 font-bold ml-1">✓</span>
+</div>
+<div class="flex items-center gap-1 px-2 py-1 rounded-md bg-white border border-outline-variant/40 whitespace-nowrap shadow-xs">
+<span class="font-mono text-secondary font-semibold">24BIT011–020</span>
+<span class="text-outline-variant">•</span>
+<span class="text-primary font-medium">Prof. Kuntal Patel</span>
+<span class="text-emerald-600 font-bold ml-1">✓</span>
+</div>
+<div class="flex items-center gap-1 px-2 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-900 whitespace-nowrap shadow-xs">
+<span class="font-mono font-semibold">24BIT021–029</span>
+<span class="text-amber-400">•</span>
+<span>Dr. Dhaval Pujara</span>
+<span class="text-amber-700 font-medium ml-1">(1 Open)</span>
+</div>
+<div class="flex items-center gap-1 px-2 py-1 rounded-md bg-surface-container-high text-on-surface-variant whitespace-nowrap">
+<span class="font-mono font-medium">24BIT191–203</span>
+<span class="text-error font-bold">• 13 Pending</span>
+</div>
+</div>
+<!-- HIGH-DENSITY INTERACTIVE STUDENT TABLE -->
+<div class="flex-1 overflow-auto custom-scrollbar">
+<table class="w-full text-left border-collapse text-xs">
+<thead class="sticky top-0 bg-surface-container-low/95 backdrop-blur-sm border-b border-outline-variant/30 text-[11px] font-label-sm text-on-surface-variant uppercase tracking-wider z-10">
+<tr>
+<th class="py-2 px-3 w-8">
+<input class="rounded border-outline text-secondary text-xs w-3 h-3" type="checkbox"/>
+</th>
+<th class="py-2 px-3 font-semibold">Roll Number</th>
+<th class="py-2 px-3 font-semibold">Student Name</th>
+<th class="py-2 px-3 font-semibold">Assigned Mentor</th>
+<th class="py-2 px-3 font-semibold">NGO Partner / Social Project</th>
+<th class="py-2 px-3 font-semibold">Status</th>
+<th class="py-2 px-3 text-right font-semibold">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/20 font-body-sm">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-low/60 transition-colors group">
+<td class="py-2 px-3">
+<input class="rounded border-outline text-secondary text-xs w-3 h-3" type="checkbox"/>
+</td>
+<td class="py-2 px-3 font-mono font-semibold text-secondary">24BIT001</td>
+<td class="py-2 px-3 font-medium text-on-surface flex items-center gap-1.5">
+<span>Aarav Sharma</span>
+</td>
+<td class="py-2 px-3">
+<span class="inline-flex items-center gap-1 text-primary font-medium bg-surface-container px-2 py-0.5 rounded text-[11px]">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> Dr. Samir Patel
+                    </span>
+</td>
+<td class="py-2 px-3 text-on-surface-variant truncate max-w-[180px]" title="Aga Khan Rural Support Programme">
+                    Aga Khan Rural Support Programme
+                  </td>
+<td class="py-2 px-3">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-label-sm bg-emerald-100 text-emerald-800 font-semibold border border-emerald-200">
+                      Allocated
+                    </span>
+</td>
+<td class="py-2 px-3 text-right">
+<button class="text-outline hover:text-secondary p-1 rounded hover:bg-white" title="Quick Edit">
+<span class="material-symbols-outlined text-xs">edit</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-low/60 transition-colors group">
+<td class="py-2 px-3">
+<input class="rounded border-outline text-secondary text-xs w-3 h-3" type="checkbox"/>
+</td>
+<td class="py-2 px-3 font-mono font-semibold text-secondary">24BIT002</td>
+<td class="py-2 px-3 font-medium text-on-surface">Diya Patel</td>
+<td class="py-2 px-3">
+<span class="inline-flex items-center gap-1 text-primary font-medium bg-surface-container px-2 py-0.5 rounded text-[11px]">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> Dr. Samir Patel
+                    </span>
+</td>
+<td class="py-2 px-3 text-on-surface-variant truncate max-w-[180px]" title="Blind People's Association, Ahmedabad">
+                    Blind People's Association, Ahmedabad
+                  </td>
+<td class="py-2 px-3">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-label-sm bg-emerald-100 text-emerald-800 font-semibold border border-emerald-200">
+                      Allocated
+                    </span>
+</td>
+<td class="py-2 px-3 text-right">
+<button class="text-outline hover:text-secondary p-1 rounded hover:bg-white" title="Quick Edit">
+<span class="material-symbols-outlined text-xs">edit</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-low/60 transition-colors group">
+<td class="py-2 px-3">
+<input class="rounded border-outline text-secondary text-xs w-3 h-3" type="checkbox"/>
+</td>
+<td class="py-2 px-3 font-mono font-semibold text-secondary">24BIT003</td>
+<td class="py-2 px-3 font-medium text-on-surface">Rohan Mehta</td>
+<td class="py-2 px-3">
+<span class="inline-flex items-center gap-1 text-primary font-medium bg-surface-container px-2 py-0.5 rounded text-[11px]">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> Dr. Samir Patel
+                    </span>
+</td>
+<td class="py-2 px-3 text-on-surface-variant truncate max-w-[180px]" title="SEWA Rural, Jhagadia">
+                    SEWA Rural, Jhagadia
+                  </td>
+<td class="py-2 px-3">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-label-sm bg-emerald-100 text-emerald-800 font-semibold border border-emerald-200">
+                      Allocated
+                    </span>
+</td>
+<td class="py-2 px-3 text-right">
+<button class="text-outline hover:text-secondary p-1 rounded hover:bg-white" title="Quick Edit">
+<span class="material-symbols-outlined text-xs">edit</span>
+</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-low/60 transition-colors group">
+<td class="py-2 px-3">
+<input class="rounded border-outline text-secondary text-xs w-3 h-3" type="checkbox"/>
+</td>
+<td class="py-2 px-3 font-mono font-semibold text-secondary">24BIT011</td>
+<td class="py-2 px-3 font-medium text-on-surface">Ananya Joshi</td>
+<td class="py-2 px-3">
+<span class="inline-flex items-center gap-1 text-primary font-medium bg-surface-container px-2 py-0.5 rounded text-[11px]">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> Prof. Kuntal Patel
+                    </span>
+</td>
+<td class="py-2 px-3 text-on-surface-variant truncate max-w-[180px]" title="Yuva Unstoppable Gandhinagar">
+                    Yuva Unstoppable Gandhinagar
+                  </td>
+<td class="py-2 px-3">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-label-sm bg-emerald-100 text-emerald-800 font-semibold border border-emerald-200">
+                      Allocated
+                    </span>
+</td>
+<td class="py-2 px-3 text-right">
+<button class="text-outline hover:text-secondary p-1 rounded hover:bg-white" title="Quick Edit">
+<span class="material-symbols-outlined text-xs">edit</span>
+</button>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-surface-container-low/60 transition-colors group">
+<td class="py-2 px-3">
+<input class="rounded border-outline text-secondary text-xs w-3 h-3" type="checkbox"/>
+</td>
+<td class="py-2 px-3 font-mono font-semibold text-secondary">24BIT025</td>
+<td class="py-2 px-3 font-medium text-on-surface">Harshvardhan Dave</td>
+<td class="py-2 px-3">
+<span class="inline-flex items-center gap-1 text-primary font-medium bg-surface-container px-2 py-0.5 rounded text-[11px]">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> Dr. Dhaval Pujara
+                    </span>
+</td>
+<td class="py-2 px-3 text-on-surface-variant truncate max-w-[180px]" title="Environmental Sanitation Institute">
+                    Environmental Sanitation Institute
+                  </td>
+<td class="py-2 px-3">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-label-sm bg-emerald-100 text-emerald-800 font-semibold border border-emerald-200">
+                      Allocated
+                    </span>
+</td>
+<td class="py-2 px-3 text-right">
+<button class="text-outline hover:text-secondary p-1 rounded hover:bg-white" title="Quick Edit">
+<span class="material-symbols-outlined text-xs">edit</span>
+</button>
+</td>
+</tr>
+<!-- Row 6: Unassigned 1 -->
+<tr class="bg-amber-50/40 hover:bg-amber-50 transition-colors group">
+<td class="py-2 px-3">
+<input class="rounded border-outline text-secondary text-xs w-3 h-3" type="checkbox"/>
+</td>
+<td class="py-2 px-3 font-mono font-bold text-amber-900">24BIT191</td>
+<td class="py-2 px-3 font-semibold text-on-surface">Priyanshi Shah</td>
+<td class="py-2 px-3">
+<select class="py-0.5 px-2 text-[11px] rounded border border-amber-300 bg-white text-on-surface font-body-sm focus:outline-none focus:ring-1 focus:ring-secondary">
+<option selected="">Select Mentor ▾</option>
+<option>Dr. Dhaval Pujara (1 slot open)</option>
+<option>Dr. Mazhar Hadidi (2 slots open)</option>
+<option>Dr. Jigarkumar Shah (10 slots open)</option>
+</select>
+</td>
+<td class="py-2 px-3 text-on-surface-variant truncate max-w-[180px]" title="Vikram A. Sarabhai Community Science">
+                    Vikram A. Sarabhai Community Science
+                  </td>
+<td class="py-2 px-3">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-label-sm bg-amber-100 text-amber-900 font-semibold border border-amber-200">
+                      Unassigned
+                    </span>
+</td>
+<td class="py-2 px-3 text-right">
+<button class="px-2 py-0.5 bg-secondary text-white font-label-sm text-[10px] rounded hover:bg-secondary-container">
+                      Assign
+                    </button>
+</td>
+</tr>
+<!-- Row 7: Unassigned 2 -->
+<tr class="bg-amber-50/40 hover:bg-amber-50 transition-colors group">
+<td class="py-2 px-3">
+<input class="rounded border-outline text-secondary text-xs w-3 h-3" type="checkbox"/>
+</td>
+<td class="py-2 px-3 font-mono font-bold text-amber-900">24BIT192</td>
+<td class="py-2 px-3 font-semibold text-on-surface">Kabir Varma</td>
+<td class="py-2 px-3">
+<select class="py-0.5 px-2 text-[11px] rounded border border-amber-300 bg-white text-on-surface font-body-sm focus:outline-none focus:ring-1 focus:ring-secondary">
+<option selected="">Select Mentor ▾</option>
+<option>Dr. Dhaval Pujara (1 slot open)</option>
+<option>Dr. Mazhar Hadidi (2 slots open)</option>
+<option>Dr. Jigarkumar Shah (10 slots open)</option>
+</select>
+</td>
+<td class="py-2 px-3 text-on-surface-variant truncate max-w-[180px]" title="Paryavaran Mitra">
+                    Paryavaran Mitra
+                  </td>
+<td class="py-2 px-3">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-label-sm bg-amber-100 text-amber-900 font-semibold border border-amber-200">
+                      Unassigned
+                    </span>
+</td>
+<td class="py-2 px-3 text-right">
+<button class="px-2 py-0.5 bg-secondary text-white font-label-sm text-[10px] rounded hover:bg-secondary-container">
+                      Assign
+                    </button>
+</td>
+</tr>
+<!-- Row 8 (Placeholder remaining sample) -->
+<tr class="bg-amber-50/20 hover:bg-amber-50 transition-colors group">
+<td class="py-2 px-3">
+<input class="rounded border-outline text-secondary text-xs w-3 h-3" type="checkbox"/>
+</td>
+<td class="py-2 px-3 font-mono font-bold text-amber-900">24BIT193</td>
+<td class="py-2 px-3 font-semibold text-on-surface">Tanvi Joshi</td>
+<td class="py-2 px-3">
+<select class="py-0.5 px-2 text-[11px] rounded border border-amber-300 bg-white text-on-surface font-body-sm focus:outline-none">
+<option selected="">Select Mentor ▾</option>
+<option>Dr. Jigarkumar Shah (10 slots open)</option>
+</select>
+</td>
+<td class="py-2 px-3 text-on-surface-variant truncate max-w-[180px]">
+                    CHETNA Women's Health Project
+                  </td>
+<td class="py-2 px-3">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-label-sm bg-amber-100 text-amber-900 font-semibold border border-amber-200">
+                      Unassigned
+                    </span>
+</td>
+<td class="py-2 px-3 text-right">
+<button class="px-2 py-0.5 bg-secondary text-white font-label-sm text-[10px] rounded hover:bg-secondary-container">
+                      Assign
+                    </button>
+</td>
+</tr>
+<!-- Row 9 (Placeholder) -->
+<tr class="hover:bg-surface-container-low/60 transition-colors group">
+<td class="py-2 px-3">
+<input class="rounded border-outline text-secondary text-xs w-3 h-3" type="checkbox"/>
+</td>
+<td class="py-2 px-3 font-mono font-semibold text-secondary">24BIT058</td>
+<td class="py-2 px-3 font-medium text-on-surface">Manan Trivedi</td>
+<td class="py-2 px-3">
+<span class="inline-flex items-center gap-1 text-secondary font-medium bg-secondary-fixed/50 px-2 py-0.5 rounded text-[11px]">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Prof. Sneha Iyer
+                    </span>
+</td>
+<td class="py-2 px-3 text-on-surface-variant truncate max-w-[180px]">
+                    Gujarat Ecology Society
+                  </td>
+<td class="py-2 px-3">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-label-sm bg-emerald-100 text-emerald-800 font-semibold border border-emerald-200">
+                      Allocated
+                    </span>
+</td>
+<td class="py-2 px-3 text-right">
+<button class="text-outline hover:text-secondary p-1 rounded hover:bg-white" title="Quick Edit">
+<span class="material-symbols-outlined text-xs">edit</span>
+</button>
+</td>
+</tr>
+<!-- Row 10 (Placeholder) -->
+<tr class="hover:bg-surface-container-low/60 transition-colors group">
+<td class="py-2 px-3">
+<input class="rounded border-outline text-secondary text-xs w-3 h-3" type="checkbox"/>
+</td>
+<td class="py-2 px-3 font-mono font-semibold text-secondary">24BIT059</td>
+<td class="py-2 px-3 font-medium text-on-surface">Bhavik Rathod</td>
+<td class="py-2 px-3">
+<span class="inline-flex items-center gap-1 text-secondary font-medium bg-secondary-fixed/50 px-2 py-0.5 rounded text-[11px]">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Prof. Sneha Iyer
+                    </span>
+</td>
+<td class="py-2 px-3 text-on-surface-variant truncate max-w-[180px]">
+                    Tribhuvandas Foundation
+                  </td>
+<td class="py-2 px-3">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-label-sm bg-emerald-100 text-emerald-800 font-semibold border border-emerald-200">
+                      Allocated
+                    </span>
+</td>
+<td class="py-2 px-3 text-right">
+<button class="text-outline hover:text-secondary p-1 rounded hover:bg-white" title="Quick Edit">
+<span class="material-symbols-outlined text-xs">edit</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- TABLE PAGINATION & BATCH ACTION FOOTER -->
+<div class="p-space-sm px-space-md border-t border-outline-variant/30 bg-surface-container-low/70 flex flex-wrap items-center justify-between gap-2 text-xs">
+<div class="flex items-center gap-3">
+<span class="font-body-sm text-[11px] text-on-surface-variant">Showing <strong class="text-on-surface font-mono">1–10</strong> of <strong class="text-on-surface font-mono">203</strong> Students</span>
+<!-- Bulk reassign control -->
+<div class="flex items-center gap-1 border-l border-outline-variant/30 pl-3">
+<span class="text-[11px] text-on-surface-variant">Batch Action:</span>
+<select class="py-0.5 px-2 text-[11px] rounded border border-outline-variant/60 bg-white text-on-surface font-body-sm">
+<option>Bulk Reassign Selected</option>
+<option>Set Status to Verified</option>
+<option>Clear Allocation</option>
+</select>
+<button class="px-2 py-0.5 bg-surface-container-high hover:bg-surface-container-highest text-primary font-medium rounded text-[11px]">Apply</button>
+</div>
+</div>
+<!-- Page Buttons -->
+<div class="flex items-center gap-1">
+<button class="p-1 rounded text-outline hover:text-primary hover:bg-white disabled:opacity-30" disabled="">
+<span class="material-symbols-outlined text-xs">chevron_left</span>
+</button>
+<button class="w-6 h-6 rounded bg-primary text-white text-[11px] font-mono font-bold flex items-center justify-center">1</button>
+<button class="w-6 h-6 rounded hover:bg-white text-on-surface text-[11px] font-mono flex items-center justify-center">2</button>
+<button class="w-6 h-6 rounded hover:bg-white text-on-surface text-[11px] font-mono flex items-center justify-center">3</button>
+<span class="text-outline text-xs">...</span>
+<button class="w-6 h-6 rounded hover:bg-white text-on-surface text-[11px] font-mono flex items-center justify-center">21</button>
+<button class="p-1 rounded text-outline hover:text-primary hover:bg-white">
+<span class="material-symbols-outlined text-xs">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- ========================================================================= -->
+<!-- 6. PORTAL FOOTER (COMPACT INSTANT RUNNER)                                 -->
+<!-- ========================================================================= -->
+<footer class="bg-primary text-on-primary border-t border-outline-variant/20 px-space-xl py-space-sm flex flex-col md:flex-row justify-between items-center gap-2 text-xs select-none flex-shrink-0">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-xs text-on-primary font-bold">PDEU CampusHub</span>
+<span class="text-on-primary-container text-xs">•</span>
+<span class="font-body-sm text-[11px] text-on-primary-container">
+          © 2025 Pandit Deendayal Energy University (PDEU). Knowledge Corridor, Raisan, Gandhinagar, Gujarat.
+        </span>
+</div>
+<div class="flex items-center gap-space-md text-[11px] font-label-sm text-on-primary-container">
+<a class="hover:text-on-primary transition-colors" href="#">Privacy Policy</a>
+<a class="hover:text-on-primary transition-colors" href="#">Terms of Service</a>
+<a class="hover:text-on-primary transition-colors" href="#">Campus Security</a>
+<a class="hover:text-on-primary transition-colors" href="#">Disaster Management</a>
+<a class="hover:text-on-primary transition-colors" href="#">ERP Support</a>
+</div>
+</footer>
+</div>
+<!-- Inline Lightweight Micro-interactions for Enterprise Usability -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Hotkey listener for Ctrl+K search focus
+      window.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+          e.preventDefault();
+          const searchInput = document.querySelector('input[placeholder*="Search student roll"]');
+          if (searchInput) searchInput.focus();
+        }
+      });
+    });
+  </script>
+</body></html>

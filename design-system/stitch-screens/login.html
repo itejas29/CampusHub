@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CampusHub PDEU — Institutional Portal Login</title>
+<!-- Google Fonts & Material Symbols -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&amp;family=Lexend:wght@400;500;600;700;800&amp;family=Public+Sans:wght@500;600;700&amp;family=Source+Sans+3:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-primary-fixed": "#001c3b",
+            "on-error": "#ffffff",
+            "secondary-container": "#316bf3",
+            "surface-tint": "#455f87",
+            "surface-dim": "#cbdbf5",
+            "tertiary-container": "#4a00a4",
+            "surface-container": "#e5eeff",
+            "surface-bright": "#f8f9ff",
+            "on-tertiary-fixed": "#25005a",
+            "error": "#ba1a1a",
+            "tertiary": "#2f006f",
+            "inverse-on-surface": "#eaf1ff",
+            "background": "#f8f9ff",
+            "primary-fixed-dim": "#adc8f5",
+            "surface-container-lowest": "#ffffff",
+            "secondary-fixed-dim": "#b4c5ff",
+            "on-background": "#0b1c30",
+            "tertiary-fixed": "#eaddff",
+            "primary-fixed": "#d5e3ff",
+            "primary-container": "#1e3a5f",
+            "surface-container-high": "#dce9ff",
+            "primary": "#022448",
+            "surface": "#f8f9ff",
+            "on-error-container": "#93000a",
+            "secondary": "#0051d5",
+            "outline": "#74777f",
+            "on-secondary-fixed-variant": "#003ea8",
+            "outline-variant": "#c4c6cf",
+            "on-secondary-container": "#fefcff",
+            "on-surface-variant": "#43474e",
+            "on-secondary-fixed": "#00174b",
+            "tertiary-fixed-dim": "#d2bbff",
+            "on-tertiary-fixed-variant": "#5a00c6",
+            "surface-variant": "#d3e4fe",
+            "on-primary-container": "#8aa4cf",
+            "on-tertiary-container": "#b48fff",
+            "on-secondary": "#ffffff",
+            "secondary-fixed": "#dbe1ff",
+            "on-surface": "#0b1c30",
+            "on-primary-fixed-variant": "#2d486d",
+            "inverse-surface": "#213145",
+            "surface-container-low": "#eff4ff",
+            "surface-container-highest": "#d3e4fe",
+            "inverse-primary": "#adc8f5",
+            "on-primary": "#ffffff",
+            "on-tertiary": "#ffffff",
+            "error-container": "#ffdad6"
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          spacing: {
+            "space-sm": "0.5rem",
+            "space-lg": "1.5rem",
+            "space-xl": "2rem",
+            "margin": "2rem",
+            "gutter": "1.5rem",
+            "space-xs": "0.25rem",
+            "space-md": "1rem"
+          },
+          fontFamily: {
+            "label-sm": ["Public Sans", "sans-serif"],
+            "body-md": ["\"Source Sans 3\"", "sans-serif"],
+            "label-md": ["Public Sans", "sans-serif"],
+            "body-lg": ["\"Source Sans 3\"", "sans-serif"],
+            "headline-lg": ["Lexend", "sans-serif"],
+            "headline-md": ["Lexend", "sans-serif"],
+            "body-sm": ["\"Source Sans 3\"", "sans-serif"],
+            "headline-xl": ["Lexend", "sans-serif"],
+            "mono": ["\"JetBrains Mono\"", "monospace"]
+          },
+          fontSize: {
+            "label-sm": ["0.75rem", { lineHeight: "1rem", fontWeight: "600" }],
+            "body-md": ["1rem", { lineHeight: "1.5rem", fontWeight: "400" }],
+            "label-md": ["0.875rem", { lineHeight: "1.25rem", fontWeight: "600" }],
+            "body-lg": ["1.125rem", { lineHeight: "1.75rem", fontWeight: "400" }],
+            "headline-lg": ["1.75rem", { lineHeight: "2.25rem", fontWeight: "600" }],
+            "headline-md": ["1.25rem", { lineHeight: "1.75rem", fontWeight: "600" }],
+            "body-sm": ["0.875rem", { lineHeight: "1.25rem", fontWeight: "400" }],
+            "headline-xl": ["2.25rem", { lineHeight: "2.75rem", fontWeight: "700" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .custom-grid-pattern {
+      background-size: 40px 40px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    }
+  </style>
+</head>
+<body class="h-full bg-surface-container-lowest text-on-surface antialiased overflow-x-hidden">
+<main class="min-h-screen w-full flex flex-col lg:flex-row">
+<!-- LEFT PANEL: PDEU Brand & Academic Legacy (60% Desktop) -->
+<section class="relative w-full lg:w-[60%] bg-primary flex flex-col justify-between overflow-hidden p-space-xl lg:p-12 text-on-primary">
+<!-- Subtle Decorative Background Overlays -->
+<div class="absolute inset-0 custom-grid-pattern pointer-events-none"></div>
+<!-- Radial energy glow -->
+<div class="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-secondary opacity-30 blur-3xl pointer-events-none"></div>
+<div class="absolute bottom-10 right-10 w-[30rem] h-[30rem] rounded-full bg-primary-container opacity-40 blur-3xl pointer-events-none"></div>
+<!-- Concentric Orbital Engineering Rings (Abstract energy/physics theme) -->
+<div class="absolute -right-24 top-1/3 -translate-y-1/2 w-[520px] h-[520px] rounded-full border border-outline-variant/10 pointer-events-none hidden md:block">
+<div class="absolute inset-8 rounded-full border border-secondary/20"></div>
+<div class="absolute inset-24 rounded-full border border-outline-variant/15 border-dashed"></div>
+<div class="absolute top-12 left-1/4 w-2.5 h-2.5 rounded-full bg-secondary-fixed shadow-[0_0_12px_#316bf3]"></div>
+<div class="absolute bottom-20 right-1/3 w-2 h-2 rounded-full bg-surface-bright shadow-[0_0_8px_#ffffff]"></div>
+</div>
+<!-- Top Section: Institutional Identity Pill & Wordmark -->
+<div class="relative z-10 space-y-6">
+<!-- University Badge -->
+<div class="inline-flex items-center gap-space-sm px-3.5 py-1.5 rounded-full bg-surface-container-lowest/10 backdrop-blur-md border border-outline-variant/20 shadow-sm">
+<span class="w-2 h-2 rounded-full bg-secondary-container ring-4 ring-secondary/30 animate-pulse"></span>
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-surface-variant font-semibold">
+            Pandit Deendayal Energy University
+          </span>
+</div>
+<!-- Master Title / Brand Display -->
+<div>
+<div class="flex items-center gap-space-sm">
+<h1 class="font-headline-xl text-headline-xl text-on-primary tracking-tight font-extrabold flex items-center">
+              CampusHub
+              <span class="inline-block w-2.5 h-2.5 rounded-full bg-secondary-container ml-1.5 shadow-[0_0_10px_#316bf3]"></span>
+</h1>
+<span class="px-2 py-0.5 rounded text-xs font-mono font-medium bg-primary-container border border-outline-variant/30 text-primary-fixed ml-2">
+              v4.2 PROD
+            </span>
+</div>
+<p class="mt-2 font-headline-md text-headline-md text-surface-variant font-medium">
+            Your Centralised Academic Portal
+          </p>
+<p class="mt-2 max-w-xl font-body-md text-body-md text-on-primary-container leading-relaxed">
+            Unified authentication gate for PDEU undergraduate scholars, postgraduate fellows, faculty researchers, and administrative governance.
+          </p>
+</div>
+</div>
+<!-- Middle Flourish: Abstract Energy Schematic & Data Nodes -->
+<div class="relative z-10 my-10 hidden sm:block">
+<div class="p-space-lg rounded-xl bg-surface-container-lowest/5 backdrop-blur-md border border-outline-variant/15 flex flex-col md:flex-row items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-md">
+<div class="w-12 h-12 rounded-lg bg-primary-container/80 border border-secondary/30 flex items-center justify-center text-secondary-fixed">
+<span class="material-symbols-outlined" data-icon="electric_bolt" data-weight="fill" style="font-variation-settings: 'FILL' 1;">electric_bolt</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-primary font-semibold">Mission-Critical Academic Cloud</p>
+<p class="font-body-sm text-body-sm text-on-primary-container">High-availability cluster: PDEU Raisan Campus Node-01</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="text-right">
+<p class="font-mono text-xs text-secondary-fixed font-medium">SYSTEM STATUS</p>
+<p class="font-label-sm text-label-sm text-surface-variant">All 18 Services Operational</p>
+</div>
+<div class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></div>
+</div>
+</div>
+</div>
+<!-- Bottom Highlights: Bento Glass Cards & Accreditation Badge -->
+<div class="relative z-10 space-y-6">
+<!-- 3 Feature Stat Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-space-md">
+<!-- Card 1 -->
+<div class="p-space-md rounded-xl bg-surface-container-lowest/10 backdrop-blur-md border border-outline-variant/20 hover:border-secondary/50 transition-all duration-200 hover:-translate-y-0.5">
+<p class="font-headline-lg text-headline-lg font-bold text-on-primary tracking-tight">10</p>
+<p class="mt-0.5 font-label-md text-label-md text-surface-bright font-semibold">B.Tech Programmes</p>
+<p class="mt-1 font-body-sm text-body-sm text-on-primary-container">School of Technology &amp; Energy</p>
+</div>
+<!-- Card 2 -->
+<div class="p-space-md rounded-xl bg-surface-container-lowest/10 backdrop-blur-md border border-outline-variant/20 hover:border-secondary/50 transition-all duration-200 hover:-translate-y-0.5">
+<p class="font-headline-lg text-headline-lg font-bold text-on-primary tracking-tight">45+</p>
+<p class="mt-0.5 font-label-md text-label-md text-surface-bright font-semibold">Academic Workflows</p>
+<p class="mt-1 font-body-sm text-body-sm text-on-primary-container">Course registration, grades &amp; thesis</p>
+</div>
+<!-- Card 3 -->
+<div class="p-space-md rounded-xl bg-surface-container-lowest/10 backdrop-blur-md border border-outline-variant/20 hover:border-secondary/50 transition-all duration-200 hover:-translate-y-0.5">
+<p class="font-headline-lg text-headline-lg font-bold text-on-primary tracking-tight">6</p>
+<p class="mt-0.5 font-label-md text-label-md text-surface-bright font-semibold">Role-Based Portals</p>
+<p class="mt-1 font-body-sm text-body-sm text-on-primary-container">Students, Faculty, Alumni &amp; Admin</p>
+</div>
+</div>
+<!-- Institutional Footer / Accreditation -->
+<div class="pt-4 border-t border-outline-variant/20 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+<p class="font-body-sm text-body-sm text-on-primary-container flex items-center gap-1.5">
+<span class="material-symbols-outlined text-base text-secondary-fixed" data-icon="location_on">location_on</span>
+            Knowledge Corridor, Raisan, Gandhinagar, Gujarat — Accredited NAAC A++
+          </p>
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-surface-container-lowest/15 text-on-primary border border-outline-variant/30">
+              NIRF TOP RANKED
+            </span>
+</div>
+</div>
+</div>
+</section>
+<!-- RIGHT PANEL: Authentication Form (40% Desktop) -->
+<section class="w-full lg:w-[40%] bg-surface-container-lowest flex flex-col justify-between p-space-lg sm:p-space-xl lg:p-12 border-l border-outline-variant/30">
+<!-- Top Action: Return & Help Desk -->
+<div class="flex justify-between items-center pb-6">
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-low text-primary border border-outline-variant/30">
+<span class="material-symbols-outlined text-sm text-secondary" data-icon="verified_user">verified_user</span>
+<span class="font-label-sm text-label-sm">Student &amp; Faculty SSO</span>
+</div>
+<a class="inline-flex items-center gap-1 font-label-sm text-label-sm text-on-surface-variant hover:text-secondary transition-colors duration-200" href="#it-support">
+<span class="material-symbols-outlined text-base" data-icon="help_outline">help_outline</span>
+          Help Desk
+        </a>
+</div>
+<!-- Main Login Container -->
+<div class="w-full max-w-md mx-auto my-auto space-y-6">
+<!-- Header -->
+<div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface font-bold tracking-tight">
+            Sign In to CampusHub
+          </h2>
+<p class="mt-1 font-body-md text-body-md text-on-surface-variant">
+            Enter your institutional PDEU roll number or email credentials to continue.
+          </p>
+</div>
+<!-- Role / Persona Selector Tabs -->
+<div class="p-1 rounded-lg bg-surface-container-low flex border border-outline-variant/30 text-center" role="tablist">
+<button aria-selected="true" class="flex-1 py-2 px-3 rounded-md font-label-md text-label-md transition-all duration-200 bg-surface-container-lowest text-primary shadow-sm font-semibold" id="role-student" onclick="selectRole('student')" role="tab" type="button">
+            Student
+          </button>
+<button aria-selected="false" class="flex-1 py-2 px-3 rounded-md font-label-md text-label-md transition-all duration-200 text-on-surface-variant hover:text-primary font-medium" id="role-faculty" onclick="selectRole('faculty')" role="tab" type="button">
+            Faculty / Staff
+          </button>
+<button aria-selected="false" class="flex-1 py-2 px-3 rounded-md font-label-md text-label-md transition-all duration-200 text-on-surface-variant hover:text-primary font-medium" id="role-alumni" onclick="selectRole('alumni')" role="tab" type="button">
+            Alumni / Parent
+          </button>
+</div>
+<!-- Login Form -->
+<form class="space-y-4" onsubmit="event.preventDefault(); triggerAuth();">
+<!-- Email / Roll Number Input -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-1.5" for="identifier">
+              PDEU Email or Roll Number
+            </label>
+<div class="relative rounded-lg shadow-sm">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-outline">
+<span class="material-symbols-outlined text-lg" data-icon="badge">badge</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-2.5 rounded-lg border border-outline-variant/80 bg-surface-container-lowest font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-secondary focus:border-secondary transition-all" id="identifier" name="identifier" placeholder="e.g. 21bce042@sot.pdpu.ac.in" required="" type="text" value="21bce042@sot.pdpu.ac.in"/>
+</div>
+</div>
+<!-- Password Input -->
+<div>
+<div class="flex justify-between items-center mb-1.5">
+<label class="block font-label-md text-label-md text-on-surface" for="password">
+                Password
+              </label>
+<a class="font-label-sm text-label-sm text-secondary hover:underline" href="#forgot">
+                Forgot password?
+              </a>
+</div>
+<div class="relative rounded-lg shadow-sm">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-outline">
+<span class="material-symbols-outlined text-lg" data-icon="lock">lock</span>
+</div>
+<input class="block w-full pl-10 pr-10 py-2.5 rounded-lg border border-outline-variant/80 bg-surface-container-lowest font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-secondary focus:border-secondary transition-all" id="password" name="password" placeholder="••••••••••••" required="" type="password" value="••••••••••••"/>
+<button class="absolute inset-y-0 right-0 pr-3 flex items-center text-outline hover:text-on-surface" onclick="togglePasswordVisibility()" type="button">
+<span class="material-symbols-outlined text-lg" data-icon="visibility" id="eye-icon">visibility</span>
+</button>
+</div>
+</div>
+<!-- Options: Remember Me & Security Advisory -->
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center">
+<input checked="" class="h-4 w-4 text-secondary focus:ring-secondary border-outline-variant rounded" id="remember-me" name="remember-me" type="checkbox"/>
+<label class="ml-2 block font-body-sm text-body-sm text-on-surface-variant cursor-pointer" for="remember-me">
+                Remember credentials
+              </label>
+</div>
+<div class="flex items-center gap-1 font-label-sm text-label-sm text-outline">
+<span class="material-symbols-outlined text-xs text-secondary-container" data-icon="security">security</span>
+<span>PDEU MFA Active</span>
+</div>
+</div>
+<!-- Actions -->
+<div class="space-y-3 pt-2">
+<!-- Primary Action: Sign In -->
+<button class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg bg-primary-container hover:bg-primary text-on-primary font-label-md text-label-md shadow-md hover:shadow-lg transition-all duration-200 active:scale-95" type="submit">
+<span>Sign In to Student Portal</span>
+<span class="material-symbols-outlined text-base" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<!-- Institutional Microsoft SSO -->
+<button class="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg border border-outline-variant bg-surface-container-lowest hover:bg-surface-container-low text-on-surface font-label-md text-label-md transition-colors duration-200" onclick="triggerSSO()" type="button">
+<svg class="w-4 h-4" fill="none" viewbox="0 0 21 21">
+<path d="M1 1H9.66667V9.66667H1V1Z" fill="#F25022"></path>
+<path d="M11.3333 1H20V9.66667H11.3333V1Z" fill="#7FBA00"></path>
+<path d="M1 11.3333H9.66667V20H1V113333Z" fill="#00A4EF"></path>
+<path d="M11.3333 11.3333H20V20H11.3333V11.3333Z" fill="#FFB900"></path>
+</svg>
+<span>Continue with PDEU Microsoft SSO</span>
+</button>
+<!-- Secondary Action: Demo Sandbox Account -->
+<button class="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg border border-secondary/40 text-secondary hover:bg-secondary-fixed/20 font-label-md text-label-md transition-colors duration-200" onclick="fillDemoAccount()" type="button">
+<span class="material-symbols-outlined text-base" data-icon="auto_awesome">auto_awesome</span>
+<span>Try Demo Student Account</span>
+</button>
+</div>
+</form>
+<!-- Security Disclaimer Pill -->
+<div class="p-3 rounded-lg bg-surface-container-low border border-outline-variant/30 flex items-start gap-2.5">
+<span class="material-symbols-outlined text-base text-secondary flex-shrink-0 mt-0.5" data-icon="lock_clock">lock_clock</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            Official University Infrastructure: Unauthorized access attempts are monitored and recorded under the IT Security Policy of PDEU Gandhinagar.
+          </p>
+</div>
+</div>
+<!-- Footer Utility Links -->
+<div class="pt-6 border-t border-outline-variant/20 flex flex-wrap items-center justify-between gap-y-2 text-on-surface-variant">
+<div class="flex items-center gap-4">
+<a class="font-label-sm text-label-sm hover:text-secondary transition-colors" href="#support">IT Support &amp; Ticket</a>
+<span class="text-outline-variant text-xs">•</span>
+<a class="font-label-sm text-label-sm hover:text-secondary transition-colors" href="#exam-cell">Exam Cell Notices</a>
+<span class="text-outline-variant text-xs">•</span>
+<a class="font-label-sm text-label-sm hover:text-error transition-colors font-semibold" href="#emergency">Emergency Contacts</a>
+</div>
+<p class="font-label-sm text-label-sm text-outline">
+          PDEU ERP 2025
+        </p>
+</div>
+</section>
+</main>
+<!-- Interactive Logic for Demo Experience -->
+<script>
+    function selectRole(role) {
+      const studentBtn = document.getElementById('role-student');
+      const facultyBtn = document.getElementById('role-faculty');
+      const alumniBtn = document.getElementById('role-alumni');
+      const input = document.getElementById('identifier');
+
+      // Reset styles
+      [studentBtn, facultyBtn, alumniBtn].forEach(btn => {
+        btn.className = "flex-1 py-2 px-3 rounded-md font-label-md text-label-md transition-all duration-200 text-on-surface-variant hover:text-primary font-medium";
+        btn.setAttribute('aria-selected', 'false');
+      });
+
+      // Active styling
+      const activeClass = "flex-1 py-2 px-3 rounded-md font-label-md text-label-md transition-all duration-200 bg-surface-container-lowest text-primary shadow-sm font-semibold";
+
+      if (role === 'student') {
+        studentBtn.className = activeClass;
+        studentBtn.setAttribute('aria-selected', 'true');
+        input.placeholder = "e.g. 21bce042@sot.pdpu.ac.in";
+        input.value = "21bce042@sot.pdpu.ac.in";
+      } else if (role === 'faculty') {
+        facultyBtn.className = activeClass;
+        facultyBtn.setAttribute('aria-selected', 'true');
+        input.placeholder = "e.g. deepak.vyas@sot.pdpu.ac.in";
+        input.value = "deepak.vyas@sot.pdpu.ac.in";
+      } else {
+        alumniBtn.className = activeClass;
+        alumniBtn.setAttribute('aria-selected', 'true');
+        input.placeholder = "e.g. alum.18042@alumni.pdeu.ac.in";
+        input.value = "alum.18042@alumni.pdeu.ac.in";
+      }
+    }
+
+    function togglePasswordVisibility() {
+      const passwordInput = document.getElementById('password');
+      const icon = document.getElementById('eye-icon');
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        icon.textContent = 'visibility_off';
+      } else {
+        passwordInput.type = 'password';
+        icon.textContent = 'visibility';
+      }
+    }
+
+    function fillDemoAccount() {
+      selectRole('student');
+      const input = document.getElementById('identifier');
+      const pass = document.getElementById('password');
+      input.value = "22bme019@sot.pdpu.ac.in";
+      pass.value = "PDEU#Academic2025";
+      
+      const notification = document.createElement('div');
+      notification.className = "fixed top-6 right-6 z-50 bg-primary text-on-primary px-4 py-3 rounded-lg shadow-xl border border-secondary/30 flex items-center gap-2 animate-bounce";
+      notification.innerHTML = `
+        <span class="material-symbols-outlined text-secondary-fixed">check_circle</span>
+        <span class="font-label-md text-label-md">Demo credentials injected: B.Tech Mechanical Scholar</span>
+      `;
+      document.body.appendChild(notification);
+      setTimeout(() => notification.remove(), 3500);
+    }
+
+    function triggerAuth() {
+      const btn = event.submitter || document.querySelector('button[type="submit"]');
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `
+        <span class="inline-block animate-spin material-symbols-outlined text-base">progress_activity</span>
+        <span>Validating PDEU Active Directory...</span>
+      `;
+      setTimeout(() => {
+        btn.innerHTML = `
+          <span class="material-symbols-outlined text-base text-emerald-400">task_alt</span>
+          <span>Access Verified. Entering Hub...</span>
+        `;
+        setTimeout(() => {
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+        }, 1800);
+      }, 1200);
+    }
+
+    function triggerSSO() {
+      alert("Redirecting to Pandit Deendayal Energy University Microsoft 365 Federated Identity Provider (login.microsoftonline.com)...");
+    }
+  </script>
+</body></html>

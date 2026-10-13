@@ -20,6 +20,7 @@ import { NptelPage } from "@/features/academics/NptelPage";
 
 import { InternshipRecordPage } from "@/features/internships/InternshipRecordPage";
 import { InternshipsPage } from "@/features/internships/InternshipsPage";
+import { MentorAssignmentPage } from "@/features/internships/MentorAssignmentPage";
 import { MyStudentsPage } from "@/features/internships/MyStudentsPage";
 import { ProgramsAdminPage } from "@/features/internships/ProgramsAdminPage";
 
@@ -194,6 +195,14 @@ export default function App() {
                   element={
                     <RequireAccess permission="internships:manage">
                       <MyStudentsPage scope="all" />
+                    </RequireAccess>
+                  }
+                />
+                <Route
+                  path="internships/mentor-assignment"
+                  element={
+                    <RequireAccess permission="internships:manage">
+                      <MentorAssignmentPage />
                     </RequireAccess>
                   }
                 />

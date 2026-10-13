@@ -16,14 +16,14 @@ export function Avatar({
 }) {
   const sizes = {
     xs: "h-6 w-6 text-2xs", sm: "h-8 w-8 text-xs",
-    md: "h-9 w-9 text-xs", lg: "h-14 w-14 text-base",
+    md: "h-9 w-9 text-xs", lg: "h-12 w-12 text-sm",
   };
   if (src) {
     return (
       <img
         src={src}
         alt=""
-        className={cn("shrink-0 rounded-full border border-line object-cover", sizes[size], className)}
+        className={cn("shrink-0 rounded-full border border-line object-cover shadow-2xs", sizes[size], className)}
       />
     );
   }
@@ -31,7 +31,7 @@ export function Avatar({
     <span
       aria-hidden
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-full bg-brand-soft font-semibold text-brand",
+        "flex shrink-0 items-center justify-center rounded-full border border-brand/20 bg-brand-soft font-semibold text-brand shadow-2xs",
         sizes[size], className,
       )}
     >
@@ -45,16 +45,16 @@ export function Breadcrumbs({
 }: { items: { label: string; to?: string }[] }) {
   return (
     <nav aria-label="Breadcrumb">
-      <ol className="flex flex-wrap items-center gap-1 text-xs text-ink-subtle">
+      <ol className="flex flex-wrap items-center gap-1.5 text-xs text-ink-subtle">
         {items.map((item, index) => (
-          <li key={`${item.label}-${index}`} className="flex items-center gap-1">
-            {index > 0 && <ChevronRight className="h-3 w-3 shrink-0" aria-hidden />}
+          <li key={`${item.label}-${index}`} className="flex items-center gap-1.5">
+            {index > 0 && <ChevronRight className="h-3 w-3 shrink-0 opacity-60" aria-hidden />}
             {item.to && index < items.length - 1 ? (
-              <Link to={item.to} className="rounded transition-colors hover:text-ink">
+              <Link to={item.to} className="rounded transition-colors hover:text-ink font-medium">
                 {item.label}
               </Link>
             ) : (
-              <span className={index === items.length - 1 ? "text-ink-muted" : undefined}>
+              <span className={index === items.length - 1 ? "font-semibold text-ink" : undefined}>
                 {item.label}
               </span>
             )}
@@ -66,26 +66,27 @@ export function Breadcrumbs({
 }
 
 export function PageHeader({
-  title, description, actions, breadcrumbs, meta, className,
+  title, description, actions, breadcrumbs, meta, className, bordered = true,
 }: {
   title: string; description?: ReactNode; actions?: ReactNode;
   breadcrumbs?: { label: string; to?: string }[]; meta?: ReactNode; className?: string;
+  bordered?: boolean;
 }) {
   return (
-    <header className={cn("mb-5", className)}>
-      {breadcrumbs && <div className="mb-2"><Breadcrumbs items={breadcrumbs} /></div>}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight text-ink sm:text-2xl">
+    <header className={cn("mb-6", bordered && "border-b border-line pb-5", className)}>
+      {breadcrumbs && <div className="mb-2.5"><Breadcrumbs items={breadcrumbs} /></div>}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl font-bold tracking-tight text-ink sm:text-2xl font-display">
             {title}
           </h1>
           {description && (
-            <p className="mt-1 max-w-3xl text-sm text-ink-muted">{description}</p>
+            <p className="mt-1 max-w-3xl text-sm leading-relaxed text-ink-muted">{description}</p>
           )}
-          {meta && <div className="mt-2 flex flex-wrap items-center gap-2">{meta}</div>}
+          {meta && <div className="mt-2.5 flex flex-wrap items-center gap-2">{meta}</div>}
         </div>
         {actions && (
-          <div className="flex min-w-0 flex-wrap items-center gap-2">{actions}</div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2.5 pt-0.5">{actions}</div>
         )}
       </div>
     </header>
@@ -93,15 +94,15 @@ export function PageHeader({
 }
 
 export function SearchInput({
-  value, onChange, placeholder = "Search…", className, ...props
+  value, onChange, placeholder = "Search…", shortcut, className, ...props
 }: {
   value: string; onChange: (value: string) => void; placeholder?: string;
-  className?: string;
+  shortcut?: string; className?: string;
 } & Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange">) {
   return (
     <div className={cn("relative", className)}>
       <Search
-        className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subtle"
+        className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-subtle"
         aria-hidden
       />
       <input
@@ -110,19 +111,23 @@ export function SearchInput({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         aria-label={placeholder}
-        className="h-9 w-full rounded border border-line-strong bg-surface pl-8 pr-8 text-sm text-ink transition-colors placeholder:text-ink-subtle hover:border-ink-subtle"
+        className="h-8.5 w-full rounded-md border border-line-strong bg-surface pl-8.5 pr-8 text-xs text-ink transition-all placeholder:text-ink-subtle hover:border-ink-muted/50 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20"
         {...props}
       />
-      {value && (
+      {value ? (
         <button
           type="button"
           onClick={() => onChange("")}
           aria-label="Clear search"
-          className="absolute right-2 top-1/2 h-5 w-5 -translate-y-1/2 cursor-pointer rounded text-ink-subtle transition-colors hover:text-ink"
+          className="absolute right-2 top-1/2 flex h-5 w-5 -translate-y-1/2 cursor-pointer items-center justify-center rounded text-ink-subtle transition-colors hover:text-ink"
         >
-          <X className="mx-auto h-3.5 w-3.5" aria-hidden />
+          <X className="h-3 w-3" aria-hidden />
         </button>
-      )}
+      ) : shortcut ? (
+        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-line bg-surface-muted px-1.5 py-0.5 font-mono text-3xs font-medium text-ink-subtle">
+          {shortcut}
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -138,10 +143,10 @@ export function DetailList({
     <dl className={cn("grid grid-cols-1 gap-x-6 gap-y-3.5", cols, className)}>
       {items.map((item) => (
         <div key={item.label} className="min-w-0">
-          <dt className="text-2xs font-semibold uppercase tracking-wide text-ink-subtle">
+          <dt className="text-2xs font-semibold uppercase tracking-wider text-ink-subtle font-mono">
             {item.label}
           </dt>
-          <dd className="mt-0.5 break-words text-sm text-ink">
+          <dd className="mt-0.5 break-words text-sm font-medium text-ink">
             {item.value ?? <span className="text-ink-subtle">—</span>}
           </dd>
         </div>
@@ -171,12 +176,14 @@ export function FileUpload({
           if (!disabled && e.dataTransfer.files?.[0]) onSelect(e.dataTransfer.files[0]);
         }}
         className={cn(
-          "flex flex-col items-center justify-center rounded-md border border-dashed px-4 py-6 text-center transition-colors",
-          dragging ? "border-accent bg-accent-soft/40" : "border-line-strong bg-surface-muted/40",
+          "flex flex-col items-center justify-center rounded-xl border border-dashed px-4 py-7 text-center transition-all",
+          dragging ? "border-brand bg-brand-soft/40 ring-2 ring-brand/10" : "border-line-strong bg-surface-muted/30 hover:bg-surface-muted/50",
           disabled && "opacity-60",
         )}
       >
-        <Upload className="mb-2 h-5 w-5 text-ink-subtle" aria-hidden />
+        <div className="mb-2.5 flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-surface text-ink-subtle shadow-xs">
+          <Upload className="h-4 w-4" aria-hidden />
+        </div>
         {selectedName ? (
           <p className="text-sm font-medium text-ink">{selectedName}</p>
         ) : (
@@ -186,7 +193,7 @@ export function FileUpload({
               type="button"
               disabled={disabled}
               onClick={() => inputRef.current?.click()}
-              className="cursor-pointer rounded font-medium text-accent underline underline-offset-2 disabled:cursor-not-allowed"
+              className="cursor-pointer rounded font-semibold text-brand underline underline-offset-2 hover:text-brand-hover disabled:cursor-not-allowed"
             >
               browse
             </button>
@@ -199,9 +206,9 @@ export function FileUpload({
           <button
             type="button"
             onClick={() => { onSelect(null); if (inputRef.current) inputRef.current.value = ""; }}
-            className="mt-2 cursor-pointer rounded text-xs text-ink-muted underline underline-offset-2 hover:text-ink"
+            className="mt-2.5 cursor-pointer rounded text-xs text-danger underline underline-offset-2 hover:opacity-80"
           >
-            Remove
+            Remove file
           </button>
         )}
         <input
@@ -223,7 +230,7 @@ export function Divider({ label, className }: { label?: string; className?: stri
   return (
     <div className={cn("flex items-center gap-3", className)}>
       <hr className="flex-1 border-line" />
-      <span className="text-2xs font-semibold uppercase tracking-wide text-ink-subtle">
+      <span className="text-2xs font-semibold uppercase tracking-wider text-ink-subtle font-mono">
         {label}
       </span>
       <hr className="flex-1 border-line" />
@@ -252,11 +259,6 @@ export function Popover({
   const triggerRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
 
-  /**
-   * Returning focus to the trigger matters for keyboard users: dismissing the
-   * panel with Escape used to drop focus onto <body>, which restarts tabbing
-   * from the top of the document and loses the user's place entirely.
-   */
   const focusTrigger = useCallback(() => {
     triggerRef.current
       ?.querySelector<HTMLElement>('button, a[href], [tabindex]:not([tabindex="-1"])')
@@ -307,7 +309,7 @@ export function Popover({
             exit="exit"
             style={{ transformOrigin: align === "right" ? "top right" : "top left" }}
             className={cn(
-              "absolute z-40 mt-1.5 min-w-[15rem] rounded-lg border border-line bg-surface p-1 shadow-lg",
+              "absolute z-40 mt-1.5 min-w-[15rem] rounded-xl border border-line bg-surface p-1 shadow-md",
               align === "right" ? "right-0" : "left-0",
               panelClassName,
             )}

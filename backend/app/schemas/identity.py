@@ -159,7 +159,7 @@ class FacultyOut(ORMModel):
 class FacultyCreate(BaseModel):
     full_name: str = Field(max_length=150)
     email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
+    password: str = Field(default="Campus@123", min_length=8, max_length=128)
     employee_code: str = Field(max_length=30)
     department_id: int
     designation: str = Field(max_length=100)

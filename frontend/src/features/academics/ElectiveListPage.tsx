@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, BookOpen, Lock } from "lucide-react";
+import { ArrowRight, BookOpen, CheckCircle2, Lock, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
 import { Card, CardBody } from "@/components/ui/Card";
@@ -28,17 +28,24 @@ export function ElectiveListPage({ componentType, title, description, basePath }
   });
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
         title={title}
         description={description}
         breadcrumbs={[{ label: "Academics" }, { label: title }]}
+        meta={
+          <Badge tone="brand" icon={<Sparkles className="h-3 w-3" />}>
+            Curriculum Managed
+          </Badge>
+        }
       />
 
       {isLoading && <SkeletonCards count={3} />}
       {error && (
-        <ErrorState message={error instanceof Error ? error.message : undefined}
-                    onRetry={() => refetch()} />
+        <ErrorState
+          message={error instanceof Error ? error.message : undefined}
+          onRetry={() => refetch()}
+        />
       )}
 
       {data && data.length === 0 && (
@@ -52,54 +59,68 @@ export function ElectiveListPage({ componentType, title, description, basePath }
       )}
 
       {data && data.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {data.map((component) => {
             const locked = component.is_unlocked === false;
-            const card = (
+            const hasAllocation = Boolean(component.allocated_course);
+
+            const cardContent = (
               <Card
-                className={`h-full transition-colors ${
-                  locked ? "opacity-75" : "hover:border-line-strong"
+                className={`group relative flex h-full flex-col transition-all duration-200 ${
+                  locked
+                    ? "opacity-75 bg-surface-muted/30"
+                    : "hover:border-brand/40 hover:shadow-card-hover"
                 }`}
               >
-                <CardBody className="flex h-full flex-col">
+                <CardBody className="flex h-full flex-col p-5">
                   <div className="flex items-start justify-between gap-2">
-                    <span className="tabular rounded bg-surface-muted px-1.5 py-0.5 text-ink-muted">
+                    <span className="rounded border border-line bg-surface-muted px-2 py-0.5 font-mono text-xs font-semibold text-ink">
                       {component.code}
                     </span>
                     <StatusBadge status={component.status_label} />
                   </div>
 
-                  <h3 className="mt-2.5 text-md font-semibold leading-snug text-ink">
+                  <h3 className="mt-3 text-base font-bold leading-snug text-ink transition-colors group-hover:text-brand">
                     {component.title}
                   </h3>
                   {component.scope_label && (
-                    <p className="mt-1 text-sm text-ink-muted">{component.scope_label}</p>
+                    <p className="mt-1 text-xs font-medium text-ink-muted">{component.scope_label}</p>
                   )}
 
-                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                    <Badge tone="neutral">Semester {roman(component.semester_number)}</Badge>
-                    <Badge tone="neutral">{component.credits} credits</Badge>
+                  <div className="mt-4 flex flex-wrap items-center gap-1.5">
+                    <Badge tone="neutral" className="font-mono text-2xs">
+                      Sem {roman(component.semester_number)}
+                    </Badge>
+                    <Badge tone="neutral" className="text-2xs font-semibold">
+                      {component.credits} Credits
+                    </Badge>
                     {(component.offering_count ?? 0) > 0 && (
-                      <Badge tone="accent">{component.offering_count} courses</Badge>
+                      <Badge tone="brand" className="text-2xs font-semibold">
+                        {component.offering_count} Offered
+                      </Badge>
                     )}
                   </div>
 
-                  {component.allocated_course && (
-                    <p className="mt-3 rounded bg-success-soft/50 px-2.5 py-2 text-xs text-ink">
-                      <span className="font-medium">Allocated:</span> {component.allocated_course}
-                    </p>
+                  {hasAllocation && (
+                    <div className="mt-4 rounded-lg border border-success/20 bg-success-soft/40 p-3 text-xs text-ink">
+                      <div className="flex items-center gap-1.5 font-semibold text-success">
+                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                        <span>Allocated Course</span>
+                      </div>
+                      <p className="mt-1 font-medium text-ink truncate">{component.allocated_course}</p>
+                    </div>
                   )}
 
-                  <div className="mt-auto pt-4">
+                  <div className="mt-auto border-t border-line/60 pt-4">
                     {locked ? (
                       <p className="flex items-center gap-1.5 text-xs text-ink-subtle">
-                        <Lock className="h-3.5 w-3.5" aria-hidden />
-                        Opens in semester {roman(component.semester_number)}
+                        <Lock className="h-3.5 w-3.5 shrink-0 text-ink-subtle" aria-hidden />
+                        Opens in Semester {roman(component.semester_number)}
                       </p>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-sm font-medium text-accent">
-                        Open workspace
-                        <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand transition-colors group-hover:text-brand-hover">
+                        {hasAllocation ? "Review Allocation" : "Open Preference Workspace"}
+                        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" aria-hidden />
                       </span>
                     )}
                   </div>
@@ -108,10 +129,10 @@ export function ElectiveListPage({ componentType, title, description, basePath }
             );
 
             return locked ? (
-              <div key={component.id}>{card}</div>
+              <div key={component.id}>{cardContent}</div>
             ) : (
-              <Link key={component.id} to={`${basePath}/${component.id}`} className="block">
-                {card}
+              <Link key={component.id} to={`${basePath}/${component.id}`} className="block h-full">
+                {cardContent}
               </Link>
             );
           })}

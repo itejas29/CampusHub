@@ -10,6 +10,7 @@ export default {
         canvas: "rgb(var(--c-canvas) / <alpha-value>)",
         surface: "rgb(var(--c-surface) / <alpha-value>)",
         "surface-muted": "rgb(var(--c-surface-muted) / <alpha-value>)",
+        "surface-raised": "rgb(var(--c-surface-raised) / <alpha-value>)",
         line: "rgb(var(--c-line) / <alpha-value>)",
         "line-strong": "rgb(var(--c-line-strong) / <alpha-value>)",
         ink: "rgb(var(--c-ink) / <alpha-value>)",
@@ -25,6 +26,7 @@ export default {
         navy: {
           DEFAULT: "#1E3A5F",
           deep: "#162C48",
+          light: "#2A4F7C",
         },
         accent: {
           DEFAULT: "rgb(var(--c-accent) / <alpha-value>)",
@@ -71,26 +73,74 @@ export default {
         "2xl": ["1.5rem", { lineHeight: "2rem" }],
         "3xl": ["1.875rem", { lineHeight: "2.25rem" }],
       },
-      borderRadius: { sm: "4px", DEFAULT: "6px", md: "8px", lg: "10px", xl: "14px" },
+      borderRadius: {
+        sm: "4px",
+        DEFAULT: "6px",
+        md: "8px",
+        lg: "10px",
+        xl: "14px",
+        "2xl": "18px",
+      },
       boxShadow: {
-        // Swiss/minimal: hairline separation, not soft glows.
+        // Refined multi-layer shadows for premium card depth.
         xs: "0 1px 2px 0 rgb(15 23 42 / 0.04)",
-        sm: "0 1px 3px 0 rgb(15 23 42 / 0.07), 0 1px 2px -1px rgb(15 23 42 / 0.04)",
-        md: "0 4px 12px -2px rgb(15 23 42 / 0.08), 0 2px 4px -2px rgb(15 23 42 / 0.04)",
-        lg: "0 12px 32px -8px rgb(15 23 42 / 0.16)",
+        sm:
+          "0 1px 3px 0 rgb(15 23 42 / 0.06), " +
+          "0 1px 2px -1px rgb(15 23 42 / 0.04)",
+        md:
+          "0 4px 12px -2px rgb(15 23 42 / 0.08), " +
+          "0 2px 4px -2px rgb(15 23 42 / 0.04)",
+        lg:
+          "0 12px 32px -8px rgb(15 23 42 / 0.14), " +
+          "0 4px 8px -4px rgb(15 23 42 / 0.06)",
+        xl:
+          "0 24px 48px -12px rgb(15 23 42 / 0.20), " +
+          "0 8px 16px -8px rgb(15 23 42 / 0.08)",
+        // Focused input ring
+        "focus-ring": "0 0 0 3px rgb(var(--c-accent) / 0.15)",
+        // Card hover lift
+        "card-hover":
+          "0 6px 20px -4px rgb(15 23 42 / 0.10), " +
+          "0 2px 6px -2px rgb(15 23 42 / 0.05)",
       },
       transitionDuration: { DEFAULT: "180ms" },
+      transitionTimingFunction: {
+        smooth: "cubic-bezier(0.16, 1, 0.3, 1)",
+      },
+      spacing: {
+        18: "4.5rem",
+        72: "18rem",
+        80: "20rem",
+        88: "22rem",
+        96: "24rem",
+      },
       keyframes: {
         "fade-in": { from: { opacity: "0" }, to: { opacity: "1" } },
         "slide-up": {
-          from: { opacity: "0", transform: "translateY(6px)" },
+          from: { opacity: "0", transform: "translateY(8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
-        shimmer: { "100%": { transform: "translateX(100%)" } },
+        "slide-down": {
+          from: { opacity: "0", transform: "translateY(-6px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "scale-in": {
+          from: { opacity: "0", transform: "scale(0.97)" },
+          to: { opacity: "1", transform: "scale(1)" },
+        },
+        shimmer: { "100%": { transform: "translateX(200%)" } },
+        "pulse-ring": {
+          "0%": { boxShadow: "0 0 0 0 rgb(var(--c-accent) / 0.3)" },
+          "70%": { boxShadow: "0 0 0 6px transparent" },
+          "100%": { boxShadow: "0 0 0 0 transparent" },
+        },
       },
       animation: {
         "fade-in": "fade-in 160ms ease-out",
-        "slide-up": "slide-up 180ms ease-out",
+        "slide-up": "slide-up 200ms cubic-bezier(0.16,1,0.3,1)",
+        "slide-down": "slide-down 180ms cubic-bezier(0.16,1,0.3,1)",
+        "scale-in": "scale-in 180ms cubic-bezier(0.16,1,0.3,1)",
+        "pulse-ring": "pulse-ring 1.2s cubic-bezier(0.36,0.07,0.19,0.97) infinite",
       },
     },
   },

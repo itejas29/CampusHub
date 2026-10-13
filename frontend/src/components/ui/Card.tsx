@@ -10,7 +10,7 @@ export function Card({
     // would let a wide table stretch the card instead of scrolling inside it.
     <Tag
       className={cn(
-        "min-w-0 rounded-lg border border-line bg-surface shadow-xs",
+        "min-w-0 rounded-xl border border-line bg-surface shadow-sm",
         className,
       )}
     >
@@ -28,18 +28,17 @@ export function CardHeader({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-start justify-between gap-3 border-b border-line " +
-        "px-5 py-3.5",
+        "flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4",
         className,
       )}
     >
       <div className="min-w-0">
-        <h2 className="flex items-center gap-2 text-md font-semibold text-ink">
+        <h2 className="flex items-center gap-2 text-md font-semibold tracking-tight text-ink">
           {icon}
           {title}
         </h2>
         {description && (
-          <p className="mt-0.5 text-sm text-ink-muted">{description}</p>
+          <p className="mt-0.5 text-sm text-ink-muted leading-snug">{description}</p>
         )}
       </div>
       {action && (
@@ -57,7 +56,7 @@ export function CardBody({
 
 export function CardFooter({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn("border-t border-line bg-surface-muted/40 px-5 py-3", className)}>
+    <div className={cn("border-t border-line bg-surface-muted/30 px-5 py-3 rounded-b-xl", className)}>
       {children}
     </div>
   );
@@ -65,15 +64,6 @@ export function CardFooter({ children, className }: { children: ReactNode; class
 
 /**
  * The "see all" link that sits in a CardHeader's `action` slot.
- *
- * Exists mainly to guarantee the hit area. As a bare `text-xs` link this
- * rendered about 15x18px — under the 24x24 CSS px minimum in WCAG 2.2 SC 2.5.8.
- * The exception for links inline in a sentence does not apply here, because
- * these are standalone controls in a header rather than words in prose.
- *
- * The label is often just "All", which tells a screen-reader user nothing on
- * its own, so `label` supplies the accessible name while the shorter text stays
- * visible.
  */
 export function CardAction({
   to, children, label, className,
@@ -83,12 +73,38 @@ export function CardAction({
       to={to}
       aria-label={label}
       className={cn(
-        "-mr-1.5 inline-flex min-h-6 items-center rounded px-1.5 text-xs text-accent",
-        "transition-colors hover:bg-accent-soft hover:underline",
+        "-mr-1 inline-flex min-h-6 items-center rounded-md px-2 py-0.5 text-xs font-medium text-accent",
+        "transition-colors hover:bg-accent-soft hover:text-accent",
         className,
       )}
     >
       {children}
     </Link>
+  );
+}
+
+/**
+ * Clickable card variant — used on event cards, club cards, etc.
+ * Has a subtle hover lift for a premium feel.
+ */
+export function ClickCard({
+  children, className, as: Tag = "div", onClick,
+}: {
+  children: ReactNode; className?: string;
+  as?: "div" | "article";
+  onClick?: () => void;
+}) {
+  return (
+    <Tag
+      onClick={onClick}
+      className={cn(
+        "min-w-0 rounded-xl border border-line bg-surface shadow-sm",
+        "cursor-pointer transition-all duration-200",
+        "hover:border-line-strong hover:shadow-card-hover hover:-translate-y-px",
+        className,
+      )}
+    >
+      {children}
+    </Tag>
   );
 }

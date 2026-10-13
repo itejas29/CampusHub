@@ -1,7 +1,7 @@
 import {
   BadgeCheck, BarChart3, BookOpen, Building2, CalendarDays, ClipboardList,
   FileStack, GraduationCap, Users, Layers, LayoutDashboard, Library, Megaphone,
-  Network, Route, School, ScrollText, Settings, Sparkles, UserCog, UserSquare2,
+  Network, Route, School, ScrollText, Settings, Sparkles, UserCheck, UserCog, UserSquare2,
   type LucideIcon,
 } from "lucide-react";
 import type { CoordinationDomain, Role } from "@/types";
@@ -86,6 +86,10 @@ export const NAVIGATION: NavSection[] = [
       },
       {
         label: "All Students", to: "/internships/students", icon: Users,
+        permission: "internships:manage",
+      },
+      {
+        label: "Assign Mentors", to: "/internships/mentor-assignment", icon: UserCheck,
         permission: "internships:manage",
       },
       {

@@ -343,9 +343,24 @@ def finalise_enrollment(
 
 def override_mentor(
     db: Session, *, enrollment: InternshipEnrollment, new_faculty_id: int | None,
-    reason: str | None, actor: User | None = None,
+    reason: str | None, actor: User | None = None, enforce_capacity: bool = True,
 ) -> InternshipEnrollment:
     """Coordinator override — always audited, per the Phase 1 requirement."""
+    if new_faculty_id is not None and enforce_capacity:
+        current_count = db.scalar(
+            select(func.count(InternshipEnrollment.id)).where(
+                InternshipEnrollment.program_id == enrollment.program_id,
+                InternshipEnrollment.mentor_faculty_id == new_faculty_id,
+                InternshipEnrollment.id != enrollment.id,
+            )
+        ) or 0
+        if current_count >= 10:
+            mentor_obj = db.get(Faculty, new_faculty_id)
+            mentor_name = mentor_obj.user.full_name if mentor_obj and mentor_obj.user else f"Faculty #{new_faculty_id}"
+            raise BusinessRuleError(
+                f"{mentor_name} already has {current_count} students assigned (maximum capacity is 10 students per mentor)."
+            )
+
     previous = enrollment.mentor_faculty_id
     enrollment.mentor_faculty_id = new_faculty_id
     if new_faculty_id and enrollment.status == EnrollmentStatus.REGISTERED:
