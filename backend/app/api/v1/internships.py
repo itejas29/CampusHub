@@ -1137,7 +1137,27 @@ def batch_assign_mentors(
     MIN_CAPACITY = 2
     total_assigned = 0
 
-    if payload.allocate_by_roll_no:
+    if payload.clear_all:
+        enrollments = list(db.scalars(
+            select(InternshipEnrollment)
+            .where(InternshipEnrollment.program_id == program_id)
+        ))
+        cleared_count = 0
+        for enrollment in enrollments:
+            if enrollment.mentor_faculty_id is not None:
+                engine.override_mentor(
+                    db, enrollment=enrollment, new_faculty_id=None,
+                    reason=payload.reason or "Coordinator cleared all mentor assignments",
+                    actor=user, enforce_capacity=False
+                )
+                cleared_count += 1
+        db.commit()
+        return BatchMentorAssignResponse(
+            assigned_count=0,
+            message=f"Cleared mentor assignments for all {cleared_count} students successfully. Mentors are now unassigned."
+        )
+
+    elif payload.allocate_by_roll_no:
         # Roll number wise sequential allocation to selected mentors
         enrollments = list(db.scalars(
             select(InternshipEnrollment)

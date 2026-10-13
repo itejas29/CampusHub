@@ -18,6 +18,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Form";
 import { Avatar } from "@/components/ui/Misc";
+import { ConfirmDialog } from "@/components/ui/Modal";
 import { ApiError, api, qs } from "@/lib/api";
 import type { EnrollmentSummary, InternshipProgram, MentorCapacity } from "@/types";
 
@@ -31,6 +32,7 @@ export function MentorAssignmentPage() {
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<number>>(new Set());
   const [selectedMentorIds, setSelectedMentorIds] = useState<Set<number>>(new Set());
   const [strictCap, setStrictCap] = useState(true);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [feedback, setFeedback] = useState<{ tone: "success" | "danger" | "info"; text: string } | null>(null);
 
   // Fetch internship programs
@@ -111,26 +113,33 @@ export function MentorAssignmentPage() {
     },
   });
 
-  // Rebalance all students
-  const rebalanceAll = useMutation({
+  // Clear all mentor assignments and selected mentors
+  const clearAllAssignments = useMutation({
     mutationFn: () =>
       api.post<{ assigned_count: number; message: string }>(
         `/internships/programs/${activeProgramId}/assign-mentors`,
         {
-          rebalance: true,
-          reason: "Coordinated rebalance: strictly enforce max 10 students per mentor",
+          clear_all: true,
+          reason: "Coordinator cleared all mentor assignments and allocations",
         },
       ),
     onSuccess: (res) => {
-      setFeedback({ tone: "success", text: res.message });
+      setFeedback({
+        tone: "info",
+        text: res.message || "All mentor assignments and faculty selections have been cleared.",
+      });
+      setSelectedMentorIds(new Set());
+      setSelectedStudentIds(new Set());
+      setShowResetConfirm(false);
       void queryClient.invalidateQueries({ queryKey: ["mentor-capacity"] });
       void queryClient.invalidateQueries({ queryKey: ["internship-enrollments"] });
     },
     onError: (err) => {
       setFeedback({
         tone: "danger",
-        text: err instanceof ApiError ? err.message : "Failed to rebalance mentors.",
+        text: err instanceof ApiError ? err.message : "Failed to clear mentor assignments.",
       });
+      setShowResetConfirm(false);
     },
   });
 
@@ -212,6 +221,18 @@ export function MentorAssignmentPage() {
       if (next.has(facultyId)) next.delete(facultyId);
       else next.add(facultyId);
       return next;
+    });
+  }
+
+  // Auto-select required amount of mentors based on enrolled students
+  function handleAutoSelectRequiredMentors() {
+    const totalStudents = enrollments.length || 203;
+    const requiredCount = Math.min(mentors.length, Math.ceil(totalStudents / 10));
+    const picked = new Set(mentors.slice(0, requiredCount).map((m) => m.faculty_id));
+    setSelectedMentorIds(picked);
+    setFeedback({
+      tone: "info",
+      text: `✓ Auto-selected ${picked.size} faculty mentors required for ${totalStudents} students (10 students per mentor cap). Click "Auto-Allocate Roll No Wise" to assign!`,
     });
   }
 
@@ -385,6 +406,14 @@ export function MentorAssignmentPage() {
           <Button
             variant="secondary"
             size="sm"
+            icon={<UserCheck className="h-4 w-4 text-primary" />}
+            onClick={handleAutoSelectRequiredMentors}
+          >
+            Auto-Select Required Mentors ({Math.min(mentors.length, Math.ceil((enrollments.length || 203) / 10))})
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
             icon={<Dices className="h-4 w-4 text-primary" />}
             onClick={handleRandomlyPickMentors}
           >
@@ -410,9 +439,9 @@ export function MentorAssignmentPage() {
           <Button
             variant="secondary"
             size="sm"
-            icon={<RotateCcw className="h-4 w-4" />}
-            loading={rebalanceAll.isPending}
-            onClick={() => rebalanceAll.mutate()}
+            icon={<RotateCcw className="h-4 w-4 text-rose-500" />}
+            loading={clearAllAssignments.isPending}
+            onClick={() => setShowResetConfirm(true)}
           >
             Reset
           </Button>
@@ -892,6 +921,19 @@ export function MentorAssignmentPage() {
           </div>
         </div>
       </div>
+
+      {/* Reset Confirmation Dialog */}
+      <ConfirmDialog
+        open={showResetConfirm}
+        onClose={() => setShowResetConfirm(false)}
+        onConfirm={() => clearAllAssignments.mutate()}
+        title="Reset & Clear All Mentor Assignments"
+        message="Are you sure you want to clear all mentor assignments and selected mentors? This will reset all student mappings back to unassigned and unselect all faculty mentors."
+        confirmLabel="Yes, Clear All"
+        cancelLabel="Cancel"
+        destructive
+        loading={clearAllAssignments.isPending}
+      />
     </div>
   );
 }

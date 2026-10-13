@@ -434,6 +434,7 @@ class BatchMentorAssignRequest(BaseModel):
     auto_distribute: bool = False
     rebalance: bool = False
     allocate_by_roll_no: bool = False
+    clear_all: bool = False
     faculty_ids: list[int] | None = None
     min_students_per_mentor: int = 2
     max_students_per_mentor: int = 10
