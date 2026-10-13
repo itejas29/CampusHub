@@ -324,7 +324,7 @@ export default function App() {
                 <Route
                   path="admin/roles"
                   element={
-                    <RequireAccess permission="faculty:manage">
+                    <RequireAccess permission="roles:assign">
                       <RoleAssignmentsPage />
                     </RequireAccess>
                   }

@@ -75,6 +75,18 @@ class FacultyDashboard(BaseModel):
     announcements: list[dict] = Field(default_factory=list)
 
 
+class HodDashboard(BaseModel):
+    """A department head's view: who runs each module, and what is in motion."""
+
+    department: dict
+    stats: list[StatCard]
+    #: One row per coordination domain — its coordinators, mentors, or the gap.
+    modules: list[dict] = Field(default_factory=list)
+    #: Registration rounds belonging to the department, newest first.
+    rounds: list[dict] = Field(default_factory=list)
+    announcements: list[dict] = Field(default_factory=list)
+
+
 class AuditLogOut(ORMModel):
     id: int
     actor_user_id: int | None = None

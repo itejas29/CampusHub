@@ -1,8 +1,9 @@
-"""Coordinator role administration.
+"""Coordinator and mentor role administration.
 
-Only an administrator creates these assignments; coordinators then work inside
-the scope granted here. The matrix endpoint answers the operational question
-"who coordinates what, and which department has nobody?"
+The Head of Department creates these assignments, for their own department
+only; coordinators then work inside the scope granted here. The registrar's
+office (super admin) can act for any department. The matrix endpoint answers
+the operational question "who coordinates what, and which module has nobody?"
 """
 from __future__ import annotations
 
@@ -28,7 +29,7 @@ from app.schemas.identity import (
     DomainCoverage, RoleAssignmentCreate, RoleAssignmentOut, RoleAssignmentUpdate,
     RoleDefinition, RoleMatrix,
 )
-from app.services import audit, notifications
+from app.services import audit, notifications, scope
 
 router = APIRouter(prefix="/admin/roles", tags=["admin"])
 
@@ -79,6 +80,18 @@ def _out(assignment: FacultyRoleAssignment,
     )
 
 
+def _own_department_id(db, user: User) -> int | None:
+    """The one department the caller may see and act on, or None for all.
+
+    A Head of Department who (through stale data) heads nothing sees nothing,
+    rather than everything: -1 matches no department.
+    """
+    if user.has_role(*scope.UNSCOPED_ROLES):
+        return None
+    department = scope.hod_department(db, user)
+    return department.id if department else -1
+
+
 def _load(db, assignment: FacultyRoleAssignment) -> RoleAssignmentOut:
     year = (db.get(AcademicYear, assignment.academic_year_id)
             if assignment.academic_year_id else None)
@@ -89,14 +102,14 @@ def _load(db, assignment: FacultyRoleAssignment) -> RoleAssignmentOut:
 
 
 @router.get("/domains")
-def domains(_: User = Depends(require_permission(P["FACULTY_MANAGE"]))) -> list[dict]:
+def domains(_: User = Depends(require_permission(P["ROLE_ASSIGN"]))) -> list[dict]:
     """The coordination vocabulary, for building the assignment form."""
     return [{"value": d.value, "label": DOMAIN_LABELS[d]} for d in CoordinationDomain]
 
 
 @router.get("/definitions", response_model=list[RoleDefinition])
 def role_definitions(
-    _: User = Depends(require_permission(P["FACULTY_MANAGE"])),
+    _: User = Depends(require_permission(P["ROLE_ASSIGN"])),
 ) -> list[RoleDefinition]:
     """The roles an administrator may grant, and what each permits in scope.
 
@@ -118,9 +131,12 @@ def list_assignments(
     department_id: int | None = Query(None),
     faculty_id: int | None = Query(None),
     include_inactive: bool = Query(False),
-    _: User = Depends(require_permission(P["FACULTY_MANAGE"])),
+    user: User = Depends(require_permission(P["ROLE_ASSIGN"])),
 ) -> list[RoleAssignmentOut]:
     stmt = select(FacultyRoleAssignment)
+    own = _own_department_id(db, user)
+    if own is not None:
+        stmt = stmt.where(FacultyRoleAssignment.department_id == own)
     if role:
         stmt = stmt.where(FacultyRoleAssignment.role == role)
     if domain:
@@ -140,17 +156,22 @@ def list_assignments(
 @router.get("/matrix", response_model=RoleMatrix)
 def matrix(
     db: DbSession,
-    _: User = Depends(require_permission(P["FACULTY_MANAGE"])),
+    user: User = Depends(require_permission(P["ROLE_ASSIGN"])),
 ) -> RoleMatrix:
-    """Who coordinates what, per department — including uncovered cells."""
-    departments = list(db.scalars(
-        select(Department).where(Department.is_active.is_(True))
-        .order_by(Department.code)
-    ))
-    assignments = list(db.scalars(
-        select(FacultyRoleAssignment)
-        .where(FacultyRoleAssignment.is_active.is_(True))
-    ))
+    """Who coordinates what, per department — including uncovered cells.
+
+    A Head of Department gets their own department's slice of it.
+    """
+    own = _own_department_id(db, user)
+    department_stmt = select(Department).where(Department.is_active.is_(True))
+    assignment_stmt = select(FacultyRoleAssignment).where(
+        FacultyRoleAssignment.is_active.is_(True))
+    if own is not None:
+        department_stmt = department_stmt.where(Department.id == own)
+        assignment_stmt = assignment_stmt.where(
+            FacultyRoleAssignment.department_id == own)
+    departments = list(db.scalars(department_stmt.order_by(Department.code)))
+    assignments = list(db.scalars(assignment_stmt))
 
     coverage: list[DomainCoverage] = []
     gaps: list[dict] = []
@@ -182,7 +203,10 @@ def matrix(
                 })
 
     # Per-faculty roll-up: every faculty member and what they hold.
-    faculty_rows = list(db.scalars(select(Faculty).where(Faculty.is_active.is_(True))))
+    faculty_stmt = select(Faculty).where(Faculty.is_active.is_(True))
+    if own is not None:
+        faculty_stmt = faculty_stmt.where(Faculty.department_id == own)
+    faculty_rows = list(db.scalars(faculty_stmt))
     summary = []
     for faculty in faculty_rows:
         held = [a for a in assignments if a.faculty_id == faculty.id]
@@ -192,6 +216,8 @@ def matrix(
             "employee_code": faculty.employee_code,
             "designation": faculty.designation,
             "department_code": faculty.department.code if faculty.department else None,
+            # The HoD appoints; they are never offered as an appointee.
+            "is_hod": scope.is_hod(db, faculty),
             "roles": [r.role.value for r in db.scalars(
                 select(UserRole).where(UserRole.user_id == faculty.user_id)
             )],
@@ -225,13 +251,16 @@ def matrix(
 @router.post("", response_model=RoleAssignmentOut, status_code=201)
 def assign(
     payload: RoleAssignmentCreate, db: DbSession,
-    user: User = Depends(require_permission(P["FACULTY_MANAGE"])),
+    user: User = Depends(require_permission(P["ROLE_ASSIGN"])),
 ) -> RoleAssignmentOut:
     faculty = db.get(Faculty, payload.faculty_id)
     if faculty is None:
         raise NotFoundError("Faculty member not found.")
     if payload.department_id and db.get(Department, payload.department_id) is None:
         raise NotFoundError("Department not found.")
+    scope.assert_can_assign_roles(db, user, department_id=payload.department_id,
+                                  faculty=faculty)
+    scope.assert_can_hold_scoped_role(db, faculty)
 
     existing = db.scalar(select(FacultyRoleAssignment).where(
         FacultyRoleAssignment.faculty_id == payload.faculty_id,
@@ -312,11 +341,13 @@ def _ensure_role(db, user_id: int, role: Role) -> None:
 @router.delete("/{assignment_id}", response_model=Message)
 def revoke(
     assignment_id: int, db: DbSession,
-    user: User = Depends(require_permission(P["FACULTY_MANAGE"])),
+    user: User = Depends(require_permission(P["ROLE_ASSIGN"])),
 ) -> Message:
     assignment = db.get(FacultyRoleAssignment, assignment_id)
     if assignment is None:
         raise NotFoundError("Role assignment not found.")
+    scope.assert_can_assign_roles(db, user, department_id=assignment.department_id,
+                                  faculty=assignment.faculty)
     assignment.is_active = False
     faculty = assignment.faculty
 
@@ -364,7 +395,7 @@ def revoke(
 @router.patch("/{assignment_id}", response_model=RoleAssignmentOut)
 def edit(
     assignment_id: int, payload: RoleAssignmentUpdate, db: DbSession,
-    user: User = Depends(require_permission(P["FACULTY_MANAGE"])),
+    user: User = Depends(require_permission(P["ROLE_ASSIGN"])),
 ) -> RoleAssignmentOut:
     """Edit an existing assignment — scope, validity window, or active flag.
 
@@ -375,11 +406,20 @@ def edit(
     assignment = db.get(FacultyRoleAssignment, assignment_id)
     if assignment is None:
         raise NotFoundError("Role assignment not found.")
+    scope.assert_can_assign_roles(db, user, department_id=assignment.department_id,
+                                  faculty=assignment.faculty)
 
     changes = payload.model_dump(exclude_unset=True)
     if "department_id" in changes and changes["department_id"] is not None:
         if db.get(Department, changes["department_id"]) is None:
             raise NotFoundError("Department not found.")
+    if "department_id" in changes:
+        # Moving a grant is granting it somewhere else: the destination must be
+        # the caller's to give as well.
+        scope.assert_can_assign_roles(db, user, department_id=changes["department_id"],
+                                      faculty=assignment.faculty)
+    if changes.get("is_active") is True:
+        scope.assert_can_hold_scoped_role(db, assignment.faculty)
 
     starts = changes.get("starts_on", assignment.starts_on)
     ends = changes.get("ends_on", assignment.ends_on)

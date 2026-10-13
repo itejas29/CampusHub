@@ -109,7 +109,11 @@ def build_current_user(db, user: User) -> CurrentUserOut:
 
     faculty = db.scalar(select(Faculty).where(Faculty.user_id == user.id))
     if faculty:
+        headed = scope.hod_department(db, user)
         faculty_ctx = FacultyContext(
+            hod_department_id=headed.id if headed else None,
+            hod_department_code=headed.code if headed else None,
+            hod_department_name=headed.name if headed else None,
             id=faculty.id, employee_code=faculty.employee_code,
             department_id=faculty.department_id,
             department_code=faculty.department.code if faculty.department else None,

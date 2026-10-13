@@ -9,14 +9,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.enums import (
     INTERNSHIP_DOMAIN_FOR_TYPE, AssignedRole, CoordinationDomain, Role,
 )
 from app.models.identity import (
-    Faculty, FacultyRoleAssignment, User, assignments_for, scope_matches,
+    Department, Faculty, FacultyRoleAssignment, User, UserRole, assignments_for,
+    scope_matches,
 )
 from app.models.internships import InternshipEnrollment, InternshipGroup, InternshipProgram
 
@@ -264,3 +265,171 @@ def student_department_id(db: Session, student_id: int) -> int | None:
 
     student = db.get(Student, student_id)
     return student.department_id if student else None
+
+
+# ── Head of Department ─────────────────────────────────────────────────────
+# One rule set, in one place:
+#   * the HoD of a department is `departments.hod_faculty_id`; `Role.HOD` is
+#     only the coarse flag that carries the permissions, kept in step by
+#     `set_hod` and never consulted for *which* department;
+#   * the HoD appoints and removes that department's coordinators and mentors;
+#   * the HoD reads every module in the department and changes none of them;
+#   * the HoD holds no scoped role and has no mentees of any kind.
+def hod_department(db: Session, user: User) -> Department | None:
+    """The department this user heads, if any."""
+    faculty = db.scalar(select(Faculty).where(Faculty.user_id == user.id))
+    if faculty is None:
+        return None
+    return db.scalar(select(Department).where(Department.hod_faculty_id == faculty.id))
+
+
+def is_hod(db: Session, faculty: Faculty) -> bool:
+    return db.scalar(
+        select(Department.id).where(Department.hod_faculty_id == faculty.id)
+    ) is not None
+
+
+def oversees(db: Session, user: User, department_id: int | None) -> bool:
+    """May `user` *read* everything in this department?
+
+    Reading is not managing: every write path still asks `coordinates()`, which
+    an HoD never satisfies, so oversight cannot be used to open or lock a round.
+    """
+    if user.has_role(*UNSCOPED_ROLES):
+        return True
+    department = hod_department(db, user)
+    return department is not None and department.id == department_id
+
+
+def assert_can_assign_roles(db: Session, user: User, *, department_id: int | None,
+                            faculty: Faculty) -> None:
+    """Only a department's own HoD appoints into it.
+
+    Both sides must be theirs: the scope being granted *and* the person being
+    appointed. Otherwise the ICT HoD could hand ICT's electives to a Mechanical
+    faculty member, or — worse — hand out an institution-wide grant.
+    """
+    from app.core.errors import PermissionDeniedError
+
+    if user.has_role(*UNSCOPED_ROLES):
+        return
+    department = hod_department(db, user)
+    if department is None:
+        raise PermissionDeniedError(
+            "Only the Head of Department assigns coordinators and mentors."
+        )
+    if department_id is None:
+        raise PermissionDeniedError(
+            "An institution-wide assignment can only be made by the registrar's "
+            "office, not by a Head of Department."
+        )
+    if department_id != department.id:
+        raise PermissionDeniedError(
+            f"You head {department.code}; you cannot assign roles in another "
+            "department."
+        )
+    if faculty.department_id != department.id:
+        raise PermissionDeniedError(
+            f"{faculty.user.full_name} is not a member of {department.code}. "
+            "A Head of Department appoints from their own department's faculty."
+        )
+
+
+def mentoring_load(db: Session, faculty: Faculty) -> list[str]:
+    """Everything that currently makes this faculty member a mentor or a
+    coordinator — what has to be handed over before they can become HoD."""
+    from app.models.engagement import MentorAssignment
+
+    load: list[str] = []
+    mentees = db.scalar(select(func.count(MentorAssignment.id)).where(
+        MentorAssignment.faculty_id == faculty.id,
+        MentorAssignment.is_active.is_(True),
+    )) or 0
+    if mentees:
+        load.append(f"{mentees} academic mentee(s)")
+    interns = db.scalar(select(func.count(InternshipEnrollment.id)).where(
+        InternshipEnrollment.mentor_faculty_id == faculty.id
+    )) or 0
+    if interns:
+        load.append(f"{interns} internship student(s)")
+    groups = db.scalar(select(func.count(InternshipGroup.id)).where(
+        InternshipGroup.faculty_id == faculty.id
+    )) or 0
+    if groups:
+        load.append(f"{groups} internship group(s)")
+    grants = assignments_for(faculty.role_assignments)
+    if grants:
+        load.append(f"{len(grants)} coordinator or mentor assignment(s)")
+    return load
+
+
+def assert_can_mentor(db: Session, faculty: Faculty) -> None:
+    """A Head of Department takes no mentees — academic or internship."""
+    from app.core.errors import BusinessRuleError
+
+    if is_hod(db, faculty):
+        raise BusinessRuleError(
+            f"{faculty.user.full_name} is the Head of Department and does not "
+            "take mentees. Choose another faculty member."
+        )
+
+
+def assert_can_hold_scoped_role(db: Session, faculty: Faculty) -> None:
+    """The HoD appoints coordinators; they are never one themselves.
+
+    If they could be, "sees everything, changes nothing" would last exactly as
+    long as it took them to appoint themselves.
+    """
+    from app.core.errors import BusinessRuleError
+
+    if is_hod(db, faculty):
+        raise BusinessRuleError(
+            f"{faculty.user.full_name} is the Head of Department. The HoD "
+            "appoints coordinators and mentors and does not hold one of these "
+            "roles."
+        )
+
+
+def set_hod(db: Session, department: Department, faculty: Faculty | None) -> None:
+    """Appoint (or clear) a department's head, keeping three facts in step: the
+    department's pointer, the coarse role, and the mentor flag."""
+    from app.core.errors import BusinessRuleError
+
+    previous = (db.get(Faculty, department.hod_faculty_id)
+                if department.hod_faculty_id else None)
+    if faculty is not None:
+        if faculty.department_id != department.id:
+            raise BusinessRuleError(
+                f"{faculty.user.full_name} is not a member of {department.code}."
+            )
+        if not faculty.is_active:
+            raise BusinessRuleError("An inactive faculty member cannot be made HoD.")
+        other = db.scalar(select(Department).where(
+            Department.hod_faculty_id == faculty.id, Department.id != department.id))
+        if other is not None:
+            raise BusinessRuleError(
+                f"{faculty.user.full_name} already heads {other.code}."
+            )
+        if previous is None or previous.id != faculty.id:
+            load = mentoring_load(db, faculty)
+            if load:
+                raise BusinessRuleError(
+                    f"{faculty.user.full_name} still has " + ", ".join(load)
+                    + ". Reassign these first: a Head of Department holds no "
+                      "mentees and no coordinator or mentor role."
+                )
+
+    department.hod_faculty_id = faculty.id if faculty else None
+    db.flush()
+
+    if previous is not None and (faculty is None or previous.id != faculty.id):
+        link = db.scalar(select(UserRole).where(
+            UserRole.user_id == previous.user_id, UserRole.role == Role.HOD))
+        if link is not None and not is_hod(db, previous):
+            db.delete(link)
+    if faculty is not None:
+        faculty.is_mentor = False
+        if not db.scalar(select(UserRole).where(
+                UserRole.user_id == faculty.user_id, UserRole.role == Role.HOD)):
+            db.add(UserRole(user_id=faculty.user_id, role=Role.HOD))
+    db.flush()

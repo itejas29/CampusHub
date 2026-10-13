@@ -50,7 +50,10 @@ them and fills the form on click.
 | `STUDENT (Sem VIII)` | `pooja.shah.081@campushub.example.com` | Sem VIII — 4th Year Capstone Project & Degree Completion |
 | `FACULTY` | `anand.mehta@campushub.example.com` | Mentor + CSSI Group 1, submissions awaiting review |
 | `FACULTY` + `INTERNSHIP_COORDINATOR` | `priya.nair@campushub.example.com` | Programme configuration, mentor override |
-| `FACULTY` + `DEPARTMENT_ADMIN` | `rakesh.bhatt@campushub.example.com` | Department-level academic administration |
+| `FACULTY` + `HOD` | `rakesh.bhatt@campushub.example.com` | Head of ICT: appoints and removes ICT coordinators; no mentees |
+| `FACULTY` + `DEPARTMENT_ADMIN` | `ict.office@campushub.example.com` | ICT office: department data administration; cannot appoint |
+| `FACULTY` (Open Elective coordinator) | `vikram.joshi@campushub.example.com` | Runs ICT Open Elective registration rounds |
+| `FACULTY` (Core Elective coordinator) | `leena.nambiar@campushub.example.com` | Runs ICT Core Elective registration rounds |
 | `CLUB_ADMIN` | `clubs@campushub.example.com` | Club and event management |
 | `SUPER_ADMIN` | `admin@campushub.example.com` | Everything, including the audit log |
 
@@ -349,12 +352,16 @@ programme, and CSSI has a different coordinator again. As seeded:
 | CSSI | Prof. Sneha Iyer | Dr. Farah Ansari | — |
 | Summer Internship | Dr. Priya Nair | Dr. Kunal Shah | Dr. Suresh Pillai |
 | NPTEL / MOOC | Dr. Meera Krishnan | Dr. Farah Ansari | — |
-| Minor · Open/Core Electives | Dr. Rakesh Bhatt | — | — |
+| Minor Specialisation | Dr. Priya Nair | — | — |
+| Open Electives | Dr. Vikram Joshi | — | — |
+| Program Core Electives | Prof. Leena Nambiar | — | — |
 | Mentor–Mentee | Dr. Anand Mehta | — | — |
 
-**Only an administrator grants coordination** (Administration → Role
-Assignments), which shows who holds what, per department, and which cells have
-nobody. Coordinators then work *inside* their scope — assigning mentors to
+**Only a department's Head grants coordination**, and only inside their own
+department (Administration → Coordinators & Mentors), which shows who holds
+what and which modules have nobody. The Head of Department holds no coordinator
+or mentor role and has no mentees; the registrar's office appoints the Head
+(Administration → Departments) and can act for any department. Coordinators then work *inside* their scope — assigning mentors to
 groups, approving submissions, verifying certificates. Every grant and revoke
 is audit-logged.
 

@@ -17,10 +17,11 @@ interface DemoAccount {
 
 const COORDINATOR_ACCOUNTS: DemoAccount[] = [
   // ICT
-  { name: "Dr. Priya Nair", role: "Summer Internship Coord", dept: "ICT", email: "priya.nair@campushub.example.com", domain: "Summer Internships" },
+  { name: "Dr. Priya Nair", role: "Summer Internship & Minor Coord", dept: "ICT", email: "priya.nair@campushub.example.com", domain: "Summer Internships · Minors" },
   { name: "Prof. Sneha Iyer", role: "CSSI Coordinator", dept: "ICT", email: "sneha.iyer@campushub.example.com", domain: "Community Service" },
   { name: "Dr. Meera Krishnan", role: "NPTEL / MOOC Coord", dept: "ICT", email: "meera.krishnan@campushub.example.com", domain: "MOOC Credits" },
-  { name: "Dr. Rakesh Bhatt", role: "Minor & Electives Coord", dept: "ICT", email: "rakesh.bhatt@campushub.example.com", domain: "Electives / Minors" },
+  { name: "Dr. Vikram Joshi", role: "Open Elective Coord", dept: "ICT", email: "vikram.joshi@campushub.example.com", domain: "Open Elective Rounds" },
+  { name: "Prof. Leena Nambiar", role: "Core Elective Coord", dept: "ICT", email: "leena.nambiar@campushub.example.com", domain: "Core Elective Rounds" },
   { name: "Dr. Anand Mehta", role: "Mentorship Coordinator", dept: "ICT", email: "anand.mehta@campushub.example.com", domain: "Faculty Mentor" },
   // CSE
   { name: "Dr. Kunal Shah", role: "Summer Internship Coord", dept: "CSE", email: "kunal.shah@campushub.example.com", domain: "Summer Internships" },
@@ -149,7 +150,8 @@ const STUDENT_ACCOUNTS: DemoAccount[] = [
 ];
 
 const ADMIN_ACCOUNTS: DemoAccount[] = [
-  { name: "Dr. Rakesh Bhatt", role: "Department Admin", dept: "ICT", email: "rakesh.bhatt@campushub.example.com", domain: "Full ICT Administration" },
+  { name: "Dr. Rakesh Bhatt", role: "Head of Department", dept: "ICT", email: "rakesh.bhatt@campushub.example.com", domain: "Appoints ICT Coordinators" },
+  { name: "ICT Department Office", role: "Department Admin", dept: "ICT", email: "ict.office@campushub.example.com", domain: "ICT Data Administration" },
   { name: "Clubs & Events Cell", role: "Club Admin", dept: "Campus", email: "clubs@campushub.example.com", domain: "Student Affairs & Events" },
   { name: "System Administrator", role: "Campus Super Admin", dept: "University", email: "admin@campushub.example.com", domain: "Root System Access" },
 ];

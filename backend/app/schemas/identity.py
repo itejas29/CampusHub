@@ -31,9 +31,16 @@ class DepartmentUpdate(BaseModel):
 class DepartmentOut(ORMModel, DepartmentBase):
     id: int
     is_active: bool
+    hod_faculty_id: int | None = None
+    hod_name: str | None = None
     student_count: int = 0
     faculty_count: int = 0
     program_count: int = 0
+
+
+class DepartmentHodUpdate(BaseModel):
+    #: None clears the post.
+    faculty_id: int | None = None
 
 
 class ProgramOut(ORMModel):

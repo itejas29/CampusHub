@@ -67,6 +67,11 @@ class FacultyContext(ORMModel):
     designation: str
     cabin: str | None = None
     is_mentor: bool = True
+    #: Set when this faculty member is a Head of Department: the one department
+    #: they appoint coordinators for and oversee.
+    hod_department_id: int | None = None
+    hod_department_code: str | None = None
+    hod_department_name: str | None = None
     #: Domains this faculty coordinates, and over which department.
     coordinations: list[CoordinationOut] = Field(default_factory=list)
     #: Internship types they actually mentor students for — drives navigation.

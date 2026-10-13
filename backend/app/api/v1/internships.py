@@ -516,6 +516,10 @@ def create_group(
     if program is None:
         raise NotFoundError("Internship programme not found.")
     _assert_can_manage_program(db, user, program)
+    if payload.faculty_id:
+        lead = db.get(Faculty, payload.faculty_id)
+        if lead is not None:
+            scope.assert_can_mentor(db, lead)
     group = InternshipGroup(program_id=program_id, **payload.model_dump())
     db.add(group)
     db.flush()

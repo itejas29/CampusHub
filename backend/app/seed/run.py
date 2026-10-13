@@ -59,6 +59,7 @@ from app.models.system import AuditLog, StoredFile
 from app.storage import get_storage
 from app.services import sections
 from app.seed import data as D
+from app.services import scope as scope_service
 from app.seed import curriculum_import
 from app.services import curriculum as curriculum_engine
 
@@ -588,7 +589,22 @@ def seed(db: Session) -> None:
         db.add(faculty)
         db.flush()
         faculty_by_code[emp_code] = faculty
-    departments["ICT"].hod_faculty_id = faculty_by_code["ICT-F-103"].id
+    for name, email, emp_code, dept in D.DEPARTMENT_OFFICES:
+        office_user = make_user(db, name=name, email=email,
+                                roles=[Role.FACULTY, Role.DEPARTMENT_ADMIN])
+        db.add(Faculty(
+            user_id=office_user.id, employee_code=emp_code,
+            department_id=departments[dept].id, designation="Department Office",
+            public_email=email, is_mentor=False,
+            bio=f"Administrative office of {departments[dept].name}.",
+        ))
+    db.flush()
+
+    # Appointed before anything else is handed out, so that every later step —
+    # role grants, mentor pools, group leads — is refused by the same rules the
+    # API applies if it ever tries to give the HoD a mentee or a module.
+    for dept_code, emp_code in D.HEADS_OF_DEPARTMENT.items():
+        scope_service.set_hod(db, departments[dept_code], faculty_by_code[emp_code])
 
     log("Administrator accounts…")
     admin_user = make_user(db, name="Registrar Office", email="admin@campushub.example.com",
@@ -602,6 +618,7 @@ def seed(db: Session) -> None:
         faculty = faculty_by_code.get(emp_code)
         if faculty is None:
             continue
+        scope_service.assert_can_hold_scoped_role(db, faculty)
         db.add(FacultyRoleAssignment(
             faculty_id=faculty.id, role=AssignedRole(assigned_role),
             domain=CoordinationDomain(domain),
@@ -803,7 +820,7 @@ def seed(db: Session) -> None:
             },
             application_opens_at=NOW - dt.timedelta(days=14),
             application_closes_at=NOW + dt.timedelta(days=28),
-            coordinator_faculty_id=faculty_by_code["ICT-F-103"].id,
+            coordinator_faculty_id=faculty_by_code["ICT-F-102"].id,
             description=f"{name} — {credits} additional credits, offered from "
                         "Semester III to Semester VII to students of every "
                         f"department except {departments[dept].name}.",
@@ -941,7 +958,9 @@ def seed(db: Session) -> None:
 
     log("Mentor assignments…")
     mentor_pool = [faculty_by_code[c] for c in
-                   ["ICT-F-101", "ICT-F-102", "ICT-F-103", "ICT-F-104"]]
+                   ["ICT-F-101", "ICT-F-102", "ICT-F-106", "ICT-F-104"]]
+    for mentor in mentor_pool:
+        scope_service.assert_can_mentor(db, mentor)
     for index, student in enumerate(students):
         mentor = mentor_pool[index % len(mentor_pool)]
         db.add(MentorAssignment(
@@ -962,6 +981,16 @@ def seed(db: Session) -> None:
                            minors, faculty_by_code, admin_user)
     seed_community(db, students, faculty_by_code, club_admin_user)
     seed_engagement(db, students, faculty_by_code, admin_user, departments)
+
+    # The dataset must obey the rule it demonstrates: no HoD ends up with a
+    # mentee, an internship student, a group or a scoped role.
+    db.flush()
+    for dept_code, emp_code in D.HEADS_OF_DEPARTMENT.items():
+        load = scope_service.mentoring_load(db, faculty_by_code[emp_code])
+        if load:
+            raise RuntimeError(
+                f"Seed gave the {dept_code} HoD {', '.join(load)}; an HoD holds none."
+            )
 
     db.commit()
 
@@ -1361,7 +1390,7 @@ def seed_academic_activity(db, components, offerings, courses, students, electiv
             verification_status=verification,
             verified_at=(NOW - dt.timedelta(days=6)
                          if verification == VerificationStatus.VERIFIED else None),
-            verified_by_user_id=(faculty_by_code["ICT-F-103"].user_id
+            verified_by_user_id=(faculty_by_code["ICT-F-105"].user_id
                                  if verification == VerificationStatus.VERIFIED else None),
             final_score=(round(rng.uniform(62, 92), 1)
                          if status == MoocStatus.COMPLETED else None),
@@ -1661,8 +1690,14 @@ def print_credentials(db: Session) -> None:
     print("=" * 74)
     rows = [
         ("SUPER_ADMIN", "admin@campushub.example.com", "Full system administration"),
-        ("DEPARTMENT_ADMIN", "rakesh.bhatt@campushub.example.com",
-         "ICT admin · Minor + Elective coordinator"),
+        ("HOD (ICT)", "rakesh.bhatt@campushub.example.com",
+         "Appoints ICT coordinators · no mentees"),
+        ("DEPARTMENT_ADMIN (ICT office)", "ict.office@campushub.example.com",
+         "ICT data administration · cannot appoint"),
+        ("COORDINATOR — Open Electives", "vikram.joshi@campushub.example.com",
+         "Runs Open Elective rounds, ICT only"),
+        ("COORDINATOR — Core Electives", "leena.nambiar@campushub.example.com",
+         "Runs Core Elective rounds, ICT only"),
         ("COORDINATOR — Summer (ICT)", "priya.nair@campushub.example.com",
          "Summer Internship coordinator, ICT only"),
         ("COORDINATOR — CSSI (ICT)", "sneha.iyer@campushub.example.com",

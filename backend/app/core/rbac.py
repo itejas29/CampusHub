@@ -38,6 +38,7 @@ P = {
     "FACULTY_READ": "faculty:read",
     "FACULTY_MANAGE": "faculty:manage",
     "DEPARTMENT_MANAGE": "departments:manage",
+    "ROLE_ASSIGN": "roles:assign",
     "REPORT_VIEW": "reports:view",
     "AUDIT_VIEW": "audit:view",
     "SYSTEM_ADMIN": "system:admin",
@@ -73,6 +74,17 @@ _INTERNSHIP_COORDINATOR = {
     P["FACULTY_MANAGE"],
 }
 
+# A Head of Department appoints and removes the coordinators of their own
+# department and reads everything in it. They hold no `*:manage` permission and
+# neither mentoring permission: the appointed coordinator runs the module, and
+# an HoD has no mentees. `reports:view` and `audit:view` are left out as well —
+# both are institution-wide, and an HoD's oversight stops at their department.
+# *Which* department is decided in `services/scope`.
+_HOD = {
+    P["ACADEMIC_READ"], P["STUDENT_READ"], P["FACULTY_READ"], P["CLUB_READ"],
+    P["EVENT_REGISTER"], P["ANNOUNCEMENT_PUBLISH"], P["ROLE_ASSIGN"],
+}
+
 _CLUB_ADMIN = {
     P["CLUB_READ"], P["CLUB_MANAGE"], P["EVENT_MANAGE"], P["EVENT_REGISTER"],
     P["ANNOUNCEMENT_PUBLISH"], P["STUDENT_READ"], P["REPORT_VIEW"],
@@ -84,12 +96,14 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
     Role.DEPARTMENT_ADMIN: _DEPARTMENT_ADMIN,
     Role.INTERNSHIP_COORDINATOR: _INTERNSHIP_COORDINATOR,
     Role.CLUB_ADMIN: _CLUB_ADMIN,
+    Role.HOD: _HOD,
     Role.SUPER_ADMIN: {"*"},
 }
 
 # Roles that can see the administration section of the app.
 ADMIN_ROLES = (
     Role.SUPER_ADMIN, Role.DEPARTMENT_ADMIN, Role.INTERNSHIP_COORDINATOR, Role.CLUB_ADMIN,
+    Role.HOD,
 )
 
 

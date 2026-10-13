@@ -14,11 +14,12 @@ from app.models.enums import AuditAction, Role, StudentStatus
 from app.models.identity import AcademicYear, Department, Faculty, Semester, Student, User, UserRole
 from app.schemas.common import Message, Page
 from app.schemas.identity import (
-    AcademicYearOut, DepartmentCreate, DepartmentOut, DepartmentUpdate, FacultyCreate,
+    AcademicYearOut, DepartmentCreate, DepartmentHodUpdate, DepartmentOut,
+    DepartmentUpdate, FacultyCreate,
     FacultyOut, FacultyUpdate, ProfileUpdate, SemesterOut, StudentCreate, StudentDetail,
     StudentOut, StudentUpdate,
 )
-from app.services import audit
+from app.services import audit, scope
 from app.services.serializers import faculty_out, student_out
 
 students_router = APIRouter(prefix="/students", tags=["students"])
@@ -224,6 +225,10 @@ def update_faculty(
     if faculty is None:
         raise NotFoundError("Faculty member not found.")
     changes = payload.model_dump(exclude_unset=True)
+    if changes.get("is_mentor"):
+        # The mentor flag is how the rest of the portal offers someone as a
+        # mentor, so it cannot be switched back on for a Head of Department.
+        scope.assert_can_mentor(db, faculty)
     if "full_name" in changes:
         faculty.user.full_name = changes.pop("full_name")
     for field, value in changes.items():
@@ -278,9 +283,49 @@ def list_departments(db: DbSession, _: CurrentUser) -> list[DepartmentOut]:
             school=d.school, description=d.description, is_active=d.is_active,
             student_count=students.get(d.id, 0), faculty_count=faculty.get(d.id, 0),
             program_count=programs.get(d.id, 0),
+            hod_faculty_id=d.hod_faculty_id, hod_name=_hod_name(db, d),
         )
         for d in departments
     ]
+
+
+def _hod_name(db, department: Department) -> str | None:
+    head = db.get(Faculty, department.hod_faculty_id) if department.hod_faculty_id else None
+    return head.user.full_name if head else None
+
+
+@departments_router.put("/{department_id}/hod", response_model=DepartmentOut)
+def set_department_hod(
+    department_id: int, payload: DepartmentHodUpdate, db: DbSession,
+    user: User = Depends(require_permission(P["DEPARTMENT_MANAGE"])),
+) -> DepartmentOut:
+    """Appoint the Head of Department. The registrar's office only — an HoD
+    does not appoint their own successor."""
+    department = db.get(Department, department_id)
+    if department is None:
+        raise NotFoundError("Department not found.")
+    head = None
+    if payload.faculty_id is not None:
+        head = db.get(Faculty, payload.faculty_id)
+        if head is None:
+            raise NotFoundError("Faculty member not found.")
+    previous_id = department.hod_faculty_id
+    scope.set_hod(db, department, head)
+    audit.record(
+        db, action=AuditAction.UPDATE, entity_type="department",
+        entity_id=department.id, actor=user,
+        description=(f"{head.user.full_name} appointed Head of {department.code}"
+                     if head else f"Head of {department.code} cleared"),
+        meta={"from_faculty_id": previous_id, "to_faculty_id": payload.faculty_id},
+    )
+    db.commit()
+    db.refresh(department)
+    return DepartmentOut(
+        id=department.id, code=department.code, name=department.name,
+        short_name=department.short_name, school=department.school,
+        description=department.description, is_active=department.is_active,
+        hod_faculty_id=department.hod_faculty_id, hod_name=_hod_name(db, department),
+    )
 
 
 @departments_router.post("", response_model=DepartmentOut, status_code=201)

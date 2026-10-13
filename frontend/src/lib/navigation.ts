@@ -12,6 +12,8 @@ export interface NavItem {
   icon?: LucideIcon;
   /** Visible when the user holds ANY of these roles (empty = everyone). */
   roles?: Role[];
+  /** Hidden from anyone holding one of these roles, whatever else they hold. */
+  excludeRoles?: Role[];
   /**
    * Visible with this backend permission. When `coordinates` is also given the
    * two are ALTERNATIVES — a scoped coordinator reaches the screen without
@@ -44,7 +46,7 @@ export interface NavSection {
 
 const STUDENT: Role[] = ["STUDENT"];
 const STAFF: Role[] = [
-  "FACULTY", "DEPARTMENT_ADMIN", "INTERNSHIP_COORDINATOR", "SUPER_ADMIN",
+  "FACULTY", "DEPARTMENT_ADMIN", "INTERNSHIP_COORDINATOR", "HOD", "SUPER_ADMIN",
 ];
 const ADMIN: Role[] = [
   "DEPARTMENT_ADMIN", "INTERNSHIP_COORDINATOR", "CLUB_ADMIN", "SUPER_ADMIN",
@@ -120,7 +122,8 @@ export const NAVIGATION: NavSection[] = [
   {
     title: "Support",
     items: [
-      { label: "Mentor–Mentee", to: "/mentorship", icon: UserSquare2 },
+      // A Head of Department has neither a mentor nor mentees.
+      { label: "Mentor–Mentee", to: "/mentorship", icon: UserSquare2, excludeRoles: ["HOD"] },
       { label: "Faculty Directory", to: "/faculty", icon: GraduationCap },
       { label: "Announcements", to: "/announcements", icon: Megaphone },
     ],
@@ -163,8 +166,10 @@ export const NAVIGATION: NavSection[] = [
         permission: "events:manage",
       },
       {
-        label: "Role Assignments", to: "/admin/roles", icon: UserCog,
-        permission: "faculty:manage",
+        // The Head of Department's screen: appoint and remove their own
+        // department's coordinators and mentors.
+        label: "Coordinators & Mentors", to: "/admin/roles", icon: UserCog,
+        permission: "roles:assign",
       },
       {
         label: "Audit Log", to: "/admin/audit", icon: ScrollText,
@@ -186,6 +191,7 @@ export function visibleSections(
   const owned = new Set(roles);
   const allowed = (item: NavItem) => {
     if (item.roles && !item.roles.some((role) => owned.has(role))) return false;
+    if (item.excludeRoles?.some((role) => owned.has(role))) return false;
     if (item.mentorsProgram && !mentorsProgram(item.mentorsProgram)) return false;
     // `null` means "not a student" — staff navigation is unaffected.
     if (item.studentSection && studentSections

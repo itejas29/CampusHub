@@ -2,7 +2,7 @@
 
 export type Role =
   | "STUDENT" | "FACULTY" | "DEPARTMENT_ADMIN"
-  | "INTERNSHIP_COORDINATOR" | "CLUB_ADMIN" | "SUPER_ADMIN";
+  | "INTERNSHIP_COORDINATOR" | "CLUB_ADMIN" | "HOD" | "SUPER_ADMIN";
 
 export interface StudentContext {
   id: number; roll_number: string; program_id: number; program_name: string | null;
@@ -29,6 +29,10 @@ export interface FacultyContext {
   id: number; employee_code: string; department_id: number;
   department_code: string | null; designation: string; cabin: string | null;
   is_mentor: boolean;
+  /** Set for a Head of Department: the one department they appoint for. */
+  hod_department_id: number | null;
+  hod_department_code: string | null;
+  hod_department_name: string | null;
   /** Domains this faculty coordinates, and over which department. */
   coordinations: Coordination[];
   /** Internship types they actually mentor students for ("CSSI" | "SUMMER"). */
@@ -66,6 +70,8 @@ export interface DomainCoverage {
 export interface FacultyRoleSummary {
   faculty_id: number; name: string; employee_code: string;
   designation: string; department_code: string | null; roles: Role[];
+  /** The HoD appoints; they are never offered as an appointee. */
+  is_hod: boolean;
   /** Every grant this person holds, of every role — the union. */
   coordinations: {
     id: number; role: AssignedRole; role_label: string;
@@ -552,6 +558,7 @@ export interface DepartmentRow {
   id: number; code: string; name: string; short_name: string | null; school: string;
   description: string | null; is_active: boolean; student_count: number;
   faculty_count: number; program_count: number;
+  hod_faculty_id: number | null; hod_name: string | null;
 }
 
 export interface MentorProfile {
@@ -643,6 +650,24 @@ export interface FacultyDashboard {
     program: string | null; capacity: number; member_count: number }[];
   upcoming_meetings: { id: number; title: string; student: string; status: string;
     scheduled_at: string | null; proposed_slot: string | null }[];
+  announcements: DashboardAnnouncement[];
+}
+
+export interface HodDashboard {
+  department: { id: number; code: string; name: string };
+  stats: StatCard[];
+  /** One row per module: who coordinates it, or that nobody does. */
+  modules: {
+    domain: CoordinationDomain; label: string;
+    coordinators: { assignment_id: number; faculty_id: number; name: string;
+      designation: string }[];
+    mentor_count: number; is_covered: boolean;
+  }[];
+  rounds: {
+    id: number; code: string; title: string; component_type: string; status: string;
+    opens_at: string | null; closes_at: string | null; is_accepting: boolean;
+    eligible_student_count: number;
+  }[];
   announcements: DashboardAnnouncement[];
 }
 

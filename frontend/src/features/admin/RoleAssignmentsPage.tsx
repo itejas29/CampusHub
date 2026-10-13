@@ -12,6 +12,7 @@ import { Tabs } from "@/components/ui/Tabs";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
 import { TBody, TD, TH, THead, TR, TableEmpty, TableWrap } from "@/components/ui/Table";
 import { ApiError, api } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 import { humanise } from "@/lib/utils";
 import type {
@@ -33,6 +34,9 @@ const DOMAIN_TONE: Record<string, "brand" | "accent" | "info" | "success" | "war
 
 export function RoleAssignmentsPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  // A Head of Department works inside one department; the registrar sees all.
+  const headed = user?.faculty?.hod_department_code ?? null;
   const [tab, setTab] = useState("faculty");
   const [search, setSearch] = useState("");
   const [assignOpen, setAssignOpen] = useState(false);
@@ -92,9 +96,13 @@ export function RoleAssignmentsPage() {
   return (
     <div>
       <PageHeader
-        title="Role assignments"
-        description="Every role is scoped to a module and a department — Summer Internship for ICT is a different grant from Summer Internship for CSE, and Coordinator is a different grant from Mentor. One person may hold several; each applies only inside its own scope. Only an administrator creates them."
-        breadcrumbs={[{ label: "Administration" }, { label: "Role Assignments" }]}
+        title={headed ? `${headed} coordinators and mentors` : "Role assignments"}
+        description={
+          headed
+            ? `As Head of ${headed} you appoint and remove this department's coordinators and mentors. Each role covers one module — coordinating Open Electives grants nothing over Core Electives — and Coordinator is a different grant from Mentor.`
+            : "Every role is scoped to a module and a department — Summer Internship for ICT is a different grant from Summer Internship for CSE, and Coordinator is a different grant from Mentor. One person may hold several; each applies only inside its own scope. Each department's Head appoints its own."
+        }
+        breadcrumbs={[{ label: "Administration" }, { label: "Coordinators & Mentors" }]}
         actions={
           <Button size="sm" onClick={() => setAssignOpen(true)}
                   icon={<Plus className="h-3.5 w-3.5" aria-hidden />}>
@@ -448,10 +456,17 @@ function AssignModal({
   domains: DomainOption[]; roles: RoleDefinition[];
   onClose: () => void; onDone: (text: string) => void;
 }) {
+  const { user } = useAuth();
+  // For a Head of Department the scope is not a choice: it is their department,
+  // and the server refuses anything else.
+  const hodDepartmentId = user?.faculty?.hod_department_id ?? null;
+  const hodDepartmentCode = user?.faculty?.hod_department_code ?? null;
   const [facultyId, setFacultyId] = useState("");
   const [role, setRole] = useState("COORDINATOR");
   const [domain, setDomain] = useState(domains[0]?.value ?? "SUMMER_INTERNSHIP");
-  const [departmentId, setDepartmentId] = useState("");
+  const [departmentId, setDepartmentId] = useState(
+    hodDepartmentId ? String(hodDepartmentId) : "",
+  );
   const [startsOn, setStartsOn] = useState("");
   const [endsOn, setEndsOn] = useState("");
   const [notes, setNotes] = useState("");
@@ -467,7 +482,13 @@ function AssignModal({
     queryFn: () => api.get<DepartmentRow[]>("/departments"),
   });
 
-  const chosen = (faculty.data ?? []).find((f) => String(f.id) === facultyId);
+  // The HoD appoints from their own department and is never an appointee.
+  const candidates = (faculty.data ?? []).filter((f) =>
+    hodDepartmentId
+      ? f.department_id === hodDepartmentId && f.id !== user?.faculty?.id
+      : true,
+  );
+  const chosen = candidates.find((f) => String(f.id) === facultyId);
 
   const assign = useMutation({
     mutationFn: () =>
@@ -507,7 +528,7 @@ function AssignModal({
           <Select value={facultyId} onChange={(e) => setFacultyId(e.target.value)}
                   data-autofocus>
             <option value="">Select a faculty member…</option>
-            {(faculty.data ?? []).map((f) => (
+            {candidates.map((f) => (
               <option key={f.id} value={f.id}>
                 {f.full_name} — {f.department_code} ({f.designation})
               </option>
@@ -533,17 +554,24 @@ function AssignModal({
           </Select>
         </FormField>
 
-        <FormField
-          label="Department scope"
-          hint="Leave blank to make this institution-wide across every department."
-        >
-          <Select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
-            <option value="">All departments (institution-wide)</option>
-            {(departments.data ?? []).map((d) => (
-              <option key={d.id} value={d.id}>{d.code} — {d.name}</option>
-            ))}
-          </Select>
-        </FormField>
+        {hodDepartmentId ? (
+          <FormField label="Department scope"
+                     hint="You appoint for your own department only.">
+            <Input value={hodDepartmentCode ?? ""} readOnly disabled />
+          </FormField>
+        ) : (
+          <FormField
+            label="Department scope"
+            hint="Leave blank to make this institution-wide across every department."
+          >
+            <Select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
+              <option value="">All departments (institution-wide)</option>
+              {(departments.data ?? []).map((d) => (
+                <option key={d.id} value={d.id}>{d.code} — {d.name}</option>
+              ))}
+            </Select>
+          </FormField>
+        )}
 
         {chosen && departmentId && String(chosen.department_id) !== departmentId && (
           <Alert variant="info">

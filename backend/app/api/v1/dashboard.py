@@ -12,7 +12,7 @@ from app.core.errors import PermissionDeniedError
 from app.core.rbac import P, has_permission
 from app.models.academics import (
     Course, CourseOffering, CurriculumComponent, ElectiveAllocation, ElectivePreference,
-    MoocRegistration,
+    ElectiveRegistrationWindow, MoocRegistration,
 )
 from app.models.community import Club, Event, EventRegistration
 from app.models.engagement import Announcement, MentorAssignment, MentorMeeting
@@ -21,7 +21,7 @@ from app.models.enums import (
     MinorApplicationStatus, PreferenceStatus, RegistrationStatus, StageStatus,
     SubmissionStatus, VerificationStatus,
 )
-from app.models.identity import Department, Faculty, Student, User
+from app.models.identity import Department, Faculty, FacultyRoleAssignment, Student, User
 from app.models.internships import (
     EnrollmentStageProgress, InternshipEnrollment, InternshipGroup, InternshipProgram,
     InternshipReport,
@@ -30,9 +30,10 @@ from app.models.minors import MinorApplication, MinorEnrollment
 from app.models.system import AuditLog
 from app.schemas.admin import (
     ActivityItem, AdminDashboard, BreakdownItem, DeadlineItem, FacultyDashboard,
-    ProgressItem, StatCard, StudentDashboard,
+    HodDashboard, ProgressItem, StatCard, StudentDashboard,
 )
 from app.services import announcements as announcement_audience
+from app.services import registration, scope
 from app.services import documents as docs
 from app.services import serializers
 from app.services import internships as engine
@@ -259,6 +260,90 @@ def student_dashboard(db: DbSession, user: CurrentUser) -> StudentDashboard:
         action_items=action_items[:6], progress=progress,
         upcoming_events=_event_dicts(db, student=student),
         announcements=_announcement_dicts(db, user), mentor=mentor,
+    )
+
+
+# ── head of department ────────────────────────────────────────────────────
+@router.get("/hod", response_model=HodDashboard)
+def hod_dashboard(db: DbSession, user: CurrentUser) -> HodDashboard:
+    """Who runs each module of the department, and which have nobody.
+
+    Deliberately carries no mentee or review queue: a Head of Department has
+    neither. Everything here is read-only — the one thing they *do* is appoint,
+    and that happens on the role assignment screen this links to.
+    """
+    from app.api.v1.roles import DOMAIN_LABELS
+    from app.models.enums import AssignedRole, CoordinationDomain
+
+    department = scope.hod_department(db, user)
+    if department is None:
+        raise PermissionDeniedError(
+            "This dashboard is only available to a Head of Department."
+        )
+
+    faculty_rows = list(db.scalars(select(Faculty).where(
+        Faculty.department_id == department.id, Faculty.is_active.is_(True))))
+    student_count = _count(db, select(Student).where(
+        Student.department_id == department.id))
+    grants = [
+        a for a in db.scalars(select(FacultyRoleAssignment).where(
+            FacultyRoleAssignment.department_id == department.id,
+            FacultyRoleAssignment.is_active.is_(True)))
+        if a.is_current()
+    ]
+
+    modules = []
+    for domain in CoordinationDomain:
+        held = [a for a in grants if a.domain == domain]
+        coordinators = [a for a in held if a.role == AssignedRole.COORDINATOR]
+        modules.append({
+            "domain": domain.value, "label": DOMAIN_LABELS[domain],
+            "coordinators": [
+                {"assignment_id": a.id, "faculty_id": a.faculty_id,
+                 "name": a.faculty.user.full_name,
+                 "designation": a.faculty.designation}
+                for a in coordinators
+            ],
+            "mentor_count": sum(1 for a in held if a.role == AssignedRole.MENTOR),
+            # Mentors alone do not run a module.
+            "is_covered": bool(coordinators),
+        })
+    uncovered = sum(1 for m in modules if not m["is_covered"])
+
+    now = utcnow()
+    windows = list(db.scalars(
+        select(ElectiveRegistrationWindow)
+        .where(ElectiveRegistrationWindow.department_id == department.id)
+        .order_by(ElectiveRegistrationWindow.opens_at.desc().nullslast())
+        .limit(8)
+    ))
+    rounds = [
+        {
+            "id": w.id, "code": w.code, "title": w.title,
+            "component_type": w.component_type.value, "status": w.status.value,
+            "opens_at": w.opens_at.isoformat() if w.opens_at else None,
+            "closes_at": w.closes_at.isoformat() if w.closes_at else None,
+            "is_accepting": w.is_open_at(now),
+            "eligible_student_count": registration.count_students_in_window(db, w),
+        }
+        for w in windows
+    ]
+
+    stats = [
+        StatCard(key="faculty", label="Faculty", value=len(faculty_rows),
+                 hint=department.name, link="/faculty"),
+        StatCard(key="students", label="Students", value=student_count),
+        StatCard(key="uncovered", label="Modules without a coordinator",
+                 value=uncovered, hint=f"of {len(modules)} modules",
+                 link="/admin/roles"),
+        StatCard(key="open_rounds", label="Rounds accepting preferences",
+                 value=sum(1 for r in rounds if r["is_accepting"])),
+    ]
+    return HodDashboard(
+        department={"id": department.id, "code": department.code,
+                    "name": department.name},
+        stats=stats, modules=modules, rounds=rounds,
+        announcements=_announcement_dicts(db, user),
     )
 
 

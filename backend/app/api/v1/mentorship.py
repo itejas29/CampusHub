@@ -17,7 +17,7 @@ from app.schemas.common import Message
 from app.schemas.engagement import (
     MeetingDecision, MeetingOut, MeetingRequest, MenteeRow, MentorProfile,
 )
-from app.services import audit, notifications
+from app.services import audit, notifications, scope
 
 router = APIRouter(prefix="/mentorship", tags=["mentorship"])
 
@@ -237,6 +237,7 @@ def assign_mentor(
     faculty = db.get(Faculty, faculty_id)
     if student is None or faculty is None:
         raise NotFoundError("Student or faculty member not found.")
+    scope.assert_can_mentor(db, faculty)
 
     year = db.scalar(select(AcademicYear).where(AcademicYear.is_current.is_(True)))
     existing = db.scalar(select(MentorAssignment).where(

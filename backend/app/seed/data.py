@@ -39,13 +39,13 @@ FACULTY = [
     ("Dr. Priya Nair", "priya.nair@campushub.example.com", "ICT-F-102", "ICT",
      "Assistant Professor", "6-118", "Machine Learning, Computer Vision", []),
     ("Dr. Rakesh Bhatt", "rakesh.bhatt@campushub.example.com", "ICT-F-103", "ICT",
-     "Professor", "6-014", "VLSI Design, Embedded Systems", ["DEPARTMENT_ADMIN"]),
+     "Professor", "6-014", "VLSI Design, Embedded Systems", []),
     ("Prof. Sneha Iyer", "sneha.iyer@campushub.example.com", "ICT-F-104", "ICT",
      "Assistant Professor", "6-207", "Signal Processing, Wireless Communication", []),
     ("Dr. Meera Krishnan", "meera.krishnan@campushub.example.com", "ICT-F-105", "ICT",
      "Assistant Professor", "6-121", "Human-Computer Interaction", []),
-    # Mentors only — they lead student groups but coordinate no module, which is
-    # what makes the Coordinator/Mentor split visible in the demo.
+    # Internship mentors who also run the two elective families — holding both
+    # kinds of role at once, which the portal resolves as the union.
     ("Dr. Vikram Joshi", "vikram.joshi@campushub.example.com", "ICT-F-106", "ICT",
      "Assistant Professor", "6-125", "Data Engineering, Databases", []),
     ("Prof. Leena Nambiar", "leena.nambiar@campushub.example.com", "ICT-F-107", "ICT",
@@ -83,14 +83,29 @@ FACULTY = [
 #: Coordinator and Mentor are independent grants. Nobody here holds both for the
 #: same module by accident — the pairs that do exist are deliberate, so the
 #: distinction is visible in the demo.
+#: Head of each department, by employee code. The HoD appoints that
+#: department's coordinators, holds no coordinator or mentor role, and has no
+#: mentees — so the person named here appears nowhere in ROLE_ASSIGNMENTS and in
+#: no mentor pool. ICT only for now; other departments follow.
+HEADS_OF_DEPARTMENT = {
+    "ICT": "ICT-F-103",   # Dr. Rakesh Bhatt
+}
+
+#: Department office accounts: day-to-day data administration, separate from the
+#: HoD. They cannot appoint coordinators and are never offered as mentors.
+DEPARTMENT_OFFICES = [
+    # (name, email, employee code, dept)
+    ("ICT Department Office", "ict.office@campushub.example.com", "ICT-A-001", "ICT"),
+]
+
 ROLE_ASSIGNMENTS = [
-    # ── ICT coordinators ──
+    # ── ICT coordinators — appointed by the HoD, Dr. Rakesh Bhatt ──
     ("ICT-F-102", "COORDINATOR", "SUMMER_INTERNSHIP", "ICT"),  # Dr. Priya Nair
     ("ICT-F-104", "COORDINATOR", "CSSI",              "ICT"),  # Prof. Sneha Iyer
     ("ICT-F-105", "COORDINATOR", "MOOC",              "ICT"),  # Dr. Meera Krishnan
-    ("ICT-F-103", "COORDINATOR", "MINOR",             "ICT"),  # Dr. Rakesh Bhatt
-    ("ICT-F-103", "COORDINATOR", "OPEN_ELECTIVE",     "ICT"),
-    ("ICT-F-103", "COORDINATOR", "CORE_ELECTIVE",     "ICT"),
+    ("ICT-F-102", "COORDINATOR", "MINOR",             "ICT"),  # Dr. Priya Nair
+    ("ICT-F-106", "COORDINATOR", "OPEN_ELECTIVE",     "ICT"),  # Dr. Vikram Joshi
+    ("ICT-F-107", "COORDINATOR", "CORE_ELECTIVE",     "ICT"),  # Prof. Leena Nambiar
     ("ICT-F-101", "COORDINATOR", "MENTORSHIP",        "ICT"),  # Dr. Anand Mehta
     # ── ICT mentors — separate grants, different people ──
     ("ICT-F-101", "MENTOR",      "CSSI",              "ICT"),  # mentor, not CSSI lead

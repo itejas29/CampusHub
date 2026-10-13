@@ -346,6 +346,12 @@ def override_mentor(
     reason: str | None, actor: User | None = None, enforce_capacity: bool = True,
 ) -> InternshipEnrollment:
     """Coordinator override — always audited, per the Phase 1 requirement."""
+    if new_faculty_id is not None:
+        from app.services import scope
+
+        mentor = db.get(Faculty, new_faculty_id)
+        if mentor is not None:
+            scope.assert_can_mentor(db, mentor)
     if new_faculty_id is not None and enforce_capacity:
         current_count = db.scalar(
             select(func.count(InternshipEnrollment.id)).where(

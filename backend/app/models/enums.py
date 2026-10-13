@@ -22,6 +22,10 @@ class Role(StrEnum):
     DEPARTMENT_ADMIN = "DEPARTMENT_ADMIN"
     INTERNSHIP_COORDINATOR = "INTERNSHIP_COORDINATOR"
     CLUB_ADMIN = "CLUB_ADMIN"
+    #: Head of Department. Appoints the department's coordinators and oversees
+    #: its modules read-only; never a coordinator or a mentor themselves. Which
+    #: department is `departments.hod_faculty_id`, not this flag.
+    HOD = "HOD"
     SUPER_ADMIN = "SUPER_ADMIN"
 
 
