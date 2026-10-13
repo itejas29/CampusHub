@@ -55,6 +55,7 @@ export function MentorAssignmentPage() {
   const [selectedMentorIds, setSelectedMentorIds] = useState<Set<number>>(new Set());
   const [strictCap, setStrictCap] = useState(true);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showClearStudentsConfirm, setShowClearStudentsConfirm] = useState(false);
   const [feedback, setFeedback] = useState<{ tone: "success" | "danger" | "info"; text: string } | null>(null);
 
   // Fetch internship programs
@@ -153,6 +154,7 @@ export function MentorAssignmentPage() {
       setSelectedMentorIds(new Set());
       setSelectedStudentIds(new Set());
       setShowResetConfirm(false);
+      setShowClearStudentsConfirm(false);
       void queryClient.invalidateQueries({ queryKey: ["mentor-capacity"] });
       void queryClient.invalidateQueries({ queryKey: ["internship-enrollments"] });
     },
@@ -162,6 +164,7 @@ export function MentorAssignmentPage() {
         text: err instanceof ApiError ? err.message : "Failed to clear mentor assignments.",
       });
       setShowResetConfirm(false);
+      setShowClearStudentsConfirm(false);
     },
   });
 
@@ -795,55 +798,44 @@ export function MentorAssignmentPage() {
         </motion.div>
       </motion.div>
 
-      {/* ── 4. TWO-PANEL WORKSPACE ───────────────────────────────────────────── */}
-      <div className="grid grid-cols-12 gap-5 items-start">
-
-        {/* LEFT PANEL: Faculty Mentors */}
-        <motion.div
-          className="col-span-12 xl:col-span-5 rounded-2xl border border-line shadow-sm flex flex-col overflow-hidden"
-          style={{ height: "780px" }}
-          variants={cardReveal}
-          initial="hidden"
-          animate="shown"
-          transition={{ delay: 0.2 }}
+      {/* ── 4. SECTION 1: PARTICIPATING FACULTY MENTORS (TOP) ──────────────── */}
+      <motion.div
+        className="w-full rounded-2xl border border-line shadow-sm flex flex-col overflow-hidden mb-6 bg-surface"
+        variants={cardReveal}
+        initial="hidden"
+        animate="shown"
+        transition={{ delay: 0.2 }}
+      >
+        {/* Panel header — navy tinted */}
+        <div
+          className="px-5 py-3.5 border-b border-line/60 flex flex-wrap items-center justify-between gap-3"
+          style={{ background: "linear-gradient(135deg, #0B2545 0%, #174EA6 100%)" }}
         >
-          {/* Panel header — navy tinted */}
-          <div
-            className="px-4 py-3 border-b border-line/60 flex flex-col gap-2.5"
-            style={{ background: "linear-gradient(135deg, #0B2545 0%, #174EA6 100%)" }}
-          >
-            <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-white/10">
+              <Users className="h-4 w-4 text-white" />
+            </div>
+            <div>
               <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-white/10">
-                  <Users className="h-4 w-4 text-white" />
-                </div>
                 <h3 className="font-heading text-sm font-bold text-white">
                   Participating Faculty Mentors
                 </h3>
                 <span className="bg-white/15 text-white text-xs font-mono px-2 py-0.5 rounded-full font-bold border border-white/20">
                   {mentors.length || 25}
                 </span>
+                <span className="text-white/70 text-xs font-medium ml-1">
+                  · <span className="text-emerald-300 font-bold">{selectedCount}</span> Selected for Allocation
+                </span>
               </div>
-              <div className="flex items-center gap-3 text-xs">
-                <button
-                  onClick={handleSelectAllMentors}
-                  className="text-blue-200 hover:text-white font-semibold transition-colors"
-                >
-                  Select All
-                </button>
-                {selectedMentorIds.size > 0 && (
-                  <button
-                    onClick={handleClearMentorSelection}
-                    className="text-white/50 hover:text-white/80 transition-colors"
-                  >
-                    Clear ({selectedMentorIds.size})
-                  </button>
-                )}
-              </div>
+              <p className="text-white/60 text-2xs mt-0.5">
+                Select mentors to participate in sequential roll number student allocation (Max 10 students / mentor)
+              </p>
             </div>
+          </div>
 
+          <div className="flex items-center gap-3">
             {/* Search */}
-            <div className="relative">
+            <div className="relative w-64">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/40" />
               <input
                 value={mentorSearch}
@@ -852,143 +844,173 @@ export function MentorAssignmentPage() {
                 className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:border-white/40 focus:bg-white/15 transition-all font-medium"
               />
             </div>
+            <div className="flex items-center gap-2 text-xs">
+              <button
+                type="button"
+                onClick={handleSelectAllMentors}
+                className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-blue-100 hover:text-white font-semibold transition-colors cursor-pointer"
+              >
+                Select All
+              </button>
+              {selectedMentorIds.size > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearMentorSelection}
+                  className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors cursor-pointer"
+                >
+                  Clear ({selectedMentorIds.size})
+                </button>
+              )}
+            </div>
           </div>
+        </div>
 
-          {/* Mentor card list */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2 bg-surface">
-            <motion.div variants={listContainer} initial="hidden" animate="shown">
-              {filteredMentors.map((m) => {
-                const isFiltered = mentorFilter === String(m.faculty_id);
-                const isChecked = selectedMentorIds.has(m.faculty_id);
-                const isFull = m.assigned_count >= 10;
-                const isWarning = m.assigned_count >= 8 && !isFull;
-                const loadPct = Math.min(m.assigned_count * 10, 100);
+        {/* Mentor card list — Responsive Grid */}
+        <div className="overflow-y-auto custom-scrollbar p-4 bg-surface" style={{ maxHeight: "360px" }}>
+          <motion.div
+            variants={listContainer}
+            initial="hidden"
+            animate="shown"
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3"
+          >
+            {filteredMentors.map((m) => {
+              const isFiltered = mentorFilter === String(m.faculty_id);
+              const isChecked = selectedMentorIds.has(m.faculty_id);
+              const isFull = m.assigned_count >= 10;
+              const isWarning = m.assigned_count >= 8 && !isFull;
+              const loadPct = Math.min(m.assigned_count * 10, 100);
 
-                return (
-                  <motion.div
-                    key={m.faculty_id}
-                    variants={listItem}
-                    className="rounded-xl border transition-all duration-200 overflow-hidden"
-                    style={
-                      isChecked
-                        ? { borderColor: "#3563F6", borderLeftWidth: "3px", background: "rgba(53,99,246,0.05)" }
-                        : isFiltered
-                        ? { borderColor: "rgba(53,99,246,0.5)", background: "#f8faff" }
-                        : { borderColor: "rgb(226 232 240)", background: "white" }
-                    }
-                    whileHover={!isChecked ? { y: -1, boxShadow: "0 4px 12px rgba(15,23,42,0.08)" } : undefined}
-                  >
-                    <div className="p-3">
-                      <div className="flex items-start gap-2.5">
-                        <button
-                          type="button"
-                          onClick={() => toggleSelectMentor(m.faculty_id)}
-                          className="mt-0.5 shrink-0 text-ink-subtle hover:text-blue-600 transition-colors"
-                        >
-                          {isChecked ? (
-                            <CheckSquare className="h-4 w-4 text-blue-600" />
-                          ) : (
-                            <Square className="h-4 w-4" />
-                          )}
-                        </button>
-                        <div className="shrink-0">
-                          <Avatar name={m.name} size="sm" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-1">
-                            <h4 className="font-heading text-sm font-bold text-ink truncate leading-tight">
-                              {m.name}
-                            </h4>
-                            <span
-                              className={`text-[10px] font-mono px-1.5 py-0.5 rounded-md font-bold shrink-0 border ${
-                                isFull
-                                  ? "bg-emerald-100 text-emerald-800 border-emerald-200"
-                                  : isWarning
-                                  ? "bg-amber-100 text-amber-800 border-amber-200"
-                                  : "bg-surface-muted text-ink-muted border-line"
-                              }`}
-                            >
-                              {isFull ? "Full [10/10]" : `[${m.assigned_count}/10]`}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-ink-subtle mt-0.5">
-                            {m.designation ?? "Faculty"} · {m.department_code ?? "ICT"}
-                          </p>
-                        </div>
+              return (
+                <motion.div
+                  key={m.faculty_id}
+                  variants={listItem}
+                  className="rounded-xl border transition-all duration-200 overflow-hidden flex flex-col justify-between"
+                  style={
+                    isChecked
+                      ? { borderColor: "#3563F6", borderLeftWidth: "3px", background: "rgba(53,99,246,0.05)" }
+                      : isFiltered
+                      ? { borderColor: "rgba(53,99,246,0.5)", background: "#f8faff" }
+                      : { borderColor: "rgb(226 232 240)", background: "white" }
+                  }
+                  whileHover={!isChecked ? { y: -1, boxShadow: "0 4px 12px rgba(15,23,42,0.08)" } : undefined}
+                >
+                  <div className="p-3">
+                    <div className="flex items-start gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => toggleSelectMentor(m.faculty_id)}
+                        className="mt-0.5 shrink-0 text-ink-subtle hover:text-blue-600 transition-colors cursor-pointer"
+                      >
+                        {isChecked ? (
+                          <CheckSquare className="h-4 w-4 text-blue-600" />
+                        ) : (
+                          <Square className="h-4 w-4" />
+                        )}
+                      </button>
+                      <div className="shrink-0">
+                        <Avatar name={m.name} size="sm" />
                       </div>
-
-                      {/* Capacity bar */}
-                      <div className="mt-2.5 pl-[calc(1rem+2.5rem-0.25rem)]">
-                        <div className="flex justify-between text-[10px] text-ink-subtle mb-1">
-                          <span>{m.assigned_count} students mapped</span>
-                          <span className="font-mono font-semibold text-ink-muted">{loadPct}% capacity</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-1">
+                          <h4 className="font-heading text-xs font-bold text-ink truncate leading-tight" title={m.name}>
+                            {m.name}
+                          </h4>
                         </div>
-                        <div className="h-1.5 rounded-full bg-surface-muted overflow-hidden">
-                          <motion.div
-                            className={`h-full rounded-full ${
-                              isFull ? "bg-emerald-500" : isWarning ? "bg-amber-500" : "bg-blue-500"
-                            }`}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${loadPct}%` }}
-                            transition={{ duration: 0.6, delay: 0.1 }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Footer */}
-                      <div className="mt-2 pt-2 border-t border-line/30 flex items-center justify-between">
-                        <span className="text-[11px] text-ink-subtle">
-                          {m.assigned_count > 0 ? `${m.assigned_count} students mapped` : "0 assigned"}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setMentorFilter(isFiltered ? "ALL" : String(m.faculty_id))}
-                          className="text-[11px] font-semibold transition-colors"
-                          style={{ color: isFiltered ? "#ef4444" : "#3563F6" }}
-                        >
-                          {isFiltered ? "Clear Filter" : `View Mentees (${m.assigned_count})`}
-                        </button>
+                        <p className="text-[11px] text-ink-subtle truncate mt-0.5">
+                          {m.designation ?? "Faculty"} · {m.department_code ?? "ICT"}
+                        </p>
                       </div>
                     </div>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          </div>
 
-          {/* Left panel footer */}
-          <div className="px-4 py-2.5 border-t border-line bg-surface-muted/60 flex items-center justify-between text-xs text-ink-muted">
-            <span>
-              Showing <strong className="text-ink">{filteredMentors.length}</strong> of {mentors.length || 25} Faculty
-            </span>
-            <Link to="/faculty/directory" className="text-blue-600 font-semibold hover:underline text-xs">
-              Faculty Directory →
-            </Link>
-          </div>
-        </motion.div>
+                    {/* Capacity bar */}
+                    <div className="mt-2.5">
+                      <div className="flex justify-between text-[10px] text-ink-subtle mb-1">
+                        <span className="font-medium">{m.assigned_count}/10 students</span>
+                        <span
+                          className={`font-mono font-bold px-1.5 py-0.5 rounded ${
+                            isFull
+                              ? "text-emerald-700 bg-emerald-50"
+                              : isWarning
+                              ? "text-amber-700 bg-amber-50"
+                              : "text-ink-muted"
+                          }`}
+                        >
+                          {loadPct}%
+                        </span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${
+                            isFull ? "bg-emerald-500" : isWarning ? "bg-amber-500" : "bg-blue-500"
+                          }`}
+                          style={{ width: `${loadPct}%` }}
+                        />
+                      </div>
+                    </div>
 
-        {/* RIGHT PANEL: Student Allocation Table */}
-        <motion.div
-          className="col-span-12 xl:col-span-7 rounded-2xl border border-line shadow-sm flex flex-col overflow-hidden"
-          style={{ height: "780px" }}
-          variants={cardReveal}
-          initial="hidden"
-          animate="shown"
-          transition={{ delay: 0.3 }}
-        >
-          {/* Panel header */}
-          <div className="px-4 py-3 border-b border-line bg-surface-muted/40 flex flex-wrap items-center justify-between gap-2">
-            <div>
+                    {/* Footer */}
+                    <div className="mt-2.5 pt-2 border-t border-line/40 flex items-center justify-between text-[11px]">
+                      <span className="text-ink-subtle text-[10px]">
+                        {m.assigned_count > 0 ? `${m.assigned_count} mapped` : "0 assigned"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMentorFilter(isFiltered ? "ALL" : String(m.faculty_id));
+                          document.getElementById("student-allocation-section")?.scrollIntoView({ behavior: "smooth" });
+                        }}
+                        className="font-semibold transition-colors cursor-pointer text-[11px]"
+                        style={{ color: isFiltered ? "#ef4444" : "#3563F6" }}
+                      >
+                        {isFiltered ? "Clear Filter" : `View Mentees (${m.assigned_count})`}
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        </div>
+
+        {/* Section 1 footer */}
+        <div className="px-5 py-2.5 border-t border-line bg-surface-muted/60 flex items-center justify-between text-xs text-ink-muted">
+          <span>
+            Showing <strong className="text-ink">{filteredMentors.length}</strong> of {mentors.length || 25} Faculty Mentors
+          </span>
+          <Link to="/faculty/directory" className="text-blue-600 font-semibold hover:underline text-xs">
+            Faculty Directory →
+          </Link>
+        </div>
+      </motion.div>
+
+      {/* ── 5. SECTION 2: STUDENT COHORT ALLOCATION (BOTTOM) ──────────────── */}
+      <motion.div
+        id="student-allocation-section"
+        className="w-full rounded-2xl border border-line shadow-sm flex flex-col overflow-hidden bg-surface"
+        variants={cardReveal}
+        initial="hidden"
+        animate="shown"
+        transition={{ delay: 0.3 }}
+      >
+        {/* Panel header */}
+        <div className="px-5 py-3.5 border-b border-line bg-surface-muted/40 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
               <h3 className="font-heading text-sm font-bold text-ink">
                 Student Cohort &amp; Roll Number Allocation
               </h3>
-              <p className="text-xs text-ink-subtle mt-0.5">
-                2nd Year B.Tech ICT · Sections A &amp; B · {filteredStudents.length} Students
-              </p>
+              <span className="bg-blue-100 text-blue-800 text-xs font-mono px-2 py-0.5 rounded-full font-bold">
+                {enrollments.length} Students
+              </span>
             </div>
+            <p className="text-xs text-ink-subtle mt-0.5">
+              2nd Year B.Tech ICT · Sections A &amp; B · Roll Number Wise Mentor Allocation Table
+            </p>
+          </div>
 
+          <div className="flex items-center flex-wrap gap-2.5">
             {/* Filter tabs */}
-            <div className="flex items-center bg-surface-muted/70 rounded-lg p-0.5 border border-line text-xs">
+            <div className="flex items-center bg-surface-muted/80 rounded-lg p-0.5 border border-line text-xs">
               {(["ALL", "UNASSIGNED", "ASSIGNED"] as const).map((tab) => {
                 const label =
                   tab === "ALL"
@@ -1001,7 +1023,7 @@ export function MentorAssignmentPage() {
                   <button
                     key={tab}
                     onClick={() => setAssignmentTab(tab)}
-                    className={`px-3 py-1.5 rounded-md font-semibold transition-all duration-150 ${
+                    className={`px-3 py-1.5 rounded-md font-semibold transition-all duration-150 cursor-pointer ${
                       isActive
                         ? tab === "ASSIGNED"
                           ? "bg-surface text-emerald-700 shadow-xs"
@@ -1016,267 +1038,263 @@ export function MentorAssignmentPage() {
                 );
               })}
             </div>
-          </div>
 
-          {/* Mapped Batches strip */}
-          {batchRangeGroups.length > 0 && (
-            <div className="px-3 py-2 bg-surface border-b border-line flex items-center gap-2 overflow-x-auto custom-scrollbar">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-ink-subtle shrink-0">
-                Mapped Batches:
+            {/* Clear All Assigned Mentors Button */}
+            <button
+              type="button"
+              onClick={() => setShowClearStudentsConfirm(true)}
+              disabled={assignedCount === 0 || clearAllAssignments.isPending}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-700 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              title="Clear mentor assignments from all students"
+            >
+              <RotateCcw className="h-3.5 w-3.5 text-rose-600" />
+              <span>Clear All Assigned Mentors ({assignedCount})</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Mapped Batches strip */}
+        {batchRangeGroups.length > 0 && (
+          <div className="px-5 py-2.5 bg-surface border-b border-line flex items-center gap-2.5 overflow-x-auto custom-scrollbar">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-ink-subtle shrink-0">
+              Mapped Batches:
+            </span>
+            {batchRangeGroups.map((g, idx) => (
+              <div
+                key={idx}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-line bg-surface-muted/50 shrink-0 text-xs"
+              >
+                <span className="font-mono text-blue-700 font-bold">{g.range}</span>
+                <span className="text-ink-subtle">·</span>
+                <span className="text-ink font-medium truncate max-w-[120px]">{g.mentorName.split(" ").slice(-1)[0]}</span>
+                <span className="text-emerald-600 font-bold">{g.status}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Search row */}
+        <div className="px-5 py-2.5 border-b border-line bg-surface flex items-center gap-3 justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-ink-subtle" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by student name, roll number, or NGO partner…"
+              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-canvas border border-line text-ink focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all font-medium"
+            />
+          </div>
+          {mentorFilter !== "ALL" && (
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-md font-medium">
+                Viewing Mentees for Faculty ID: #{mentorFilter} ({filteredStudents.length} Students)
               </span>
-              {batchRangeGroups.map((g, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-line bg-surface-muted/50 shrink-0 text-[11px]"
-                >
-                  <span className="font-mono text-blue-700 font-bold">{g.range}</span>
-                  <span className="text-ink-subtle">·</span>
-                  <span className="text-ink font-medium truncate max-w-[100px]">{g.mentorName.split(" ").slice(-1)[0]}</span>
-                  <span className="text-emerald-600 font-bold">{g.status}</span>
-                </div>
-              ))}
+              <button
+                type="button"
+                onClick={() => handleClearFacultyMentees(Number(mentorFilter))}
+                disabled={clearSelectedStudents.isPending}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
+              >
+                <UserX className="h-3.5 w-3.5 text-rose-600" />
+                Unassign This Faculty&apos;s Students
+              </button>
+              <button
+                onClick={() => setMentorFilter("ALL")}
+                className="text-xs font-semibold text-ink-muted hover:text-ink hover:underline shrink-0 cursor-pointer"
+              >
+                ✕ Clear Filter
+              </button>
             </div>
           )}
+        </div>
 
-          {/* Search row */}
-          <div className="px-3 py-2.5 border-b border-line bg-surface flex items-center gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-ink-subtle" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by student name, roll number, or NGO partner…"
-                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-canvas border border-line text-ink focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all font-medium"
-              />
-            </div>
-            {mentorFilter !== "ALL" && (
-              <div className="flex items-center gap-2 shrink-0">
+        {/* Selected students action bar */}
+        <AnimatePresence>
+          {selectedStudentIds.size > 0 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="px-5 py-2.5 bg-blue-50/90 dark:bg-blue-950/40 border-b border-blue-200 dark:border-blue-900/60 flex items-center justify-between gap-3 text-xs overflow-hidden"
+            >
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-blue-900 dark:text-blue-100">
+                  {selectedStudentIds.size} student{selectedStudentIds.size > 1 ? "s" : ""} selected
+                </span>
                 <button
                   type="button"
-                  onClick={() => handleClearFacultyMentees(Number(mentorFilter))}
-                  disabled={clearSelectedStudents.isPending}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-2xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
+                  onClick={() => setSelectedStudentIds(new Set())}
+                  className="text-2xs text-blue-600 hover:text-blue-800 dark:text-blue-400 font-medium hover:underline cursor-pointer"
                 >
-                  <UserX className="h-3 w-3 text-rose-600" />
-                  Unassign Mentees ({filteredStudents.length})
-                </button>
-                <button
-                  onClick={() => setMentorFilter("ALL")}
-                  className="text-xs font-semibold text-ink-muted hover:text-ink hover:underline shrink-0"
-                >
-                  ✕ Close Filter
+                  Deselect all
                 </button>
               </div>
-            )}
-          </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleClearSelectedStudents}
+                  disabled={clearSelectedStudents.isPending}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold text-rose-700 hover:text-rose-800 bg-rose-100 hover:bg-rose-200 border border-rose-300 transition-colors shadow-2xs cursor-pointer"
+                >
+                  <UserX className="h-3.5 w-3.5 text-rose-600" />
+                  <span>Clear Mentors for Selected ({selectedStudentIds.size})</span>
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-          {/* Selected students action bar */}
-          <AnimatePresence>
-            {selectedStudentIds.size > 0 && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="px-3.5 py-2 bg-blue-50/90 dark:bg-blue-950/40 border-b border-blue-200 dark:border-blue-900/60 flex items-center justify-between gap-3 text-xs overflow-hidden"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-blue-900 dark:text-blue-100">
-                    {selectedStudentIds.size} student{selectedStudentIds.size > 1 ? "s" : ""} selected
-                  </span>
+        {/* Table */}
+        <div className="overflow-auto custom-scrollbar" style={{ maxHeight: "620px" }}>
+          <table className="w-full text-left border-collapse">
+            <thead className="sticky top-0 z-10 bg-surface-muted/95 backdrop-blur-sm border-b border-line">
+              <tr>
+                <th className="py-3 px-4 w-12">
                   <button
                     type="button"
-                    onClick={() => setSelectedStudentIds(new Set())}
-                    className="text-2xs text-blue-600 hover:text-blue-800 dark:text-blue-400 font-medium hover:underline cursor-pointer"
+                    onClick={toggleSelectAllStudents}
+                    className="flex items-center text-ink-subtle hover:text-ink transition-colors cursor-pointer"
                   >
-                    Deselect all
+                    {selectedStudentIds.size === filteredStudents.length && filteredStudents.length > 0 ? (
+                      <CheckSquare className="h-4 w-4 text-blue-600" />
+                    ) : (
+                      <Square className="h-4 w-4" />
+                    )}
                   </button>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleClearSelectedStudents}
-                    disabled={clearSelectedStudents.isPending}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-2xs font-semibold text-rose-700 hover:text-rose-800 bg-rose-100 hover:bg-rose-200 border border-rose-300 transition-colors shadow-2xs cursor-pointer"
-                  >
-                    <UserX className="h-3.5 w-3.5 text-rose-600" />
-                    <span>Clear Assigned Mentors ({selectedStudentIds.size})</span>
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Table */}
-          <div className="flex-1 overflow-auto custom-scrollbar">
-            <table className="w-full text-left border-collapse">
-              <thead className="sticky top-0 z-10 bg-surface-muted/95 backdrop-blur-sm border-b border-line">
+                </th>
+                <th className="py-3 px-4 text-2xs font-bold uppercase tracking-widest text-ink-subtle w-32">Roll No</th>
+                <th className="py-3 px-4 text-2xs font-bold uppercase tracking-widest text-ink-subtle w-60">Student Name</th>
+                <th className="py-3 px-4 text-2xs font-bold uppercase tracking-widest text-ink-subtle">NGO / Project</th>
+                <th className="py-3 px-4 text-2xs font-bold uppercase tracking-widest text-ink-subtle w-32">Status</th>
+                <th className="py-3 px-4 text-2xs font-bold uppercase tracking-widest text-ink-subtle min-w-[280px]">Assigned Mentor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredStudents.length === 0 ? (
                 <tr>
-                  <th className="py-2.5 px-3 w-9">
-                    <button
-                      type="button"
-                      onClick={toggleSelectAllStudents}
-                      className="flex items-center text-ink-subtle hover:text-ink transition-colors"
-                    >
-                      {selectedStudentIds.size === filteredStudents.length && filteredStudents.length > 0 ? (
-                        <CheckSquare className="h-4 w-4 text-blue-600" />
-                      ) : (
-                        <Square className="h-4 w-4" />
-                      )}
-                    </button>
-                  </th>
-                  <th className="py-2.5 px-3 text-2xs font-bold uppercase tracking-widest text-ink-subtle">Roll No</th>
-                  <th className="py-2.5 px-3 text-2xs font-bold uppercase tracking-widest text-ink-subtle">Student Name</th>
-                  <th className="py-2.5 px-3 text-2xs font-bold uppercase tracking-widest text-ink-subtle">NGO / Project</th>
-                  <th className="py-2.5 px-3 text-2xs font-bold uppercase tracking-widest text-ink-subtle">Status</th>
-                  <th className="py-2.5 px-3 text-2xs font-bold uppercase tracking-widest text-ink-subtle">Assigned Mentor</th>
+                  <td colSpan={6} className="py-16 text-center text-ink-subtle text-sm">
+                    <div className="flex flex-col items-center gap-2">
+                      <Users className="h-8 w-8 text-ink-subtle/40" />
+                      <span>No students found matching current filters.</span>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filteredStudents.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-16 text-center text-ink-subtle text-sm">
-                      <div className="flex flex-col items-center gap-2">
-                        <Users className="h-8 w-8 text-ink-subtle/40" />
-                        <span>No students found matching current filters.</span>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredStudents.map((row, idx) => {
-                    const currentMentor = mentors.find((m) => m.faculty_id === row.mentor_faculty_id);
-                    const isChecked = selectedStudentIds.has(row.id);
+              ) : (
+                filteredStudents.map((row, idx) => {
+                  const currentMentor = mentors.find((m) => m.faculty_id === row.mentor_faculty_id);
+                  const isChecked = selectedStudentIds.has(row.id);
 
-                    return (
-                      <motion.tr
-                        key={row.id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: Math.min(idx * 0.01, 0.3) }}
-                        className={`border-b border-line/50 transition-colors duration-100 group ${
-                          isChecked
-                            ? "bg-blue-50/60 dark:bg-blue-950/20"
-                            : idx % 2 === 0
-                            ? "bg-white hover:bg-blue-50/30"
-                            : "bg-surface-muted/20 hover:bg-blue-50/30"
-                        }`}
-                      >
-                        <td className="py-2.5 px-3">
-                          <button
-                            type="button"
-                            onClick={() => toggleSelectStudent(row.id)}
-                            className="flex items-center text-ink-subtle hover:text-blue-600 transition-colors"
-                          >
-                            {isChecked ? (
-                              <CheckSquare className="h-4 w-4 text-blue-600" />
-                            ) : (
-                              <Square className="h-4 w-4" />
-                            )}
-                          </button>
-                        </td>
-                        <td className="py-2.5 px-3">
-                          <span className="font-mono font-bold text-xs text-blue-700">
-                            {row.roll_number}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-3">
-                          <div className="flex items-center gap-2">
-                            <Avatar name={row.student_name ?? "Student"} size="xs" />
-                            <span className="font-semibold text-xs text-ink truncate max-w-[160px]">
-                              {row.student_name}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-2.5 px-3">
-                          <span className="text-xs text-ink-muted truncate max-w-[150px] block">
-                            {row.organization_name ?? <span className="text-ink-subtle">—</span>}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-3">
-                          {row.mentor_faculty_id ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                              <span className="w-1 h-1 rounded-full bg-emerald-500" />
-                              Allocated
-                            </span>
+                  return (
+                    <motion.tr
+                      key={row.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: Math.min(idx * 0.005, 0.2) }}
+                      className={`border-b border-line/50 transition-colors duration-100 ${
+                        isChecked
+                          ? "bg-blue-50/60 dark:bg-blue-950/20"
+                          : idx % 2 === 0
+                          ? "bg-white hover:bg-blue-50/30"
+                          : "bg-surface-muted/20 hover:bg-blue-50/30"
+                      }`}
+                    >
+                      <td className="py-2.5 px-4">
+                        <button
+                          type="button"
+                          onClick={() => toggleSelectStudent(row.id)}
+                          className="flex items-center text-ink-subtle hover:text-blue-600 transition-colors cursor-pointer"
+                        >
+                          {isChecked ? (
+                            <CheckSquare className="h-4 w-4 text-blue-600" />
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                              <span className="w-1 h-1 rounded-full bg-amber-500" />
-                              Unassigned
+                            <Square className="h-4 w-4" />
+                          )}
+                        </button>
+                      </td>
+                      <td className="py-2.5 px-4">
+                        <span className="font-mono font-bold text-xs text-blue-700">
+                          {row.roll_number}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-4">
+                        <div className="flex items-center gap-2.5">
+                          <Avatar name={row.student_name ?? "Student"} size="xs" />
+                          <span className="font-semibold text-xs text-ink truncate">
+                            {row.student_name}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-4">
+                        <span className="text-xs text-ink-muted truncate block">
+                          {row.organization_name ?? <span className="text-ink-subtle">—</span>}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-4">
+                        {row.mentor_faculty_id ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-2xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            Allocated
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-2xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                            Unassigned
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-4">
+                        <div className="flex items-center gap-2 max-w-sm">
+                          <Select
+                            value={String(row.mentor_faculty_id ?? "")}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              assignSingle.mutate({
+                                enrollmentId: row.id,
+                                mentorId: val ? Number(val) : null,
+                              });
+                            }}
+                            className="h-8 text-xs font-medium flex-1"
+                          >
+                            <option value="">— Unassigned —</option>
+                            {mentors.map((m) => {
+                              const isCurrent = m.faculty_id === row.mentor_faculty_id;
+                              const isFull = m.assigned_count >= 10 && !isCurrent;
+                              return (
+                                <option key={m.faculty_id} value={m.faculty_id} disabled={isFull}>
+                                  {m.name} ({m.assigned_count}/10{isFull ? " - FULL" : ""})
+                                </option>
+                              );
+                            })}
+                          </Select>
+                          {row.mentor_faculty_id && (
+                            <span className="font-mono text-xs text-blue-700 font-bold px-2 py-0.5 rounded bg-blue-50 border border-blue-100 shrink-0">
+                              {currentMentor?.assigned_count ?? 1}/10
                             </span>
                           )}
-                        </td>
-                        <td className="py-2.5 px-3">
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 min-w-[150px]">
-                              <Select
-                                value={String(row.mentor_faculty_id ?? "")}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  assignSingle.mutate({
-                                    enrollmentId: row.id,
-                                    mentorId: val ? Number(val) : null,
-                                  });
-                                }}
-                                className="h-7 text-2xs font-medium min-w-0 w-full"
-                              >
-                                <option value="">— Unassigned —</option>
-                                {mentors.map((m) => {
-                                  const isCurrent = m.faculty_id === row.mentor_faculty_id;
-                                  const isFull = m.assigned_count >= 10 && !isCurrent;
-                                  return (
-                                    <option key={m.faculty_id} value={m.faculty_id} disabled={isFull}>
-                                      {m.name} ({m.assigned_count}/10{isFull ? " - FULL" : ""})
-                                    </option>
-                                  );
-                                })}
-                              </Select>
-                            </div>
-                            {row.mentor_faculty_id ? (
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <span className="font-mono text-[10px] text-blue-700 font-bold">
-                                  {currentMentor?.assigned_count ?? 1}/10
-                                </span>
-                                <button
-                                  type="button"
-                                  title={`Clear assigned mentor from ${row.student_name ?? "student"}`}
-                                  onClick={() =>
-                                    assignSingle.mutate({
-                                      enrollmentId: row.id,
-                                      mentorId: null,
-                                    })
-                                  }
-                                  disabled={assignSingle.isPending}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded text-2xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors shrink-0 shadow-2xs cursor-pointer active:scale-95"
-                                >
-                                  <UserX className="h-3.5 w-3.5 text-rose-500" />
-                                  <span>Clear</span>
-                                </button>
-                              </div>
-                            ) : null}
-                          </div>
-                        </td>
-                      </motion.tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
 
-          {/* Right panel footer */}
-          <div className="px-4 py-2.5 border-t border-line bg-surface-muted/60 flex items-center justify-between">
-            <span className="text-xs text-ink-muted">
-              Showing <strong className="text-ink">{filteredStudents.length}</strong> of {enrollments.length} Students
+        {/* Section 2 footer */}
+        <div className="px-5 py-3 border-t border-line bg-surface-muted/60 flex items-center justify-between">
+          <span className="text-xs text-ink-muted">
+            Showing <strong className="text-ink">{filteredStudents.length}</strong> of {enrollments.length} Students
+          </span>
+          <div className="flex items-center gap-4">
+            <span className="text-xs font-mono text-ink-muted">
+              <span className="text-emerald-700 font-bold">{assignedCount}</span> Assigned
+              {" · "}
+              <span className="text-amber-600 font-bold">{unassignedCount}</span> Pending
             </span>
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-mono text-ink-muted">
-                <span className="text-emerald-700 font-bold">{assignedCount}</span> Assigned
-                {" · "}
-                <span className="text-amber-600 font-bold">{unassignedCount}</span> Pending
-              </span>
-            </div>
           </div>
-        </motion.div>
-      </div>
+        </div>
+      </motion.div>
 
       {/* Reset Confirmation Dialog */}
       <ConfirmDialog
@@ -1290,6 +1308,20 @@ export function MentorAssignmentPage() {
         destructive
         loading={clearAllAssignments.isPending}
       />
+
+      {/* Clear All Student Mentor Assignments Confirmation */}
+      <ConfirmDialog
+        open={showClearStudentsConfirm}
+        onClose={() => setShowClearStudentsConfirm(false)}
+        onConfirm={() => clearAllAssignments.mutate()}
+        title="Clear All Assigned Mentors"
+        message={`Are you sure you want to clear assigned mentors from all ${assignedCount} students? All students will be reset to Unassigned.`}
+        confirmLabel="Yes, Clear All Student Mentors"
+        cancelLabel="Cancel"
+        destructive
+        loading={clearAllAssignments.isPending}
+      />
+
     </motion.div>
   );
 }
