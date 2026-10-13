@@ -59,6 +59,7 @@ from app.models.system import AuditLog, StoredFile
 from app.storage import get_storage
 from app.services import sections
 from app.seed import data as D
+from app.services import registration as registration_service
 from app.services import scope as scope_service
 from app.seed import curriculum_import
 from app.services import curriculum as curriculum_engine
@@ -687,7 +688,8 @@ def seed(db: Session) -> None:
 
     log("Course offerings…")
     offerings: dict[str, list[CourseOffering]] = {}
-    ict_coordinator = faculty_by_code["ICT-F-102"]
+    ict_coordinator = faculty_by_code["ICT-F-106"]      # Open Electives
+    core_coordinator = faculty_by_code["ICT-F-107"]     # Program Core Electives
 
     # Open Electives: 40 to run, 75 PER SECTION, extra sections open on demand.
     OPEN_ELECTIVE_RULES = dict(
@@ -727,7 +729,7 @@ def seed(db: Session) -> None:
         offerings[pce_code] = [
             make_offering(db, courses[c[0]], semesters[semester_number],
                           components[pce_code],
-                          coordinator=faculty_by_code["ICT-F-101"],
+                          coordinator=core_coordinator,
                           **CORE_ELECTIVE_RULES)
             for c in D.PROGRAM_CORE_ELECTIVES
         ]
@@ -775,6 +777,28 @@ def seed(db: Session) -> None:
         windows[component_code] = window
         for offering in offerings.get(component_code, []):
             offering.registration_window_id = window.id
+    db.flush()
+
+    # Early choice filling, as the department actually runs it: the Semester IV
+    # Open Elective is chosen mid-way through Semester III so the timetable can
+    # be built over the vacation. The courses are put on offer here against the
+    # 2024-28 scheme's slot — the batch now in Semester III — and deliberately
+    # left in no round: opening that round, with its deadline, is the Open
+    # Elective coordinator's job, done from Administration → Registration Rounds.
+    early_slot = db.scalar(
+        select(CurriculumComponent)
+        .join(Curriculum, Curriculum.id == CurriculumComponent.curriculum_id)
+        .where(Curriculum.program_id == ict_program.id,
+               Curriculum.version == "2024-28",
+               CurriculumComponent.component_type == ComponentType.OPEN_ELECTIVE,
+               CurriculumComponent.semester_number == 4)
+    )
+    if early_slot is not None:
+        for c in D.OPEN_ELECTIVES_OTHER_SCHOOL:
+            make_offering(db, courses[c[0]], semesters[4], early_slot,
+                          coordinator=ict_coordinator, **OPEN_ELECTIVE_RULES)
+    for window in windows.values():
+        registration_service.validate_round(db, window)
     db.flush()
 
     log("Minor programmes (official Annexure II catalogue)…")

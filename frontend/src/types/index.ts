@@ -746,6 +746,26 @@ export interface RegistrationWindow {
   /** True when the clock has passed the deadline, whatever the status says. */
   is_past_deadline: boolean;
   is_accepting: boolean;
+  /** The curriculum slots this round's courses belong to. */
+  slots: { id: number; code: string; title: string; semester_number: number;
+    curriculum_id: number }[];
+  /** Semester of those slots; a round for the semester before is choosing ahead. */
+  slot_semester: number | null;
+  /** False for a Head of Department, who reads rounds but does not drive them. */
+  can_manage: boolean;
+}
+
+/** A curriculum slot a coordinator may open a round for, with its courses. */
+export interface RoundSlot {
+  component_id: number; code: string; title: string; component_type: ComponentType;
+  semester_number: number; scope_label: string | null; credits: number;
+  curriculum_id: number; curriculum_version: string;
+  program_id: number; program_code: string; program_name: string;
+  department_id: number;
+  /** Programme data — never a fixed A–D. */
+  divisions: string[];
+  offerings: { id: number; course_code: string; course_title: string;
+    department_code: string | null; registration_window_id: number | null }[];
 }
 
 // ── unified student profile ────────────────────────────────────────────────

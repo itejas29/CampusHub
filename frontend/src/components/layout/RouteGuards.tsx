@@ -30,11 +30,14 @@ export function RequireAuth({ children }: { children: ReactNode }) {
  * only avoids showing a page that would fail anyway.
  */
 export function RequireAccess({
-  children, roles, permission, coordinates,
+  children, roles, permission, coordinates, orRoles,
 }: {
   children: ReactNode; roles?: Role[]; permission?: string;
   /** Alternative to `permission`: any of these scoped coordinations admits. */
   coordinates?: CoordinationDomain[];
+  /** A further alternative: holding any of these roles admits on its own —
+   *  for screens a role may *read* without the permission to manage them. */
+  orRoles?: Role[];
 }) {
   const { can, hasRole, coordinates: holdsCoordination } = useAuth();
 
@@ -47,7 +50,8 @@ export function RequireAccess({
       ? true
       : Boolean(byPermission) || Boolean(byCoordination);
 
-  const allowed = capabilityOk && (!roles || hasRole(...roles));
+  const allowed = (capabilityOk && (!roles || hasRole(...roles)))
+    || Boolean(orRoles && hasRole(...orRoles));
 
   if (!allowed) {
     return (

@@ -1,5 +1,5 @@
 import {
-  BadgeCheck, BarChart3, BookOpen, Building2, CalendarDays, ClipboardList,
+  BadgeCheck, BarChart3, BookOpen, Building2, CalendarClock, CalendarDays, ClipboardList,
   FileStack, GraduationCap, Users, Layers, LayoutDashboard, Library, Megaphone,
   Network, Route, School, ScrollText, Settings, Sparkles, UserCheck, UserCog, UserSquare2,
   type LucideIcon,
@@ -147,6 +147,17 @@ export const NAVIGATION: NavSection[] = [
       {
         label: "Curriculum", to: "/admin/curriculum", icon: ScrollText,
         permission: "academics:manage",
+      },
+      // Where a coordinator opens choice filling and sets its deadline. The
+      // Head of Department gets the same screen, read-only.
+      {
+        label: "Registration Rounds", to: "/admin/elective-rounds", icon: CalendarClock,
+        permission: "electives:manage",
+        coordinates: ["OPEN_ELECTIVE", "CORE_ELECTIVE"],
+      },
+      {
+        label: "Registration Rounds", to: "/admin/elective-rounds", icon: CalendarClock,
+        roles: ["HOD"],
       },
       {
         label: "Elective Allocation", to: "/admin/electives", icon: FileStack,

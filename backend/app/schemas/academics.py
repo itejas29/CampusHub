@@ -387,6 +387,13 @@ class RegistrationWindowOut(ORMModel):
     #: True when the clock has passed the deadline, whatever the status says.
     is_past_deadline: bool = False
     is_accepting: bool = False
+    #: The curriculum slots this round's courses belong to.
+    slots: list[dict] = Field(default_factory=list)
+    #: The semester those slots sit in. A round aimed at the semester before it
+    #: is early choice filling.
+    slot_semester: int | None = None
+    #: False for a Head of Department, who may read a round but not drive it.
+    can_manage: bool = False
 
 
 class RegistrationWindowIn(BaseModel):

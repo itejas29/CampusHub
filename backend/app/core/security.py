@@ -16,6 +16,9 @@ from app.core.config import settings
 
 TokenType = Literal["access", "refresh"]
 _BCRYPT_MAX_BYTES = 72
+#: Tolerated disagreement between the clock that issued a token and the one
+#: verifying it.
+CLOCK_SKEW_LEEWAY = dt.timedelta(seconds=5)
 
 
 def _prepare(password: str) -> bytes:
@@ -67,7 +70,13 @@ def create_refresh_token(subject: str | int) -> str:
 
 def decode_token(token: str, expected_type: TokenType | None = None) -> dict[str, Any]:
     """Raises jwt.PyJWTError on any invalid/expired/mistyped token."""
-    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    # A few seconds of leeway, as RFC 7519 allows for clock skew. Without it a
+    # token is rejected as "issued in the future" whenever the host clock is
+    # stepped back between issue and first use — which a virtualised clock
+    # (Docker Desktop, any NTP correction) does now and then, signing a user
+    # out a moment after they signed in.
+    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM],
+                         leeway=CLOCK_SKEW_LEEWAY)
     if expected_type and payload.get("type") != expected_type:
         raise jwt.InvalidTokenError(f"expected a {expected_type} token")
     return payload

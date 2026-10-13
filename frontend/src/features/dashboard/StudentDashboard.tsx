@@ -225,7 +225,7 @@ export function StudentDashboard() {
             </div>
           </div>
           <div className={cn(TILE_VALUE, "text-ink")}>
-            {!hasChoiceSlots ? "None" : pendingCount > 0 ? `${pendingCount} Pending` : "Up to date"}
+            {pendingCount > 0 ? `${pendingCount} Pending` : !hasChoiceSlots ? "None" : "Up to date"}
           </div>
           <p
             className={cn(
@@ -233,12 +233,12 @@ export function StudentDashboard() {
               pendingCount > 0 ? "text-amber-700 dark:text-amber-400 font-medium" : "text-ink-subtle",
             )}
           >
-            {!semester
-              ? "Curriculum not on record"
-              : !hasChoiceSlots
-                ? `No elective slot in Semester ${roman(semester.semester_number)}`
-                : pendingCount > 0
-                  ? "Waiting on your choice"
+            {pendingCount > 0
+              ? "Waiting on your choice"
+              : !semester
+                ? "Curriculum not on record"
+                : !hasChoiceSlots
+                  ? `No elective slot in Semester ${roman(semester.semester_number)}`
                   : "Nothing is waiting on you"}
           </p>
         </div>

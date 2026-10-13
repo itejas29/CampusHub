@@ -63,7 +63,8 @@ ELECTIVE_SECTIONS = {
 }
 
 
-def reached_elective_sections(components, current_semester: int) -> list[str]:
+def reached_elective_sections(components, current_semester: int,
+                              opened_early=()) -> list[str]:
     """Elective sections that already concern a student, from their curriculum.
 
     A section applies once the curriculum has placed a slot of that kind in a
@@ -72,11 +73,15 @@ def reached_elective_sections(components, current_semester: int) -> list[str]:
     Elective sits in Semester IV is therefore offered none of them, and a
     curriculum with no MOOC slot at all never offers NPTEL. Past semesters keep
     their section: that is where an allocation already made is read.
+
+    `opened_early` is the slots a coordinator's round has opened to the student
+    ahead of that semester (`registration.early_rounds`). Those count too —
+    otherwise the student is told to choose and given no screen to do it on.
     """
     reached = {
         c.component_type for c in components
         if c.semester_number <= current_semester
-    }
+    } | {c.component_type for c in opened_early}
     return [section for kind, section in ELECTIVE_SECTIONS.items() if kind in reached]
 
 

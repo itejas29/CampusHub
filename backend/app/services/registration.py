@@ -10,6 +10,13 @@ stored anywhere it could drift out of step.
     DRAFT -> OPEN -> LOCKED -> ALLOCATED -> PUBLISHED -> CLOSED
               |        |           |            |
         may submit   frozen   run allocation  results visible
+
+**A round, not the semester, is what opens registration early.** At PDEU choice
+filling for a Semester N elective starts mid-way through Semester N-1, so the
+timetable can be built over the vacation. The curriculum alone would refuse that
+student ("opens in semester N"); a round the coordinator has aimed at their
+current semester is what lets them in — see `access_for`. With no round there
+is no early access.
 """
 from __future__ import annotations
 
@@ -19,14 +26,14 @@ from dataclasses import dataclass
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.core.errors import BusinessRuleError
+from app.core.errors import BusinessRuleError, ValidationError
 from app.models.academics import (
     CourseOffering, CurriculumComponent, ElectiveAllocation, ElectivePreference,
     ElectiveRegistrationWindow,
 )
 from app.models.enums import (
-    REGISTRATION_STATE_LABEL, AllocationStatus, RegistrationWindowStatus,
-    StudentRegistrationState,
+    REGISTRATION_STATE_LABEL, AllocationStatus, PreferenceStatus,
+    RegistrationWindowStatus, StudentRegistrationState,
 )
 from app.models.identity import Student
 
@@ -43,6 +50,14 @@ ALLOWED_TRANSITIONS: dict[RegistrationWindowStatus, set[RegistrationWindowStatus
     RegistrationWindowStatus.PUBLISHED: {RegistrationWindowStatus.CLOSED},
     RegistrationWindowStatus.CLOSED: set(),
 }
+
+
+#: A round a student can already see: opened at least once and not yet wound
+#: up. A DRAFT is the coordinator's private work; a CLOSED round is history.
+STUDENT_VISIBLE = (
+    RegistrationWindowStatus.OPEN, RegistrationWindowStatus.LOCKED,
+    RegistrationWindowStatus.ALLOCATED, RegistrationWindowStatus.PUBLISHED,
+)
 
 
 def utcnow() -> dt.datetime:
@@ -293,3 +308,157 @@ def count_students_in_window(db: Session,
 
 def _when(moment: dt.datetime) -> str:
     return moment.strftime("%d %b %Y, %H:%M UTC")
+
+
+# ── early registration ─────────────────────────────────────────────────────
+def access_for(db: Session, student: Student, component: CurriculumComponent):
+    """May this student act on this slot at all?
+
+    Yes once the curriculum has unlocked it — or, before that, while a round the
+    coordinator has opened covers them. The second half is the whole of early
+    choice filling: a Semester III student reaches their Semester IV Open
+    Elective because a round says so, never because a date on a course did.
+
+    The early path is deliberately narrow. The slot has to be in the student's
+    *own* governing curriculum, and the round has to have left DRAFT.
+    """
+    from app.services.eligibility import active_curriculum, student_can_access_component
+
+    base = student_can_access_component(student, component)
+    if base.eligible:
+        return base
+    curriculum = active_curriculum(db, student)
+    if curriculum is None or component.curriculum_id != curriculum.id:
+        return base
+    window = window_for(db, component, student)
+    if window is not None and window.status != RegistrationWindowStatus.DRAFT:
+        return type(base).ok()
+    return base
+
+
+def early_rounds(db: Session, student: Student) -> list[
+        tuple[CurriculumComponent, ElectiveRegistrationWindow]]:
+    """Slots of a *later* semester that a visible round has opened to this student.
+
+    This is what makes the sidebar offer "Open Electives" to a Semester III
+    student, and what puts the round on their dashboard — both would otherwise
+    stay silent until the semester the curriculum names.
+    """
+    from app.services.eligibility import active_curriculum
+
+    curriculum = active_curriculum(db, student)
+    if curriculum is None:
+        return []
+    # Ids, not rows: the window carries JSON columns, which Postgres cannot
+    # SELECT DISTINCT over.
+    pairs = db.execute(
+        select(CourseOffering.curriculum_component_id,
+               CourseOffering.registration_window_id)
+        .join(CurriculumComponent,
+              CurriculumComponent.id == CourseOffering.curriculum_component_id)
+        .join(ElectiveRegistrationWindow,
+              ElectiveRegistrationWindow.id == CourseOffering.registration_window_id)
+        .where(CurriculumComponent.curriculum_id == curriculum.id,
+               CurriculumComponent.semester_number > student.current_semester,
+               ElectiveRegistrationWindow.status.in_(STUDENT_VISIBLE))
+        .distinct()
+    ).all()
+    found = []
+    for component_id, window_id in pairs:
+        window = db.get(ElectiveRegistrationWindow, window_id)
+        if window.accepts_students_from(student.program_id, student.current_semester,
+                                        student.division):
+            found.append((db.get(CurriculumComponent, component_id), window))
+    found.sort(key=lambda pair: (pair[0].semester_number, pair[0].sequence))
+    return found
+
+
+def has_submitted(db: Session, student: Student, component: CurriculumComponent) -> bool:
+    return bool(db.scalar(select(func.count(ElectivePreference.id)).where(
+        ElectivePreference.student_id == student.id,
+        ElectivePreference.curriculum_component_id == component.id,
+        ElectivePreference.status == PreferenceStatus.SUBMITTED,
+    )))
+
+
+# ── what a round may look like ─────────────────────────────────────────────
+def round_components(db: Session,
+                     window: ElectiveRegistrationWindow) -> list[CurriculumComponent]:
+    """The curriculum slots this round's courses belong to."""
+    if window.id is None:
+        # Not saved yet, so nothing can be attached. Without this guard the
+        # comparison below becomes `IS NULL` and matches every unattached course.
+        return []
+    ids = {
+        row for (row,) in db.execute(
+            select(CourseOffering.curriculum_component_id)
+            .where(CourseOffering.registration_window_id == window.id,
+                   CourseOffering.curriculum_component_id.is_not(None))
+            .distinct()
+        )
+    }
+    return [db.get(CurriculumComponent, i) for i in sorted(ids)]
+
+
+def validate_round(db: Session, window: ElectiveRegistrationWindow, *,
+                   opening: bool = False, now: dt.datetime | None = None) -> None:
+    """Refuse a round that could not mean anything sensible to a student.
+
+    Checked when courses are attached, when its rules are edited, and — with
+    `opening` — at the moment it goes live, which is the last point a mistake
+    can be caught before students are told.
+    """
+    now = now or utcnow()
+    components = round_components(db, window)
+
+    wrong_family = [c for c in components if c.component_type != window.component_type]
+    if wrong_family:
+        raise ValidationError(
+            f"{wrong_family[0].title} is not a "
+            f"{window.component_type.value.replace('_', ' ').title()} slot. A round "
+            "covers one elective family."
+        )
+
+    semesters = {c.semester_number for c in components}
+    if len(semesters) > 1:
+        raise ValidationError(
+            "A round covers the slots of one semester. These courses belong to "
+            f"semesters {', '.join(str(n) for n in sorted(semesters))}."
+        )
+    if semesters:
+        slot_semester = next(iter(semesters))
+        allowed = {slot_semester - 1, slot_semester}
+        chosen = set(window.eligible_semesters or [])
+        if not chosen:
+            raise ValidationError(
+                "Choose which semester's students this round is for."
+            )
+        if not chosen <= allowed:
+            raise ValidationError(
+                f"These courses are for Semester {slot_semester}. The round can be "
+                f"run for students currently in Semester {slot_semester - 1} "
+                f"(choosing ahead) or Semester {slot_semester}, not "
+                f"{', '.join(str(n) for n in sorted(chosen - allowed))}."
+            )
+
+    if opening:
+        if not components:
+            raise BusinessRuleError(
+                "Attach at least one course before opening the round — students "
+                "would otherwise see an empty list."
+            )
+        if not window.eligible_program_ids:
+            raise BusinessRuleError(
+                "Choose the programme this round is for before opening it."
+            )
+        closes_at = window.closes_at_utc
+        if closes_at is None:
+            raise BusinessRuleError(
+                "Set a closing time before opening the round. Deadlines are "
+                "enforced by the server, so the round needs one."
+            )
+        if closes_at <= now:
+            raise BusinessRuleError(
+                "The closing time has already passed. Set a later deadline "
+                "before opening the round."
+            )

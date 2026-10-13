@@ -42,6 +42,7 @@ import { EventsAdminPage } from "@/features/admin/EventsAdminPage";
 import { FacultyAdminPage } from "@/features/admin/FacultyAdminPage";
 import { MinorAdminPage } from "@/features/admin/MinorAdminPage";
 import { NptelAdminPage } from "@/features/admin/NptelAdminPage";
+import { RegistrationRoundsPage } from "@/features/admin/RegistrationRoundsPage";
 import { RoleAssignmentsPage } from "@/features/admin/RoleAssignmentsPage";
 import { StudentsAdminPage } from "@/features/admin/StudentsAdminPage";
 
@@ -283,6 +284,18 @@ export default function App() {
                   element={
                     <RequireAccess permission="academics:manage">
                       <CurriculumAdminPage />
+                    </RequireAccess>
+                  }
+                />
+                <Route
+                  path="admin/elective-rounds"
+                  element={
+                    <RequireAccess
+                      permission="electives:manage"
+                      coordinates={["OPEN_ELECTIVE", "CORE_ELECTIVE"]}
+                      orRoles={["HOD"]}
+                    >
+                      <RegistrationRoundsPage />
                     </RequireAccess>
                   }
                 />

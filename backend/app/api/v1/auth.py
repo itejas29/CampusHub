@@ -25,7 +25,7 @@ from app.schemas.auth import (
     StudentContext, TokenPair,
 )
 from app.schemas.common import Message
-from app.services import audit, eligibility, scope
+from app.services import audit, eligibility, registration, scope
 from app.services import internships as internship_service
 from app.services import minors as minor_service
 
@@ -50,10 +50,14 @@ def _student_visible_sections(db, student: Student) -> list[str]:
     endpoints answering to the same rule rather than drifting apart.
 
     The elective sections follow the student's own curriculum the same way: none
-    is offered before the semester that curriculum first places such a slot in.
+    is offered before the semester that curriculum first places such a slot in —
+    unless a coordinator's round has opened one early, which is exactly when the
+    student needs the screen.
     """
     sections: list[str] = eligibility.reached_elective_sections(
-        eligibility.components_for_semester(db, student), student.current_semester)
+        eligibility.components_for_semester(db, student), student.current_semester,
+        opened_early=[c for c, _ in registration.early_rounds(db, student)],
+    )
 
     minor_programs = db.scalars(
         select(MinorProgram).where(MinorProgram.is_active.is_(True))

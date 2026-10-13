@@ -60,3 +60,27 @@ def test_expired_token_is_rejected(monkeypatch):
     )
     with pytest.raises(jwt.ExpiredSignatureError):
         decode_token(token, expected_type="access")
+
+
+def _token_issued(offset_seconds: int) -> str:
+    """An access token whose `iat` is that far from the verifying clock."""
+    from app.core.config import settings
+
+    issued = dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=offset_seconds)
+    return jwt.encode(
+        {"sub": "7", "type": "access", "iat": issued,
+         "exp": issued + dt.timedelta(minutes=30)},
+        settings.SECRET_KEY, algorithm=settings.ALGORITHM,
+    )
+
+
+def test_a_token_survives_the_clock_stepping_back_a_moment():
+    """Regression: with no leeway, a host clock corrected backwards between
+    sign-in and the next request made the token "issued in the future", and the
+    user was signed out a second after signing in."""
+    assert decode_token(_token_issued(3), expected_type="access")["sub"] == "7"
+
+
+def test_a_token_from_well_into_the_future_is_still_rejected():
+    with pytest.raises(jwt.PyJWTError):
+        decode_token(_token_issued(120), expected_type="access")

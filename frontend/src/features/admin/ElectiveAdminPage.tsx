@@ -15,8 +15,8 @@ import { ApiError, api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { roman } from "@/lib/utils";
 import type {
-  Allocation, AllocationRunResult, AllocationStrategy, Curriculum,
-  CurriculumComponent, DistributeResult, Preference, Viability,
+  Allocation, AllocationRunResult, AllocationStrategy, DistributeResult, Preference,
+  RoundSlot, Viability,
 } from "@/types";
 
 export function ElectiveAdminPage() {
@@ -27,25 +27,17 @@ export function ElectiveAdminPage() {
   const [result, setResult] = useState<AllocationRunResult | null>(null);
   const [banner, setBanner] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
 
-  const curriculums = useQuery({
-    queryKey: ["curriculums"],
-    queryFn: () => api.get<Curriculum[]>("/curriculum"),
+  // Only the slots this person runs: their elective family, their department.
+  // The server decides that list, and refuses any other slot on every call
+  // below — this picker used to offer every programme's electives to everyone.
+  const slots = useQuery({
+    queryKey: ["round-slots"],
+    queryFn: () => api.get<RoundSlot[]>("/electives/admin/slots"),
   });
+  const components = slots.data ?? [];
+  const programmes = new Set(components.map((c) => c.program_code));
 
-  // Flatten every elective slot across published curriculums.
-  const components: (CurriculumComponent & { programme: string })[] =
-    (curriculums.data ?? []).flatMap((curriculum) =>
-      curriculum.semesters.flatMap((semester) =>
-        semester.components
-          .filter((component) => component.is_elective)
-          .map((component) => ({
-            ...component,
-            programme: curriculum.program_name ?? curriculum.name,
-          })),
-      ),
-    );
-
-  const selected = components.find((c) => String(c.id) === componentId);
+  const selected = components.find((c) => String(c.component_id) === componentId);
 
   const strategies = useQuery({
     queryKey: ["allocation-strategies"],
@@ -163,14 +155,20 @@ export function ElectiveAdminPage() {
         <CardBody>
           <FormField
             label="Curriculum component"
-            hint="Elective slots are read from the published curriculums — nothing here is hard-coded."
+            hint="The elective slots you coordinate, read from the published curriculum."
           >
             <Select value={componentId} onChange={(e) => setComponentId(e.target.value)}>
-              <option value="">Select a component…</option>
+              <option value="">
+                {slots.isLoading ? "Loading…"
+                  : components.length === 0 ? "No elective slots in your scope"
+                  : "Select a component…"}
+              </option>
               {components.map((component) => (
-                <option key={component.id} value={component.id}>
-                  {component.programme} · Sem {roman(component.semester_number)} ·{" "}
-                  {component.code} — {component.title}
+                <option key={component.component_id} value={component.component_id}>
+                  {/* The programme is only worth naming when there is more than one. */}
+                  {programmes.size > 1 ? `${component.program_code} · ` : ""}
+                  Sem {roman(component.semester_number)} · {component.code} — {component.title}
+                  {" "}({component.curriculum_version} scheme)
                 </option>
               ))}
             </Select>
@@ -182,9 +180,8 @@ export function ElectiveAdminPage() {
               <Badge tone="neutral">Semester {roman(selected.semester_number)}</Badge>
               <Badge tone="neutral">{selected.credits} credits</Badge>
               {selected.scope_label && <Badge tone="accent">{selected.scope_label}</Badge>}
-              {selected.offering_count !== null && (
-                <Badge tone="neutral">{selected.offering_count} offerings</Badge>
-              )}
+              <Badge tone="neutral">{selected.curriculum_version} scheme</Badge>
+              <Badge tone="neutral">{selected.offerings.length} offerings</Badge>
             </div>
           )}
         </CardBody>
@@ -425,7 +422,7 @@ function RunAllocationModal({
   open, onClose, strategies, component, result, loading, onRun,
 }: {
   open: boolean; onClose: () => void; strategies: AllocationStrategy[];
-  component?: CurriculumComponent; result: AllocationRunResult | null;
+  component?: RoundSlot; result: AllocationRunResult | null;
   loading: boolean; onRun: (strategy: string, dryRun: boolean) => void;
 }) {
   const [strategy, setStrategy] = useState("preference_order");

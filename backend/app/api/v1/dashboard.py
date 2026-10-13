@@ -121,10 +121,10 @@ def student_dashboard(db: DbSession, user: CurrentUser) -> StudentDashboard:
     allocated_ids = {a.curriculum_component_id for a in allocations}
     # A MOOC slot is settled by a registration, never by an allocation.
     mooc_rows: dict[int, list[MoocRegistration]] = {}
-    for registration in db.scalars(select(MoocRegistration).where(
+    for mooc_row in db.scalars(select(MoocRegistration).where(
         MoocRegistration.student_id == student.id
     )):
-        mooc_rows.setdefault(registration.curriculum_component_id, []).append(registration)
+        mooc_rows.setdefault(mooc_row.curriculum_component_id, []).append(mooc_row)
     ranked_ids = set(db.scalars(select(ElectivePreference.curriculum_component_id).where(
         ElectivePreference.student_id == student.id,
         ElectivePreference.status == PreferenceStatus.SUBMITTED,
@@ -177,6 +177,27 @@ def student_dashboard(db: DbSession, user: CurrentUser) -> StudentDashboard:
             due_at=closes, context=component.scope_label or component.code,
             link=serializers.elective_path(component), kind="elective",
         ))
+
+    # Rounds a coordinator has opened ahead of the semester the slot sits in.
+    # These are not this semester's requirements, so they are not in the list
+    # above — but the student is being asked to choose, so they belong here and
+    # in the pending count.
+    early_pending = []
+    for component, window in registration.early_rounds(db, student):
+        status = registration.status_for(db, component, student, now)
+        if status.can_submit and not registration.has_submitted(db, student, component):
+            early_pending.append(component)
+            action_items.append(DeadlineItem(
+                title=f"{component.title} — choice filling open for "
+                      f"Semester {component.semester_number}",
+                due_at=status.closes_at, context=window.title,
+                link=serializers.elective_path(component), kind="elective",
+            ))
+    if early_pending:
+        pending_stat = next(s for s in stats if s.key == "pending_electives")
+        pending_stat.value = len(pending_components) + len(early_pending)
+        pending_stat.link = (pending_stat.link
+                             or serializers.elective_path(early_pending[0]))
 
     progress: list[ProgressItem] = []
     for enrollment in enrollments:
