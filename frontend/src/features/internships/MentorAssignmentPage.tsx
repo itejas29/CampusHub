@@ -14,6 +14,7 @@ import {
   Square,
   UserCheck,
   Users,
+  UserX,
   Zap,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -164,6 +165,36 @@ export function MentorAssignmentPage() {
     },
   });
 
+  // Clear mentors for a list of student enrollments
+  const clearSelectedStudents = useMutation({
+    mutationFn: (studentIds: number[]) =>
+      api.post<{ assigned_count: number; message: string }>(
+        `/internships/programs/${activeProgramId}/assign-mentors`,
+        {
+          assignments: studentIds.map((id) => ({
+            enrollment_id: id,
+            mentor_faculty_id: null,
+          })),
+          reason: "Coordinator cleared mentors for selected students",
+        },
+      ),
+    onSuccess: (res) => {
+      setFeedback({
+        tone: "success",
+        text: res.message || "Cleared mentor assignments for selected students.",
+      });
+      setSelectedStudentIds(new Set());
+      void queryClient.invalidateQueries({ queryKey: ["mentor-capacity"] });
+      void queryClient.invalidateQueries({ queryKey: ["internship-enrollments"] });
+    },
+    onError: (err) => {
+      setFeedback({
+        tone: "danger",
+        text: err instanceof ApiError ? err.message : "Failed to clear mentors for selected students.",
+      });
+    },
+  });
+
   // Filtered mentors list
   const filteredMentors = useMemo(() => {
     let list = [...mentors];
@@ -276,6 +307,33 @@ export function MentorAssignmentPage() {
 
   function handleClearMentorSelection() {
     setSelectedMentorIds(new Set());
+  }
+
+  // Clear assigned mentors for all currently selected students
+  function handleClearSelectedStudents() {
+    const idsWithMentors = Array.from(selectedStudentIds).filter((id) => {
+      const student = enrollments.find((e) => e.id === id);
+      return student && student.mentor_faculty_id != null;
+    });
+
+    if (idsWithMentors.length === 0) {
+      setFeedback({
+        tone: "info",
+        text: "None of the selected students currently have an assigned mentor to clear.",
+      });
+      return;
+    }
+
+    clearSelectedStudents.mutate(idsWithMentors);
+  }
+
+  // Clear all mentees for a specific faculty member
+  function handleClearFacultyMentees(facultyId: number) {
+    const studentsToClear = enrollments
+      .filter((e) => e.mentor_faculty_id === facultyId)
+      .map((e) => e.id);
+    if (studentsToClear.length === 0) return;
+    clearSelectedStudents.mutate(studentsToClear);
   }
 
   // Batch Range groups preview
@@ -992,14 +1050,61 @@ export function MentorAssignmentPage() {
               />
             </div>
             {mentorFilter !== "ALL" && (
-              <button
-                onClick={() => setMentorFilter("ALL")}
-                className="text-xs font-semibold text-rose-600 hover:underline shrink-0"
-              >
-                ✕ Clear Mentor Filter
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleClearFacultyMentees(Number(mentorFilter))}
+                  disabled={clearSelectedStudents.isPending}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-2xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
+                >
+                  <UserX className="h-3 w-3 text-rose-600" />
+                  Unassign Mentees ({filteredStudents.length})
+                </button>
+                <button
+                  onClick={() => setMentorFilter("ALL")}
+                  className="text-xs font-semibold text-ink-muted hover:text-ink hover:underline shrink-0"
+                >
+                  ✕ Close Filter
+                </button>
+              </div>
             )}
           </div>
+
+          {/* Selected students action bar */}
+          <AnimatePresence>
+            {selectedStudentIds.size > 0 && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="px-3.5 py-2 bg-blue-50/90 dark:bg-blue-950/40 border-b border-blue-200 dark:border-blue-900/60 flex items-center justify-between gap-3 text-xs overflow-hidden"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-blue-900 dark:text-blue-100">
+                    {selectedStudentIds.size} student{selectedStudentIds.size > 1 ? "s" : ""} selected
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStudentIds(new Set())}
+                    className="text-2xs text-blue-600 hover:text-blue-800 dark:text-blue-400 font-medium hover:underline cursor-pointer"
+                  >
+                    Deselect all
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleClearSelectedStudents}
+                    disabled={clearSelectedStudents.isPending}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-2xs font-semibold text-rose-700 hover:text-rose-800 bg-rose-100 hover:bg-rose-200 border border-rose-300 transition-colors shadow-2xs cursor-pointer"
+                  >
+                    <UserX className="h-3.5 w-3.5 text-rose-600" />
+                    <span>Clear Assigned Mentors ({selectedStudentIds.size})</span>
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Table */}
           <div className="flex-1 overflow-auto custom-scrollbar">
@@ -1100,34 +1205,53 @@ export function MentorAssignmentPage() {
                           )}
                         </td>
                         <td className="py-2.5 px-3">
-                          <div className="flex items-center gap-1.5">
-                            <Select
-                              value={String(row.mentor_faculty_id ?? "")}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                assignSingle.mutate({
-                                  enrollmentId: row.id,
-                                  mentorId: val ? Number(val) : null,
-                                });
-                              }}
-                              className="h-7 text-2xs font-medium min-w-0"
-                            >
-                              <option value="">— Unassigned —</option>
-                              {mentors.map((m) => {
-                                const isCurrent = m.faculty_id === row.mentor_faculty_id;
-                                const isFull = m.assigned_count >= 10 && !isCurrent;
-                                return (
-                                  <option key={m.faculty_id} value={m.faculty_id} disabled={isFull}>
-                                    {m.name} ({m.assigned_count}/10{isFull ? " - FULL" : ""})
-                                  </option>
-                                );
-                              })}
-                            </Select>
-                            {row.mentor_faculty_id && (
-                              <span className="font-mono text-[10px] text-blue-700 font-bold shrink-0">
-                                {currentMentor?.assigned_count ?? 1}/10
-                              </span>
-                            )}
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 min-w-[150px]">
+                              <Select
+                                value={String(row.mentor_faculty_id ?? "")}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  assignSingle.mutate({
+                                    enrollmentId: row.id,
+                                    mentorId: val ? Number(val) : null,
+                                  });
+                                }}
+                                className="h-7 text-2xs font-medium min-w-0 w-full"
+                              >
+                                <option value="">— Unassigned —</option>
+                                {mentors.map((m) => {
+                                  const isCurrent = m.faculty_id === row.mentor_faculty_id;
+                                  const isFull = m.assigned_count >= 10 && !isCurrent;
+                                  return (
+                                    <option key={m.faculty_id} value={m.faculty_id} disabled={isFull}>
+                                      {m.name} ({m.assigned_count}/10{isFull ? " - FULL" : ""})
+                                    </option>
+                                  );
+                                })}
+                              </Select>
+                            </div>
+                            {row.mentor_faculty_id ? (
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className="font-mono text-[10px] text-blue-700 font-bold">
+                                  {currentMentor?.assigned_count ?? 1}/10
+                                </span>
+                                <button
+                                  type="button"
+                                  title={`Clear assigned mentor from ${row.student_name ?? "student"}`}
+                                  onClick={() =>
+                                    assignSingle.mutate({
+                                      enrollmentId: row.id,
+                                      mentorId: null,
+                                    })
+                                  }
+                                  disabled={assignSingle.isPending}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded text-2xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors shrink-0 shadow-2xs cursor-pointer active:scale-95"
+                                >
+                                  <UserX className="h-3.5 w-3.5 text-rose-500" />
+                                  <span>Clear</span>
+                                </button>
+                              </div>
+                            ) : null}
                           </div>
                         </td>
                       </motion.tr>

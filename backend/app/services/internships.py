@@ -365,6 +365,8 @@ def override_mentor(
     enrollment.mentor_faculty_id = new_faculty_id
     if new_faculty_id and enrollment.status == EnrollmentStatus.REGISTERED:
         enrollment.status = EnrollmentStatus.MENTOR_ASSIGNED
+    elif not new_faculty_id and enrollment.status == EnrollmentStatus.MENTOR_ASSIGNED:
+        enrollment.status = EnrollmentStatus.REGISTERED
 
     audit.record(
         db, action=AuditAction.MENTOR_OVERRIDE, entity_type="internship_enrollment",
