@@ -400,14 +400,14 @@ export function MentorAssignmentPage() {
 
   return (
     <motion.div
-      className="space-y-0"
+      className="space-y-0 pb-12"
       initial="hidden"
       animate="shown"
       variants={slideUp}
     >
       {/* ── 1. HERO BANNER ──────────────────────────────────────────────────── */}
       <motion.div
-        className="relative overflow-hidden rounded-2xl mb-5"
+        className="relative overflow-hidden rounded-2xl mb-7 shadow-sm"
         style={{ background: "linear-gradient(135deg, #0B2545 0%, #174EA6 60%, #1a56b0 100%)" }}
         variants={heroReveal}
       >
@@ -578,9 +578,9 @@ export function MentorAssignmentPage() {
       </AnimatePresence>
 
       {/* ── 2. ACTION TOOLBAR ────────────────────────────────────────────────── */}
-      <div className="bg-surface rounded-xl px-4 py-3 border border-line shadow-xs flex flex-wrap items-center gap-3 justify-between mb-5">
+      <div className="bg-surface rounded-2xl px-5 py-3.5 border border-line shadow-xs flex flex-wrap items-center gap-3.5 justify-between mb-7">
         {/* Left: selection actions */}
-        <div className="flex items-center flex-wrap gap-2">
+        <div className="flex items-center flex-wrap gap-2.5">
           <button
             onClick={handleAutoSelectRequiredMentors}
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold border transition-all duration-150"
@@ -593,7 +593,7 @@ export function MentorAssignmentPage() {
           </button>
           <button
             onClick={handleRandomlyPickMentors}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold border border-line text-ink-muted bg-surface hover:border-line-strong hover:text-ink transition-all duration-150"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold border border-line text-ink-muted bg-surface hover:border-line-strong hover:text-ink transition-all duration-150 cursor-pointer"
           >
             <Dices className="h-4 w-4 shrink-0" />
             Randomly Select Faculty
@@ -619,7 +619,7 @@ export function MentorAssignmentPage() {
         </div>
 
         {/* Right: actions */}
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-2.5 ml-auto">
           <Button
             variant="secondary"
             size="sm"
@@ -647,7 +647,7 @@ export function MentorAssignmentPage() {
 
       {/* ── 3. METRICS STRIP ─────────────────────────────────────────────────── */}
       <motion.div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8"
         variants={staggerContainer}
         initial="hidden"
         animate="shown"
@@ -800,7 +800,7 @@ export function MentorAssignmentPage() {
 
       {/* ── 4. SECTION 1: PARTICIPATING FACULTY MENTORS (TOP) ──────────────── */}
       <motion.div
-        className="w-full rounded-2xl border border-line shadow-sm flex flex-col overflow-hidden mb-6 bg-surface"
+        className="w-full rounded-2xl border border-line shadow-sm flex flex-col overflow-hidden mb-8 bg-surface"
         variants={cardReveal}
         initial="hidden"
         animate="shown"
@@ -808,26 +808,26 @@ export function MentorAssignmentPage() {
       >
         {/* Panel header — navy tinted */}
         <div
-          className="px-5 py-3.5 border-b border-line/60 flex flex-wrap items-center justify-between gap-3"
+          className="px-6 py-4 border-b border-line/60 flex flex-wrap items-center justify-between gap-4"
           style={{ background: "linear-gradient(135deg, #0B2545 0%, #174EA6 100%)" }}
         >
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-white/10">
-              <Users className="h-4 w-4 text-white" />
+          <div className="flex items-center gap-3.5">
+            <div className="p-2.5 rounded-xl bg-white/10">
+              <Users className="h-5 w-5 text-white" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-heading text-sm font-bold text-white">
+              <div className="flex items-center gap-2.5">
+                <h3 className="font-heading text-base font-bold text-white">
                   Participating Faculty Mentors
                 </h3>
-                <span className="bg-white/15 text-white text-xs font-mono px-2 py-0.5 rounded-full font-bold border border-white/20">
+                <span className="bg-white/15 text-white text-xs font-mono px-2.5 py-0.5 rounded-full font-bold border border-white/20">
                   {mentors.length || 25}
                 </span>
                 <span className="text-white/70 text-xs font-medium ml-1">
                   · <span className="text-emerald-300 font-bold">{selectedCount}</span> Selected for Allocation
                 </span>
               </div>
-              <p className="text-white/60 text-2xs mt-0.5">
+              <p className="text-white/70 text-xs mt-0.5">
                 Select mentors to participate in sequential roll number student allocation (Max 10 students / mentor)
               </p>
             </div>
@@ -835,20 +835,20 @@ export function MentorAssignmentPage() {
 
           <div className="flex items-center gap-3">
             {/* Search */}
-            <div className="relative w-64">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/40" />
+            <div className="relative w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/40" />
               <input
                 value={mentorSearch}
                 onChange={(e) => setMentorSearch(e.target.value)}
                 placeholder="Filter by name, dept, designation…"
-                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:border-white/40 focus:bg-white/15 transition-all font-medium"
+                className="w-full pl-9 pr-3.5 py-2 text-xs rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:border-white/50 focus:bg-white/15 transition-all font-medium"
               />
             </div>
             <div className="flex items-center gap-2 text-xs">
               <button
                 type="button"
                 onClick={handleSelectAllMentors}
-                className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-blue-100 hover:text-white font-semibold transition-colors cursor-pointer"
+                className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-blue-100 hover:text-white font-semibold transition-colors cursor-pointer"
               >
                 Select All
               </button>
@@ -856,7 +856,7 @@ export function MentorAssignmentPage() {
                 <button
                   type="button"
                   onClick={handleClearMentorSelection}
-                  className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors cursor-pointer"
+                  className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors cursor-pointer"
                 >
                   Clear ({selectedMentorIds.size})
                 </button>
@@ -865,13 +865,13 @@ export function MentorAssignmentPage() {
           </div>
         </div>
 
-        {/* Mentor card list — Responsive Grid */}
-        <div className="overflow-y-auto custom-scrollbar p-4 bg-surface" style={{ maxHeight: "360px" }}>
+        {/* Mentor card list — Spacious Responsive Grid */}
+        <div className="overflow-y-auto custom-scrollbar p-6 bg-surface-muted/20" style={{ maxHeight: "500px" }}>
           <motion.div
             variants={listContainer}
             initial="hidden"
             animate="shown"
-            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3"
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"
           >
             {filteredMentors.map((m) => {
               const isFiltered = mentorFilter === String(m.faculty_id);
@@ -884,61 +884,77 @@ export function MentorAssignmentPage() {
                 <motion.div
                   key={m.faculty_id}
                   variants={listItem}
-                  className="rounded-xl border transition-all duration-200 overflow-hidden flex flex-col justify-between"
+                  className="rounded-2xl border transition-all duration-200 overflow-hidden flex flex-col justify-between shadow-2xs hover:shadow-md"
                   style={
                     isChecked
-                      ? { borderColor: "#3563F6", borderLeftWidth: "3px", background: "rgba(53,99,246,0.05)" }
+                      ? { borderColor: "#3563F6", borderWidth: "1.5px", background: "rgba(53,99,246,0.025)" }
                       : isFiltered
-                      ? { borderColor: "rgba(53,99,246,0.5)", background: "#f8faff" }
+                      ? { borderColor: "rgba(53,99,246,0.6)", borderWidth: "1.5px", background: "#f8faff" }
                       : { borderColor: "rgb(226 232 240)", background: "white" }
                   }
-                  whileHover={!isChecked ? { y: -1, boxShadow: "0 4px 12px rgba(15,23,42,0.08)" } : undefined}
+                  whileHover={{ y: -2 }}
                 >
-                  <div className="p-3">
-                    <div className="flex items-start gap-2.5">
-                      <button
-                        type="button"
-                        onClick={() => toggleSelectMentor(m.faculty_id)}
-                        className="mt-0.5 shrink-0 text-ink-subtle hover:text-blue-600 transition-colors cursor-pointer"
-                      >
-                        {isChecked ? (
-                          <CheckSquare className="h-4 w-4 text-blue-600" />
-                        ) : (
-                          <Square className="h-4 w-4" />
-                        )}
-                      </button>
-                      <div className="shrink-0">
-                        <Avatar name={m.name} size="sm" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-1">
-                          <h4 className="font-heading text-xs font-bold text-ink truncate leading-tight" title={m.name}>
+                  <div className="p-4 sm:p-5">
+                    {/* Header: Checkbox + Avatar + Name + Load Tag */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3 min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => toggleSelectMentor(m.faculty_id)}
+                          className="mt-0.5 shrink-0 text-ink-subtle hover:text-blue-600 transition-colors cursor-pointer"
+                          title={isChecked ? "Deselect faculty mentor" : "Select faculty mentor"}
+                        >
+                          {isChecked ? (
+                            <CheckSquare className="h-4.5 w-4.5 text-blue-600" />
+                          ) : (
+                            <Square className="h-4.5 w-4.5" />
+                          )}
+                        </button>
+                        <div className="shrink-0">
+                          <Avatar name={m.name} size="sm" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-heading text-sm font-bold text-ink truncate leading-snug" title={m.name}>
                             {m.name}
                           </h4>
+                          <p className="text-xs text-ink-subtle truncate mt-0.5">
+                            {m.designation ?? "Faculty"} · <span className="font-semibold text-ink-muted">{m.department_code ?? "ICT"}</span>
+                          </p>
                         </div>
-                        <p className="text-[11px] text-ink-subtle truncate mt-0.5">
-                          {m.designation ?? "Faculty"} · {m.department_code ?? "ICT"}
-                        </p>
                       </div>
+
+                      <span
+                        className={`text-2xs font-mono px-2 py-0.5 rounded-full font-bold shrink-0 border ${
+                          isFull
+                            ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                            : isWarning
+                            ? "bg-amber-50 text-amber-800 border-amber-200"
+                            : "bg-surface-muted text-ink-muted border-line"
+                        }`}
+                      >
+                        {isFull ? "Full [10/10]" : `[${m.assigned_count}/10]`}
+                      </span>
                     </div>
 
-                    {/* Capacity bar */}
-                    <div className="mt-2.5">
-                      <div className="flex justify-between text-[10px] text-ink-subtle mb-1">
-                        <span className="font-medium">{m.assigned_count}/10 students</span>
+                    {/* Capacity bar section */}
+                    <div className="mt-4 pt-3.5 border-t border-line/40">
+                      <div className="flex items-center justify-between text-xs mb-1.5">
+                        <span className="font-medium text-ink">
+                          {m.assigned_count} <span className="font-normal text-ink-subtle">/ 10 students mapped</span>
+                        </span>
                         <span
-                          className={`font-mono font-bold px-1.5 py-0.5 rounded ${
+                          className={`font-mono text-2xs font-bold px-2 py-0.5 rounded ${
                             isFull
-                              ? "text-emerald-700 bg-emerald-50"
+                              ? "text-emerald-700 bg-emerald-50 font-bold"
                               : isWarning
-                              ? "text-amber-700 bg-amber-50"
-                              : "text-ink-muted"
+                              ? "text-amber-700 bg-amber-50 font-bold"
+                              : "text-ink-subtle font-medium"
                           }`}
                         >
-                          {loadPct}%
+                          {loadPct}% Capacity
                         </span>
                       </div>
-                      <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                      <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-300 ${
                             isFull ? "bg-emerald-500" : isWarning ? "bg-amber-500" : "bg-blue-500"
@@ -948,10 +964,14 @@ export function MentorAssignmentPage() {
                       </div>
                     </div>
 
-                    {/* Footer */}
-                    <div className="mt-2.5 pt-2 border-t border-line/40 flex items-center justify-between text-[11px]">
-                      <span className="text-ink-subtle text-[10px]">
-                        {m.assigned_count > 0 ? `${m.assigned_count} mapped` : "0 assigned"}
+                    {/* Footer: status & action button */}
+                    <div className="mt-4 pt-3 border-t border-line/40 flex items-center justify-between">
+                      <span className="text-xs text-ink-subtle">
+                        {m.assigned_count > 0 ? (
+                          <span className="text-emerald-700 font-semibold">{m.assigned_count} assigned</span>
+                        ) : (
+                          <span className="text-ink-subtle">0 assigned</span>
+                        )}
                       </span>
                       <button
                         type="button"
@@ -959,10 +979,13 @@ export function MentorAssignmentPage() {
                           setMentorFilter(isFiltered ? "ALL" : String(m.faculty_id));
                           document.getElementById("student-allocation-section")?.scrollIntoView({ behavior: "smooth" });
                         }}
-                        className="font-semibold transition-colors cursor-pointer text-[11px]"
-                        style={{ color: isFiltered ? "#ef4444" : "#3563F6" }}
+                        className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${
+                          isFiltered
+                            ? "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"
+                            : "bg-blue-50/80 text-blue-700 border-blue-200/80 hover:bg-blue-100"
+                        }`}
                       >
-                        {isFiltered ? "Clear Filter" : `View Mentees (${m.assigned_count})`}
+                        {isFiltered ? "✕ Clear Filter" : `View Mentees (${m.assigned_count}) →`}
                       </button>
                     </div>
                   </div>
@@ -993,13 +1016,13 @@ export function MentorAssignmentPage() {
         transition={{ delay: 0.3 }}
       >
         {/* Panel header */}
-        <div className="px-5 py-3.5 border-b border-line bg-surface-muted/40 flex flex-wrap items-center justify-between gap-3">
+        <div className="px-6 py-4 border-b border-line bg-surface-muted/40 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-heading text-sm font-bold text-ink">
+            <div className="flex items-center gap-2.5">
+              <h3 className="font-heading text-base font-bold text-ink">
                 Student Cohort &amp; Roll Number Allocation
               </h3>
-              <span className="bg-blue-100 text-blue-800 text-xs font-mono px-2 py-0.5 rounded-full font-bold">
+              <span className="bg-blue-100 text-blue-800 text-xs font-mono px-2.5 py-0.5 rounded-full font-bold">
                 {enrollments.length} Students
               </span>
             </div>
@@ -1055,18 +1078,18 @@ export function MentorAssignmentPage() {
 
         {/* Mapped Batches strip */}
         {batchRangeGroups.length > 0 && (
-          <div className="px-5 py-2.5 bg-surface border-b border-line flex items-center gap-2.5 overflow-x-auto custom-scrollbar">
+          <div className="px-6 py-3 bg-surface border-b border-line flex items-center gap-3 overflow-x-auto custom-scrollbar">
             <span className="text-[10px] font-bold uppercase tracking-widest text-ink-subtle shrink-0">
               Mapped Batches:
             </span>
             {batchRangeGroups.map((g, idx) => (
               <div
                 key={idx}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-line bg-surface-muted/50 shrink-0 text-xs"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-line bg-surface-muted/50 shrink-0 text-xs shadow-2xs"
               >
                 <span className="font-mono text-blue-700 font-bold">{g.range}</span>
                 <span className="text-ink-subtle">·</span>
-                <span className="text-ink font-medium truncate max-w-[120px]">{g.mentorName.split(" ").slice(-1)[0]}</span>
+                <span className="text-ink font-medium truncate max-w-[140px]">{g.mentorName.split(" ").slice(-1)[0]}</span>
                 <span className="text-emerald-600 font-bold">{g.status}</span>
               </div>
             ))}
@@ -1074,26 +1097,26 @@ export function MentorAssignmentPage() {
         )}
 
         {/* Search row */}
-        <div className="px-5 py-2.5 border-b border-line bg-surface flex items-center gap-3 justify-between">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-ink-subtle" />
+        <div className="px-6 py-3.5 border-b border-line bg-surface flex items-center gap-4 justify-between">
+          <div className="relative flex-1 max-w-lg">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-subtle" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by student name, roll number, or NGO partner…"
-              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-canvas border border-line text-ink focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all font-medium"
+              className="w-full pl-9 pr-3.5 py-2 text-xs rounded-xl bg-canvas border border-line text-ink focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all font-medium"
             />
           </div>
           {mentorFilter !== "ALL" && (
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-xs text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-md font-medium">
+            <div className="flex items-center gap-2.5 shrink-0">
+              <span className="text-xs text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg font-medium">
                 Viewing Mentees for Faculty ID: #{mentorFilter} ({filteredStudents.length} Students)
               </span>
               <button
                 type="button"
                 onClick={() => handleClearFacultyMentees(Number(mentorFilter))}
                 disabled={clearSelectedStudents.isPending}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
               >
                 <UserX className="h-3.5 w-3.5 text-rose-600" />
                 Unassign This Faculty&apos;s Students
@@ -1115,9 +1138,9 @@ export function MentorAssignmentPage() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="px-5 py-2.5 bg-blue-50/90 dark:bg-blue-950/40 border-b border-blue-200 dark:border-blue-900/60 flex items-center justify-between gap-3 text-xs overflow-hidden"
+              className="px-6 py-3 bg-blue-50/90 dark:bg-blue-950/40 border-b border-blue-200 dark:border-blue-900/60 flex items-center justify-between gap-3 text-xs overflow-hidden"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <span className="font-semibold text-blue-900 dark:text-blue-100">
                   {selectedStudentIds.size} student{selectedStudentIds.size > 1 ? "s" : ""} selected
                 </span>
@@ -1134,7 +1157,7 @@ export function MentorAssignmentPage() {
                   type="button"
                   onClick={handleClearSelectedStudents}
                   disabled={clearSelectedStudents.isPending}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold text-rose-700 hover:text-rose-800 bg-rose-100 hover:bg-rose-200 border border-rose-300 transition-colors shadow-2xs cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-700 hover:text-rose-800 bg-rose-100 hover:bg-rose-200 border border-rose-300 transition-colors shadow-2xs cursor-pointer"
                 >
                   <UserX className="h-3.5 w-3.5 text-rose-600" />
                   <span>Clear Mentors for Selected ({selectedStudentIds.size})</span>
@@ -1149,24 +1172,24 @@ export function MentorAssignmentPage() {
           <table className="w-full text-left border-collapse">
             <thead className="sticky top-0 z-10 bg-surface-muted/95 backdrop-blur-sm border-b border-line">
               <tr>
-                <th className="py-3 px-4 w-12">
+                <th className="py-3.5 px-5 w-12">
                   <button
                     type="button"
                     onClick={toggleSelectAllStudents}
                     className="flex items-center text-ink-subtle hover:text-ink transition-colors cursor-pointer"
                   >
                     {selectedStudentIds.size === filteredStudents.length && filteredStudents.length > 0 ? (
-                      <CheckSquare className="h-4 w-4 text-blue-600" />
+                      <CheckSquare className="h-4.5 w-4.5 text-blue-600" />
                     ) : (
-                      <Square className="h-4 w-4" />
+                      <Square className="h-4.5 w-4.5" />
                     )}
                   </button>
                 </th>
-                <th className="py-3 px-4 text-2xs font-bold uppercase tracking-widest text-ink-subtle w-32">Roll No</th>
-                <th className="py-3 px-4 text-2xs font-bold uppercase tracking-widest text-ink-subtle w-60">Student Name</th>
-                <th className="py-3 px-4 text-2xs font-bold uppercase tracking-widest text-ink-subtle">NGO / Project</th>
-                <th className="py-3 px-4 text-2xs font-bold uppercase tracking-widest text-ink-subtle w-32">Status</th>
-                <th className="py-3 px-4 text-2xs font-bold uppercase tracking-widest text-ink-subtle min-w-[280px]">Assigned Mentor</th>
+                <th className="py-3.5 px-5 text-2xs font-bold uppercase tracking-widest text-ink-subtle w-32">Roll No</th>
+                <th className="py-3.5 px-5 text-2xs font-bold uppercase tracking-widest text-ink-subtle w-60">Student Name</th>
+                <th className="py-3.5 px-5 text-2xs font-bold uppercase tracking-widest text-ink-subtle">NGO / Project</th>
+                <th className="py-3.5 px-5 text-2xs font-bold uppercase tracking-widest text-ink-subtle w-32">Status</th>
+                <th className="py-3.5 px-5 text-2xs font-bold uppercase tracking-widest text-ink-subtle min-w-[280px]">Assigned Mentor</th>
               </tr>
             </thead>
             <tbody>
@@ -1198,25 +1221,25 @@ export function MentorAssignmentPage() {
                           : "bg-surface-muted/20 hover:bg-blue-50/30"
                       }`}
                     >
-                      <td className="py-2.5 px-4">
+                      <td className="py-3.5 px-5">
                         <button
                           type="button"
                           onClick={() => toggleSelectStudent(row.id)}
                           className="flex items-center text-ink-subtle hover:text-blue-600 transition-colors cursor-pointer"
                         >
                           {isChecked ? (
-                            <CheckSquare className="h-4 w-4 text-blue-600" />
+                            <CheckSquare className="h-4.5 w-4.5 text-blue-600" />
                           ) : (
-                            <Square className="h-4 w-4" />
+                            <Square className="h-4.5 w-4.5" />
                           )}
                         </button>
                       </td>
-                      <td className="py-2.5 px-4">
+                      <td className="py-3.5 px-5">
                         <span className="font-mono font-bold text-xs text-blue-700">
                           {row.roll_number}
                         </span>
                       </td>
-                      <td className="py-2.5 px-4">
+                      <td className="py-3.5 px-5">
                         <div className="flex items-center gap-2.5">
                           <Avatar name={row.student_name ?? "Student"} size="xs" />
                           <span className="font-semibold text-xs text-ink truncate">
@@ -1224,12 +1247,12 @@ export function MentorAssignmentPage() {
                           </span>
                         </div>
                       </td>
-                      <td className="py-2.5 px-4">
+                      <td className="py-3.5 px-5">
                         <span className="text-xs text-ink-muted truncate block">
                           {row.organization_name ?? <span className="text-ink-subtle">—</span>}
                         </span>
                       </td>
-                      <td className="py-2.5 px-4">
+                      <td className="py-3.5 px-5">
                         {row.mentor_faculty_id ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-2xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -1242,7 +1265,7 @@ export function MentorAssignmentPage() {
                           </span>
                         )}
                       </td>
-                      <td className="py-2.5 px-4">
+                      <td className="py-3.5 px-5">
                         <div className="flex items-center gap-2 max-w-sm">
                           <Select
                             value={String(row.mentor_faculty_id ?? "")}
@@ -1282,7 +1305,7 @@ export function MentorAssignmentPage() {
         </div>
 
         {/* Section 2 footer */}
-        <div className="px-5 py-3 border-t border-line bg-surface-muted/60 flex items-center justify-between">
+        <div className="px-6 py-3.5 border-t border-line bg-surface-muted/60 flex items-center justify-between">
           <span className="text-xs text-ink-muted">
             Showing <strong className="text-ink">{filteredStudents.length}</strong> of {enrollments.length} Students
           </span>
