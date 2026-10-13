@@ -101,6 +101,8 @@ export function MentorAssignmentPage() {
       setFeedback({ tone: "success", text: "Mentor assignment updated successfully." });
       void queryClient.invalidateQueries({ queryKey: ["mentor-capacity"] });
       void queryClient.invalidateQueries({ queryKey: ["internship-enrollments"] });
+      void queryClient.refetchQueries({ queryKey: ["mentor-capacity"] });
+      void queryClient.refetchQueries({ queryKey: ["internship-enrollments"] });
     },
     onError: (err) => {
       setFeedback({
@@ -127,6 +129,8 @@ export function MentorAssignmentPage() {
       setFeedback({ tone: "success", text: res.message });
       void queryClient.invalidateQueries({ queryKey: ["mentor-capacity"] });
       void queryClient.invalidateQueries({ queryKey: ["internship-enrollments"] });
+      void queryClient.refetchQueries({ queryKey: ["mentor-capacity"] });
+      void queryClient.refetchQueries({ queryKey: ["internship-enrollments"] });
     },
     onError: (err) => {
       setFeedback({
@@ -157,6 +161,8 @@ export function MentorAssignmentPage() {
       setShowClearStudentsConfirm(false);
       void queryClient.invalidateQueries({ queryKey: ["mentor-capacity"] });
       void queryClient.invalidateQueries({ queryKey: ["internship-enrollments"] });
+      void queryClient.refetchQueries({ queryKey: ["mentor-capacity"] });
+      void queryClient.refetchQueries({ queryKey: ["internship-enrollments"] });
     },
     onError: (err) => {
       setFeedback({
@@ -189,6 +195,8 @@ export function MentorAssignmentPage() {
       setSelectedStudentIds(new Set());
       void queryClient.invalidateQueries({ queryKey: ["mentor-capacity"] });
       void queryClient.invalidateQueries({ queryKey: ["internship-enrollments"] });
+      void queryClient.refetchQueries({ queryKey: ["mentor-capacity"] });
+      void queryClient.refetchQueries({ queryKey: ["internship-enrollments"] });
     },
     onError: (err) => {
       setFeedback({
