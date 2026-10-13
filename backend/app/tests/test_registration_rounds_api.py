@@ -650,3 +650,105 @@ def test_the_hod_and_plain_faculty_cannot_reach_the_allocation_screens(
 
 def test_an_unknown_slot_is_not_found_rather_than_empty(api, login, campus):
     assert allocation_reads(api, login(campus.open.email), 999_999) == [404, 404, 404]
+
+
+# ── Core Electives: the same flow, their own coordinator ─────────────────
+@pytest.fixture
+def core_round(api, login, campus):
+    """Program Elective 1 (Semester V) opened to Semester IV students."""
+    headers = login(campus.core.email)
+    round_id = api.post(WINDOWS, headers=headers, json=payload(
+        campus, code="PE1-EARLY", title="Program Elective 1 — for Semester V",
+        component_type="PROGRAM_CORE_ELECTIVE", eligible_semesters=[4])).json()["id"]
+    api.post(f"{WINDOWS}/{round_id}/offerings", headers=headers,
+             json={"offering_ids": [o.id for o in campus.offerings["PE1"]]})
+    assert move(api, headers, round_id, "OPEN").status_code == 200
+    return round_id
+
+
+def test_a_core_elective_round_lets_the_semester_before_choose(
+        api, login, world, campus, core_round, db):
+    world.student_a.student.current_semester = 4
+    db.flush()
+    headers = login(world.student_a.email)
+
+    state = workspace(api, headers, campus, slot="PE1")
+    assert state["eligible"] is True and state["registration_state"] == "OPEN"
+    assert submit(api, headers, campus, slot="PE1").status_code == 200
+
+    pending, items = dashboard(api, headers)
+    assert all("Program Elective 1" not in i["title"] for i in items)   # submitted
+
+
+def test_a_core_round_sends_the_student_to_the_core_elective_screen(
+        api, login, world, campus, core_round, db):
+    world.student_a.student.current_semester = 4
+    db.flush()
+    headers = login(world.student_a.email)
+
+    _pending, items = dashboard(api, headers)
+    link = next(i["link"] for i in items if "Program Elective 1" in i["title"])
+    assert link == f"/academics/core-electives/{campus.components['PE1'].id}"
+    assert "core_electives" in sections(api, headers)
+
+
+def test_a_core_round_opens_nothing_in_the_open_elective_family(
+        api, login, world, campus, core_round, db):
+    """One round, one family: the Semester IV student's *Open* Elective is
+    theirs anyway (it sits in Semester IV), but Open Elective 3 stays shut."""
+    world.student_a.student.current_semester = 4
+    db.flush()
+    headers = login(world.student_a.email)
+    assert workspace(api, headers, campus, slot="OE3")["eligible"] is False
+
+
+def test_the_open_elective_coordinator_cannot_touch_the_core_round(
+        api, login, campus, core_round):
+    headers = login(campus.open.email)
+    assert api.get(f"{WINDOWS}/{core_round}", headers=headers).status_code == 403
+    assert move(api, headers, core_round, "LOCKED").status_code == 403
+
+
+# ── two cohorts, one slot ─────────────────────────────────────────────────
+def test_each_cohort_chooses_only_from_its_own_rounds_courses(
+        api, login, world, campus, db):
+    """Semester IV is choosing in its own round while Semester III chooses
+    ahead for next year. A course belongs to one round, and a student sees — and
+    may rank — only the courses of the round that covers them."""
+    headers = login(campus.open.email)
+    ours, theirs = campus.offerings["OE1"][:2], campus.offerings["OE1"][2:]
+
+    def open_round(code, semester, offerings):
+        round_id = api.post(WINDOWS, headers=headers, json=payload(
+            campus, code=code, eligible_semesters=[semester])).json()["id"]
+        api.post(f"{WINDOWS}/{round_id}/offerings", headers=headers,
+                 json={"offering_ids": [o.id for o in offerings]})
+        assert move(api, headers, round_id, "OPEN").status_code == 200
+
+    open_round("OE1-AHEAD", 3, ours)       # student_a, Semester III
+    open_round("OE1-NOW", 4, theirs)       # student_b, moved to Semester IV
+    world.student_b.student.current_semester = 4
+    db.flush()
+
+    ahead = workspace(api, login(world.student_a.email), campus)
+    now = workspace(api, login(world.student_b.email), campus)
+    assert {o["id"] for o in ahead["offerings"]} == {o.id for o in ours}
+    assert {o["id"] for o in now["offerings"]} == {o.id for o in theirs}
+
+    # Ranking a course from the other cohort's round is refused.
+    stolen = {"curriculum_component_id": campus.components["OE1"].id,
+              "preferences": [{"course_offering_id": theirs[0].id, "preference_order": 1}]}
+    refused = api.post("/api/v1/electives/preferences", json=stolen,
+                       headers=login(world.student_a.email))
+    assert refused.status_code == 422
+
+
+def test_a_student_no_round_covers_does_not_see_another_cohorts_courses(
+        api, login, world, campus, live, db):
+    """`live` is aimed at Semester III. A Semester IV student has the slot by
+    right of the curriculum, but those courses are the other cohort's."""
+    world.student_b.student.current_semester = 4
+    db.flush()
+    state = workspace(api, login(world.student_b.email), campus)
+    assert state["eligible"] is True
+    assert state["offerings"] == []

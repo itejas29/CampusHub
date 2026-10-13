@@ -478,6 +478,28 @@ def seed(db: Session) -> None:
         db.flush()
         semesters[number] = semester
 
+    # The terms the *next* cohort will take their electives in. A course is
+    # offered once per slot per term, so the courses students choose ahead for
+    # are next year's offerings, not a second copy of this year's.
+    upcoming = AcademicYear(label="2026-27", start_date=dt.date(2026, 7, 1),
+                            end_date=dt.date(2027, 6, 30), is_current=False)
+    db.add(upcoming)
+    db.flush()
+    next_semesters: dict[int, Semester] = {}
+    for number in (4, 5):
+        term = SemesterTerm.ODD if number % 2 else SemesterTerm.EVEN
+        semester = Semester(
+            academic_year_id=upcoming.id, number=number, term=term,
+            start_date=dt.date(2026, 7, 15) if term is SemesterTerm.ODD
+            else dt.date(2027, 1, 5),
+            end_date=dt.date(2026, 11, 30) if term is SemesterTerm.ODD
+            else dt.date(2027, 5, 20),
+            is_current=False,
+        )
+        db.add(semester)
+        db.flush()
+        next_semesters[number] = semester
+
     log("Elective types…")
     elective_types = {}
     for code, name, component_type, mode, min_p, max_p, description in [
@@ -516,51 +538,26 @@ def seed(db: Session) -> None:
     programs = {p.code: p for p in db.scalars(select(Program))}
     departments = {d.code: d for d in db.scalars(select(Department))}
 
-    log("ICT pre-2024 curriculum (the cohort already part-way through)…")
-    # The demo ICT cohort was admitted 2021-2025. The imported official 2024-28
-    # structure governs the 2024 and 2025 batches; the earlier batches keep the
-    # structure they were admitted under, which is exactly why versions carry a
-    # bounded batch window. Historical curricula are never deleted.
-    curriculum = Curriculum(
-        program_id=programs["B.TECH-ICT"].id,
-        name="B.Tech ICT — Curriculum 2022", version="2022-R1",
-        effective_from_year=2021, effective_to_year=2023, total_credits=160,
-        is_active=True, status=CurriculumStatus.PUBLISHED, published_at=NOW,
-        academic_year_label="2021-24",
-        source_confidence=SourceConfidence.REQUIRES_FACULTY_CONFIRMATION,
-        review_notes="Structure supplied by the department in Phase 1, before the "
-                     "official 2024-28 handbook was sourced. Retained so the "
-                     "2021-2023 batches keep the curriculum they were admitted "
-                     "under; not backed by a public document.",
-    )
-    db.add(curriculum)
-    db.flush()
-
-    type_for_component = {
-        "OPEN_ELECTIVE": "OPEN", "PROGRAM_CORE_ELECTIVE": "PROGRAM_CORE",
-        "MOOC": "MOOC", "MINOR": "MINOR",
+    log("ICT elective slots (2024-28 scheme)…")
+    # ICT runs on the 2024-28 scheme alone — the one the department's handbook
+    # describes and the college now offers. Every ICT batch in the demo is
+    # governed by it whatever its admission year: no earlier version exists, and
+    # `resolve_curriculum` hands a batch outside every window the newest
+    # open-ended one. The slots below are therefore the handbook's own —
+    # OE1, OE2-MOOC, OE3, OE4 and PE1…PE5 — not a second, hand-built set.
+    ict_curriculum = db.scalar(select(Curriculum).where(
+        Curriculum.program_id == programs["B.TECH-ICT"].id,
+        Curriculum.version == "2024-28",
+    ))
+    if ict_curriculum is None:
+        raise RuntimeError("The ICT 2024-28 curriculum was not imported.")
+    components: dict[str, CurriculumComponent] = {
+        c.code: c for c in db.scalars(select(CurriculumComponent).where(
+            CurriculumComponent.curriculum_id == ict_curriculum.id))
     }
-    components: dict[str, CurriculumComponent] = {}
-    sequence_by_sem: dict[int, int] = {}
-    for (sem, code, title, ctype, scope, scope_label, credits,
-         is_elective) in D.ICT_CURRICULUM:
-        sequence_by_sem[sem] = sequence_by_sem.get(sem, 0) + 1
-        etype_code = type_for_component.get(ctype)
-        component = CurriculumComponent(
-            curriculum_id=curriculum.id, semester_number=sem, code=code, title=title,
-            component_type=ComponentType(ctype), source_scope=SourceScope(scope),
-            scope_label=scope_label, credits=credits,
-            sequence=sequence_by_sem[sem], is_elective=is_elective,
-            elective_type_id=elective_types[etype_code].id if etype_code else None,
-            description=f"{title} — {scope_label}.",
-            config={"seeded": True},
-        )
-        db.add(component)
-        db.flush()
-        components[code] = component
 
-    # Divisions for the ICT batches that predate the imported version, so the
-    # Core Elective allocator has real division data for the whole cohort.
+    # Divisions for every ICT batch in the demo cohort, so the Core Elective
+    # allocator has division data for all of them.
     for _label, admission_year, _sem in D.YEAR_GROUPS:
         for name in D.ICT_DIVISIONS:
             existing = db.scalar(select(ProgramDivision).where(
@@ -668,9 +665,6 @@ def seed(db: Session) -> None:
 
     log("Course catalogue…")
     courses: dict[str, Course] = {}
-    for code, title, credits, spec in D.PROGRAM_CORE_ELECTIVES:
-        courses[code] = make_course(db, code, title, credits, departments["ICT"],
-                                    specialization=spec)
     for code, title, credits, dept, school in D.OPEN_ELECTIVES_OTHER_SCHOOL:
         courses[code] = make_course(db, code, title, credits, departments[dept],
                                     school=school)
@@ -718,20 +712,35 @@ def seed(db: Session) -> None:
         for c in D.OPEN_ELECTIVES_FOET[:5]
     ]
     # MOOC is an external platform course: no classroom, so no section limit.
-    offerings["OE2-NPTEL"] = [
-        make_offering(db, courses[c[0]], semesters[5], components["OE2-NPTEL"],
+    offerings["OE2-MOOC"] = [
+        make_offering(db, courses[c[0]], semesters[5], components["OE2-MOOC"],
                       min_students_to_run=0, closes_days=35)
         for c in D.MOOC_COURSES
     ]
-    for pce_code, semester_number in [
-        ("PCE1", 5), ("PCE2", 6), ("PCE3", 6), ("PCE4", 7), ("PCE5", 7),
+    # Program Electives offer the subjects the handbook lists for each
+    # semester. It gives one basket per semester, not per slot: Program Elective
+    # 2 and 3 draw on the Semester VI basket, 4 and 5 on the Semester VII one.
+    catalogue = {c.code: c for c in db.scalars(select(Course))}
+    basket_of = {"PE1": "PE1", "PE2": "PE2", "PE3": "PE2", "PE4": "PE4", "PE5": "PE4"}
+
+    def handbook_basket(slot_code: str) -> list[Course]:
+        codes = (components[basket_of[slot_code]].config or {}).get("options", [])
+        basket = [catalogue[code] for code in codes if code in catalogue]
+        for course in basket:
+            # These are ICT's own specialisation subjects; a few arrive from
+            # the shared catalogue with no owning department recorded.
+            if course.department_id is None:
+                course.department_id = departments["ICT"].id
+        return basket
+
+    for pe_code, semester_number in [
+        ("PE1", 5), ("PE2", 6), ("PE3", 6), ("PE4", 7), ("PE5", 7),
     ]:
-        offerings[pce_code] = [
-            make_offering(db, courses[c[0]], semesters[semester_number],
-                          components[pce_code],
-                          coordinator=core_coordinator,
+        offerings[pe_code] = [
+            make_offering(db, course, semesters[semester_number],
+                          components[pe_code], coordinator=core_coordinator,
                           **CORE_ELECTIVE_RULES)
-            for c in D.PROGRAM_CORE_ELECTIVES
+            for course in handbook_basket(pe_code)
         ]
 
     log("Elective registration rounds…")
@@ -748,11 +757,11 @@ def seed(db: Session) -> None:
          RegistrationWindowStatus.LOCKED, -30, -2),
         ("OE4-2025-PUBLISHED", "Open Elective 4 — Semester VII", "OE4", 7,
          RegistrationWindowStatus.PUBLISHED, -60, -30),
-        ("PCE1-2025-LIVE", "Program Core Elective 1 — Semester V", "PCE1", 5,
+        ("PE1-2025-LIVE", "Program Elective 1 — Semester V", "PE1", 5,
          RegistrationWindowStatus.OPEN, -2, 12),
     ]:
         component_type = (ComponentType.PROGRAM_CORE_ELECTIVE
-                          if component_code.startswith("PCE")
+                          if component_code.startswith("PE")
                           else ComponentType.OPEN_ELECTIVE)
         window = ElectiveRegistrationWindow(
             code=code, title=title, component_type=component_type,
@@ -779,24 +788,25 @@ def seed(db: Session) -> None:
             offering.registration_window_id = window.id
     db.flush()
 
-    # Early choice filling, as the department actually runs it: the Semester IV
-    # Open Elective is chosen mid-way through Semester III so the timetable can
-    # be built over the vacation. The courses are put on offer here against the
-    # 2024-28 scheme's slot — the batch now in Semester III — and deliberately
-    # left in no round: opening that round, with its deadline, is the Open
-    # Elective coordinator's job, done from Administration → Registration Rounds.
-    early_slot = db.scalar(
-        select(CurriculumComponent)
-        .join(Curriculum, Curriculum.id == CurriculumComponent.curriculum_id)
-        .where(Curriculum.program_id == ict_program.id,
-               Curriculum.version == "2024-28",
-               CurriculumComponent.component_type == ComponentType.OPEN_ELECTIVE,
-               CurriculumComponent.semester_number == 4)
-    )
-    if early_slot is not None:
-        for c in D.OPEN_ELECTIVES_OTHER_SCHOOL:
-            make_offering(db, courses[c[0]], semesters[4], early_slot,
-                          coordinator=ict_coordinator, **OPEN_ELECTIVE_RULES)
+    # Early choice filling, as the department actually runs it: an elective
+    # for Semester N is chosen mid-way through Semester N-1, so the timetable
+    # can be built over the vacation. Opening that round, with its deadline, is
+    # the coordinator's job (Administration → Registration Rounds), so the
+    # courses for the *next* cohort are put on offer here and left in no round:
+    #   · Open Elective 1  — for the Open Elective coordinator to open to Sem III
+    #   · Program Elective 1 — for the Core Elective coordinator to open to Sem IV
+    # They are next year's offerings (2026-27): a course is offered once per
+    # slot per term, and belongs to one round at a time.
+    offerings["OE1-NEXT"] = [
+        make_offering(db, courses[c[0]], next_semesters[4], components["OE1"],
+                      coordinator=ict_coordinator, **OPEN_ELECTIVE_RULES)
+        for c in D.OPEN_ELECTIVES_OTHER_SCHOOL
+    ]
+    offerings["PE1-NEXT"] = [
+        make_offering(db, course, next_semesters[5], components["PE1"],
+                      coordinator=core_coordinator, **CORE_ELECTIVE_RULES)
+        for course in handbook_basket("PE1")
+    ]
     for window in windows.values():
         registration_service.validate_round(db, window)
     db.flush()
@@ -1349,15 +1359,15 @@ def seed_academic_activity(db, components, offerings, courses, students, electiv
     submit_preferences(sem6, components["OE3"], oe3_pool, days_ago=12,
                        weights=oe3_weights)
 
-    # ── Sem VI Program Core Elective 2 ────────────────────────────────────
+    # ── Sem VI Program Elective 2 ─────────────────────────────────────────
     # Core electives combine divisions, so demand concentrates on a few tracks.
-    pce2_pool = offerings["PCE2"]
+    pce2_pool = offerings["PE2"]
     pce2_weights = [30, 22, 16, 12, 8, 5, 3, 2, 1, 1, 1, 1][:len(pce2_pool)]
-    submit_preferences(sem6, components["PCE2"], pce2_pool, days_ago=9,
+    submit_preferences(sem6, components["PE2"], pce2_pool, days_ago=9,
                        weights=pce2_weights)
 
     # ── Sem VII: already allocated, with sections formed ──────────────────
-    for component_code in ("OE4", "PCE4"):
+    for component_code in ("OE4", "PE4"):
         component = components[component_code]
         pool = offerings[component_code]
         weights = [35, 25, 20, 12, 8, 5, 3, 2, 1, 1, 1, 1][:len(pool)]
@@ -1380,7 +1390,7 @@ def seed_academic_activity(db, components, offerings, courses, students, electiv
     db.flush()
 
     log("Forming class sections for allocated courses…")
-    for component_code in ("OE4", "PCE4"):
+    for component_code in ("OE4", "PE4"):
         for offering in offerings[component_code]:
             report = sections.assess(db, offering)
             if report.runs:
@@ -1388,8 +1398,8 @@ def seed_academic_activity(db, components, offerings, courses, students, electiv
     db.flush()
 
     log("NPTEL registrations…")
-    nptel_component = components["OE2-NPTEL"]
-    mooc_offerings = offerings["OE2-NPTEL"]
+    nptel_component = components["OE2-MOOC"]
+    mooc_offerings = offerings["OE2-MOOC"]
     for index, student in enumerate(sem6 + sem7):
         offering = mooc_offerings[index % len(mooc_offerings)]
         stage = index % 4

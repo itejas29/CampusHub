@@ -322,35 +322,11 @@ def generate_cohort(rng) -> list[tuple]:
                 ))
     return students
 
-# ── ICT curriculum, exactly as supplied by the department ────────────────
-# (semester, code, title, component_type, source_scope, scope_label, credits, elective)
-ICT_CURRICULUM = [
-    (4, "OE1", "Open Elective 1", "OPEN_ELECTIVE", "OTHER_SCHOOL",
-     "From Other School", 3, True),
-    (5, "OE2-NPTEL", "Open Elective 2 — NPTEL / SWAYAM / MOOC", "MOOC",
-     "EXTERNAL_PLATFORM", "NPTEL / SWAYAM certified course", 3, True),
-    (5, "PCE1", "Program Core Elective 1", "PROGRAM_CORE_ELECTIVE", "SAME_DEPARTMENT",
-     "ICT specialisation track", 3, True),
-    (6, "OE3", "Open Elective 3", "OPEN_ELECTIVE", "OTHER_DEPARTMENT_FOET",
-     "From Other Department of FoET", 3, True),
-    (6, "PCE2", "Program Core Elective 2", "PROGRAM_CORE_ELECTIVE", "SAME_DEPARTMENT",
-     "ICT specialisation track", 3, True),
-    (6, "PCE3", "Program Core Elective 3", "PROGRAM_CORE_ELECTIVE", "SAME_DEPARTMENT",
-     "ICT specialisation track", 3, True),
-    (7, "SI", "Summer Internship", "INTERNSHIP", "ANY", "Industry / research host",
-     4, False),
-    (7, "OE4", "Open Elective 4", "OPEN_ELECTIVE", "OTHER_DEPARTMENT_FOET",
-     "From Other Department of FoET", 3, True),
-    (7, "PCE4", "Program Core Elective 4", "PROGRAM_CORE_ELECTIVE", "SAME_DEPARTMENT",
-     "ICT specialisation track", 3, True),
-    (7, "PCE5", "Program Core Elective 5", "PROGRAM_CORE_ELECTIVE", "SAME_DEPARTMENT",
-     "ICT specialisation track", 3, True),
-    (8, "MP", "Major / Comprehensive Project", "PROJECT", "SAME_DEPARTMENT",
-     "Department-supervised project", 12, False),
-    # Compulsory first-year social internship.
-    (2, "CSSI", "Community and Social Service Internship", "INTERNSHIP", "ANY",
-     "NGO / social organisation", 2, False),
-]
+# ── ICT curriculum ────────────────────────────────────────────────────────
+# Not defined here. ICT runs on the 2024-28 scheme alone, and that structure —
+# every semester's courses, the elective slots, and the subjects each Program
+# Elective offers — is imported from backend/curriculum/ict/2024-28.json, which
+# is transcribed from the department's handbook.
 
 SPECIALIZATIONS = [
     "Software and Networks",
@@ -359,23 +335,6 @@ SPECIALIZATIONS = [
     "Embedded and VLSI",
 ]
 
-# (code, title, credits, specialization area)
-PROGRAM_CORE_ELECTIVES = [
-    ("ICT301", "Advanced Computer Networks", 3, "Software and Networks"),
-    ("ICT302", "Cloud and Distributed Computing", 3, "Software and Networks"),
-    ("ICT303", "Software Architecture and Design Patterns", 3, "Software and Networks"),
-    ("ICT311", "Machine Learning", 3, "Artificial Intelligence"),
-    ("ICT312", "Deep Learning and Neural Networks", 3, "Artificial Intelligence"),
-    ("ICT313", "Natural Language Processing", 3, "Artificial Intelligence"),
-    ("ICT321", "Digital Signal Processing", 3, "Communication and Signal Processing"),
-    ("ICT322", "Wireless and Mobile Communication", 3,
-     "Communication and Signal Processing"),
-    ("ICT323", "Information Theory and Coding", 3,
-     "Communication and Signal Processing"),
-    ("ICT331", "Embedded System Design", 3, "Embedded and VLSI"),
-    ("ICT332", "VLSI Design and Verification", 3, "Embedded and VLSI"),
-    ("ICT333", "Internet of Things Architecture", 3, "Embedded and VLSI"),
-]
 
 # Open electives offered by *other* schools (for Sem IV "From Other School")
 OPEN_ELECTIVES_OTHER_SCHOOL = [

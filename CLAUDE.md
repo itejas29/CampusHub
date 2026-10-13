@@ -130,6 +130,69 @@ means "no division restriction", never a fallback to four.
 
 ---
 
+## Who appoints whom, and who runs a round
+
+Scope for now is **the ICT department, end to end**; other departments keep
+their data but are not being built out yet. ICT runs on **the 2024-28 scheme
+alone** — the old hand-built 2022 scheme was removed. Every ICT batch in the
+demo resolves to 2024-28, and the Program Elective courses are the subjects the
+handbook lists (`backend/curriculum/ict/2024-28.json`), not invented ones. Three rules came out of that work,
+and each is enforced in one place.
+
+### The Head of Department (`services/scope.py`)
+
+- *Which* department someone heads is `departments.hod_faculty_id`.
+  `Role.HOD` only carries the permissions. `scope.set_hod` is the single writer
+  and keeps the pointer, the role and `is_mentor` in step — never set one alone.
+- **Only a department's own HoD appoints into it** (`roles:assign`,
+  `scope.assert_can_assign_roles`): the scope granted *and* the person appointed
+  must both be theirs. The registrar (super admin) can act anywhere. Internship
+  coordinators and Department Admin cannot appoint — `faculty:manage` is for
+  faculty *records* only.
+- **The HoD holds no scoped role and has no mentees.** Every place that makes
+  someone a coordinator, a mentor, a group lead or a student's mentor asks
+  `scope.assert_can_hold_scoped_role` / `scope.assert_can_mentor` first. A new
+  route that assigns a mentor must ask too.
+- **The HoD reads their department and changes nothing** (`scope.oversees`).
+  Read routes may admit them; a write route must still ask `coordinates()`,
+  which an HoD never satisfies.
+
+### One elective family, one department
+
+Open Electives and Program Core Electives have separate coordinators. Every
+elective admin route — rounds, preferences, allocation, sections — is scoped by
+the **slot** (`_assert_manages_component` / `_assert_manages_window` in
+`api/v1/electives.py`), not by the coarse `electives:manage` permission. Holding
+that permission alone must never open another department's students; being an
+appointed coordinator without it must never lock someone out of their own slot.
+
+### A round, not the semester, opens registration early
+
+Choice filling for a Semester N elective starts mid-way through Semester N−1,
+so the timetable can be built over the vacation. (This is how the ICT department
+described its practice to the project team; it is not from a written rule.)
+
+- The curriculum alone still says "opens in semester N". What lets the earlier
+  student in is a registration round the coordinator has opened for *their
+  current* semester — `registration.access_for`. **No round, no early access.**
+  Do not relax `student_can_access_component`; route through `access_for`.
+- A round covers one family and the slots of one semester, and may be aimed at
+  Semester N−1 or N only (`registration.validate_round`). A course belongs to one
+  round at a time, and a student sees only the courses of the round that covers
+  them — so two cohorts can be choosing for the same slot at once. The next
+  cohort's courses are next year's offerings (a course is offered once per slot
+  per term).
+- The coordinator sets and moves the deadline; the server enforces it. A live
+  round's deadline cannot be moved into the past — that is Lock, which has its
+  own audit entry. Opening, reopening and moving a deadline notify the students.
+- The student's sidebar, dashboard and elective list follow the round
+  (`registration.early_rounds`), so they are never told to choose without a
+  screen to do it on.
+
+Allocation after a round locks is **not built yet** and is the next piece.
+
+---
+
 ## Security invariants
 
 Phase 4 closed two real vulnerabilities. Do not undo them.
@@ -162,13 +225,26 @@ backend/app/
   models/        SQLAlchemy         — enums.py holds every vocabulary
   schemas/       pydantic I/O
   seed/          demo data + curriculum importer
-  tests/         405 tests
+  tests/         620+ tests
 backend/curriculum/<programme>/<version>.json   researched curricula, reviewable
 frontend/src/
   features/      one folder per module
   components/ui/ the design system  — use it, don't hand-roll
 docs/            phase reports, curriculum research, deployment
 ```
+
+## Demo data
+
+The seed is the demo. After pulling a change to `seed/`, reseed — the database
+keeps its old rows otherwise, and new demo logins will not exist:
+
+```bash
+docker compose exec backend python -m app.seed.run --reset
+```
+
+This rebuilds everything, so anything changed by hand in the app is lost.
+Generated (non-named) student names can shift when the seed changes; check the
+sign-in shortcuts in `frontend/src/features/auth/LoginPage.tsx` afterwards.
 
 ## Conventions
 

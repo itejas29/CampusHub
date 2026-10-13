@@ -80,7 +80,7 @@ const STUDENT_ACCOUNTS: DemoAccount[] = [
     dept: "ICT",
     roll: "23BIT051",
     email: "kavya.patel.051@campushub.example.com",
-    domain: "3rd Year · NPTEL/MOOC & PCE1 Track",
+    domain: "3rd Year · NPTEL/MOOC & Program Elective 1",
     semester: 5,
   },
   {

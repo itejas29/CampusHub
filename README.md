@@ -44,7 +44,7 @@ them and fills the form on click.
 | `STUDENT (Sem II)` | `ishaan.bhatt.041@campushub.example.com` | Sem II — 1st Year CSSI Exploration & Announcement phase |
 | `STUDENT (Sem III)` | `riya.chauhan.031@campushub.example.com` | Sem III — 2nd Year CSSI Live & Faculty Mentor mapped |
 | `STUDENT (Sem IV)` | `ananya.menon.011@campushub.example.com` | Sem IV — 2nd Year Open Elective 1 (OE1) Bidding |
-| `STUDENT (Sem V)` | `kavya.patel.051@campushub.example.com` | Sem V — 3rd Year NPTEL/MOOC & PCE1 Track credits |
+| `STUDENT (Sem V)` | `kavya.patel.051@campushub.example.com` | Sem V — 3rd Year NPTEL/MOOC & Program Elective 1 |
 | `STUDENT (Sem VI)` | `aarav.desai.001@campushub.example.com` | Sem VI — 3rd Year Allocated OE3, Minor Specialization active |
 | `STUDENT (Sem VII)` | `arjun.verma.021@campushub.example.com` | Sem VII — 4th Year Summer Industry Internship & OE4 |
 | `STUDENT (Sem VIII)` | `pooja.shah.081@campushub.example.com` | Sem VIII — 4th Year Capstone Project & Degree Completion |
@@ -364,6 +364,29 @@ or mentor role and has no mentees; the registrar's office appoints the Head
 (Administration → Departments) and can act for any department. Coordinators then work *inside* their scope — assigning mentors to
 groups, approving submissions, verifying certificates. Every grant and revoke
 is audit-logged.
+
+### Elective registration rounds
+
+The Open Elective and Core Elective coordinators decide **when students fill
+their choices** (Administration → Registration Rounds): which slot, which
+students, from when until when. A round is normally opened for the semester
+*before* the elective — Semester III students choosing their Semester IV Open
+Elective — so the timetable can be built over the vacation. Until a coordinator
+opens a round, those students cannot reach the slot at all.
+
+| Action | Who |
+|---|---|
+| Create, open, change the deadline, lock, reopen | The coordinator of that elective family for that department |
+| See every round of the department, read-only | The Head of Department |
+| Fill choices | Students the round is aimed at, until the deadline or the lock |
+
+ICT runs on the 2024-28 scheme alone, and the Program Elective courses are the
+subjects the department's handbook lists for each semester.
+
+To try it: sign in as `vikram.joshi`, create a round for *Open Elective 1 —
+Semester IV* aimed at Semester III, open it, then sign in as
+`riya.chauhan.031`. For Core Electives: `leena.nambiar`, *Program Elective 1 —
+Semester V* aimed at Semester IV, then `ananya.menon.011`. Allocation after a round locks is the next piece of work.
 
 Scoping is enforced server-side, verified:
 

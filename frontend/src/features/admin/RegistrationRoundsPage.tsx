@@ -331,8 +331,13 @@ function RoundFormModal({
   onClose: () => void; onDone: (text: string) => void;
 }) {
   const editingSlotId = round?.slots[0]?.id;
+  // A course can be in one round at a time, so a slot is only worth offering
+  // while it still has a course that is in none. Start on the first that does.
+  const freeCourses = (s: RoundSlot) =>
+    s.offerings.filter((o) => o.registration_window_id === null).length;
   const [slotId, setSlotId] = useState(
-    String(editingSlotId ?? slots[0]?.component_id ?? ""),
+    String(editingSlotId
+      ?? (slots.find((s) => freeCourses(s) > 0) ?? slots[0])?.component_id ?? ""),
   );
   const slot = slots.find((s) => String(s.component_id) === slotId);
 
@@ -433,12 +438,18 @@ function RoundFormModal({
           <Select value={slotId} onChange={(e) => pickSlot(e.target.value)}
                   disabled={Boolean(round)} data-autofocus>
             {slots.length === 0 && <option value="">No slots available</option>}
-            {slots.map((s) => (
-              <option key={s.component_id} value={s.component_id}>
-                {s.title} — Semester {roman(s.semester_number)} · {s.program_code} {s.curriculum_version}
-                {" "}({pluralise(s.offerings.length, "course")})
-              </option>
-            ))}
+            {slots.map((s) => {
+              const free = freeCourses(s);
+              const usable = free > 0 || s.component_id === editingSlotId;
+              return (
+                <option key={s.component_id} value={s.component_id} disabled={!usable}>
+                  {s.title} — Semester {roman(s.semester_number)} · {s.curriculum_version} scheme
+                  {" "}({s.offerings.length === 0 ? "no courses on offer yet"
+                    : free === 0 ? "all courses already in a round"
+                    : `${pluralise(free, "course")} available`})
+                </option>
+              );
+            })}
           </Select>
         </FormField>
 

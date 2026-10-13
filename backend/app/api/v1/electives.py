@@ -192,8 +192,21 @@ def _eligible_offerings(db, student: Student, component: CurriculumComponent):
             [OfferingStatus.OPEN, OfferingStatus.CLOSED, OfferingStatus.ALLOCATED]
         ))
     ))
+    # A round decides which courses its students choose from. A course belongs
+    # to one round at a time, so two cohorts can be choosing for the same slot —
+    # Semester IV in their own round, Semester III in next year's — without
+    # either seeing the other's list. A student no round covers sees only the
+    # courses that are in none.
+    window = registration.window_for(db, component, student)
+    governing = (window if window is not None
+                 and window.status != RegistrationWindowStatus.DRAFT else None)
     result = []
     for offering in offerings:
+        if governing is not None:
+            if offering.registration_window_id != governing.id:
+                continue
+        elif offering.registration_window_id is not None:
+            continue
         if offering_allowed(db, offering, offering.course, student, component):
             result.append(offering)
     return result
