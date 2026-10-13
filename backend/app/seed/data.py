@@ -188,6 +188,12 @@ NAMED_STUDENTS = [
     # Semester II — CSSI has been floated to them but is not yet open.
     ("Ishaan Bhatt", "25BIT041", 2, "A", 8.22, 0, 2025),
     ("Nisha Rawal", "25BIT042", 2, "B", 7.88, 0, 2025),
+    # Semester I — Freshers Induction & Foundation core.
+    ("Devansh Joshi", "25BIT091", 1, "A", 8.50, 0, 2025),
+    # Semester V — Program Core Elective & MOOC credits.
+    ("Kavya Patel", "23BIT051", 5, "A", 8.35, 0, 2023),
+    # Semester VIII — Capstone Project & Degree Completion.
+    ("Pooja Shah", "21BIT081", 8, "A", 8.92, 0, 2021),
 ]
 
 

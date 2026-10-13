@@ -11,6 +11,8 @@ interface DemoAccount {
   dept: string;
   email: string;
   domain: string;
+  semester?: number;
+  roll?: string;
 }
 
 const COORDINATOR_ACCOUNTS: DemoAccount[] = [
@@ -34,8 +36,116 @@ const COORDINATOR_ACCOUNTS: DemoAccount[] = [
 ];
 
 const STUDENT_ACCOUNTS: DemoAccount[] = [
-  { name: "Aarav Desai", role: "Student (Sem VI)", dept: "ICT", email: "aarav.desai.001@campushub.example.com", domain: "Allocated OE3 · Minor Active" },
-  { name: "Ananya Menon", role: "Student (Sem IV)", dept: "ICT", email: "ananya.menon.011@campushub.example.com", domain: "OE1 Bidding Pending" },
+  // Full 8-Semester Spectrum (ICT Primary Cohort)
+  {
+    name: "Devansh Joshi",
+    role: "Student (Sem I)",
+    dept: "ICT",
+    roll: "25BIT091",
+    email: "devansh.joshi.091@campushub.example.com",
+    domain: "1st Year · Induction & Core Foundation",
+    semester: 1,
+  },
+  {
+    name: "Ishaan Bhatt",
+    role: "Student (Sem II)",
+    dept: "ICT",
+    roll: "25BIT041",
+    email: "ishaan.bhatt.041@campushub.example.com",
+    domain: "1st Year · CSSI Exploration Phase",
+    semester: 2,
+  },
+  {
+    name: "Riya Chauhan",
+    role: "Student (Sem III)",
+    dept: "ICT",
+    roll: "24BIT031",
+    email: "riya.chauhan.031@campushub.example.com",
+    domain: "2nd Year · CSSI Live & Mentor Assigned",
+    semester: 3,
+  },
+  {
+    name: "Ananya Menon",
+    role: "Student (Sem IV)",
+    dept: "ICT",
+    roll: "23BIT011",
+    email: "ananya.menon.011@campushub.example.com",
+    domain: "2nd Year · Open Elective (OE1) Bidding",
+    semester: 4,
+  },
+  {
+    name: "Kavya Patel",
+    role: "Student (Sem V)",
+    dept: "ICT",
+    roll: "23BIT051",
+    email: "kavya.patel.051@campushub.example.com",
+    domain: "3rd Year · NPTEL/MOOC & PCE1 Track",
+    semester: 5,
+  },
+  {
+    name: "Aarav Desai",
+    role: "Student (Sem VI)",
+    dept: "ICT",
+    roll: "22BIT001",
+    email: "aarav.desai.001@campushub.example.com",
+    domain: "3rd Year · Allocated OE3 & Minor Active",
+    semester: 6,
+  },
+  {
+    name: "Arjun Verma",
+    role: "Student (Sem VII)",
+    dept: "ICT",
+    roll: "21BIT021",
+    email: "arjun.verma.021@campushub.example.com",
+    domain: "4th Year · Summer Internship & OE4",
+    semester: 7,
+  },
+  {
+    name: "Pooja Shah",
+    role: "Student (Sem VIII)",
+    dept: "ICT",
+    roll: "21BIT081",
+    email: "pooja.shah.081@campushub.example.com",
+    domain: "4th Year · Capstone & Degree Completion",
+    semester: 8,
+  },
+  // Cross-Department Representatives
+  {
+    name: "Rhea Kulkarni",
+    role: "Student (Sem IV)",
+    dept: "CSE",
+    roll: "24BCE001",
+    email: "rhea.kulkarni.001@campushub.example.com",
+    domain: "Computer Eng · OE Bidding & Core",
+    semester: 4,
+  },
+  {
+    name: "Mira Kulkarni",
+    role: "Student (Sem V)",
+    dept: "EE",
+    roll: "23BEE101",
+    email: "mira.kulkarni.101@campushub.example.com",
+    domain: "Electrical Eng · MOOC Certifications",
+    semester: 5,
+  },
+  {
+    name: "Naina Sheth",
+    role: "Student (Sem VII)",
+    dept: "ECE",
+    roll: "22BEC001",
+    email: "naina.sheth.001@campushub.example.com",
+    domain: "Electronics Eng · Industry Internship",
+    semester: 7,
+  },
+  {
+    name: "Tanvi Shirke",
+    role: "Student (Sem II)",
+    dept: "BIO",
+    roll: "25BBT001",
+    email: "tanvi.shirke.001@campushub.example.com",
+    domain: "Biotechnology · First Year Cohort",
+    semester: 2,
+  },
 ];
 
 const ADMIN_ACCOUNTS: DemoAccount[] = [
@@ -242,44 +352,78 @@ export function LoginPage() {
             <span>Sign In with PDEU Google Workspace</span>
           </button>
 
-          {/* 1-Click Demo Accounts Trigger Modal/Drawer */}
-          <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setOpenDemoModal(true)}
-              className="flex items-center gap-1.5 text-xs font-bold text-[#1d4ed8] hover:underline"
-            >
-              <Users className="h-3.5 w-3.5" />
-              <span>Browse All Coordinator &amp; Role Demo Accounts</span>
-            </button>
-            <span className="text-[10px] bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded border border-blue-200">
-              14+ Roles
-            </span>
-          </div>
+          {/* 1-Click Demo Accounts Section */}
+          <div className="mt-3 pt-3 border-t border-slate-100">
+            {/* Quick Students by Semester */}
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5 text-blue-600" />
+                Quick Student Login (Sem 1 to 8):
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setDemoCategory("students");
+                  setOpenDemoModal(true);
+                }}
+                className="text-[10px] font-bold text-[#1d4ed8] hover:underline cursor-pointer"
+              >
+                All Details →
+              </button>
+            </div>
 
-          {/* Quick Shortcuts */}
-          <div className="mt-2.5 grid grid-cols-3 gap-1 text-[10px]">
-            <button
-              type="button"
-              onClick={() => fillDemo(COORDINATOR_ACCOUNTS[0])}
-              className="truncate rounded bg-slate-50 border border-slate-200 p-1 font-medium text-slate-700 hover:border-slate-400"
-            >
-              Summer Coord
-            </button>
-            <button
-              type="button"
-              onClick={() => fillDemo(COORDINATOR_ACCOUNTS[1])}
-              className="truncate rounded bg-slate-50 border border-slate-200 p-1 font-medium text-slate-700 hover:border-slate-400"
-            >
-              CSSI Coord
-            </button>
-            <button
-              type="button"
-              onClick={() => fillDemo(COORDINATOR_ACCOUNTS[2])}
-              className="truncate rounded bg-slate-50 border border-slate-200 p-1 font-medium text-slate-700 hover:border-slate-400"
-            >
-              MOOC Coord
-            </button>
+            {/* 8 Semester Student Chips */}
+            <div className="grid grid-cols-4 gap-1 text-[10px]">
+              {STUDENT_ACCOUNTS.slice(0, 8).map((st) => (
+                <button
+                  key={st.email}
+                  type="button"
+                  onClick={() => fillDemo(st)}
+                  className="truncate rounded-md bg-blue-50/80 border border-blue-200 px-1 py-1 font-bold text-blue-800 hover:bg-blue-100 hover:border-blue-400 transition-colors cursor-pointer text-center"
+                  title={`${st.name} (${st.roll}) · ${st.role} · ${st.domain}`}
+                >
+                  Sem {st.semester}
+                </button>
+              ))}
+            </div>
+
+            {/* Quick Coordinators & All Roles Trigger */}
+            <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px]">
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => fillDemo(COORDINATOR_ACCOUNTS[0])}
+                  className="rounded bg-slate-50 border border-slate-200 px-1.5 py-0.5 font-medium text-slate-700 hover:border-slate-400 cursor-pointer"
+                  title="Summer Internship Coordinator"
+                >
+                  Summer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fillDemo(COORDINATOR_ACCOUNTS[1])}
+                  className="rounded bg-slate-50 border border-slate-200 px-1.5 py-0.5 font-medium text-slate-700 hover:border-slate-400 cursor-pointer"
+                  title="CSSI Coordinator"
+                >
+                  CSSI
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fillDemo(COORDINATOR_ACCOUNTS[2])}
+                  className="rounded bg-slate-50 border border-slate-200 px-1.5 py-0.5 font-medium text-slate-700 hover:border-slate-400 cursor-pointer"
+                  title="MOOC Coordinator"
+                >
+                  MOOC
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setOpenDemoModal(true)}
+                className="font-bold text-[#1d4ed8] hover:underline cursor-pointer"
+              >
+                Browse All ({COORDINATOR_ACCOUNTS.length + STUDENT_ACCOUNTS.length + ADMIN_ACCOUNTS.length}) →
+              </button>
+            </div>
           </div>
 
           {/* University Portal Footer */}
@@ -368,13 +512,27 @@ export function LoginPage() {
                   onClick={() => fillDemo(acc)}
                   className="group flex flex-col rounded-xl border border-slate-200 bg-white p-3 text-left hover:border-[#1d4ed8] hover:bg-blue-50/40 hover:shadow-xs transition-all"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs text-slate-900 group-hover:text-[#1d4ed8]">
-                      {acc.name}
-                    </span>
-                    <span className="text-3xs font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/60">
-                      {acc.dept}
-                    </span>
+                  <div className="flex items-center justify-between gap-1">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="font-bold text-xs text-slate-900 group-hover:text-[#1d4ed8] truncate">
+                        {acc.name}
+                      </span>
+                      {acc.semester && (
+                        <span className="text-3xs font-mono font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-800 shrink-0">
+                          Sem {acc.semester}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {acc.roll && (
+                        <span className="text-3xs font-mono font-semibold text-slate-500 bg-slate-50 px-1 py-0.5 rounded border border-slate-200/50">
+                          {acc.roll}
+                        </span>
+                      )}
+                      <span className="text-3xs font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/60">
+                        {acc.dept}
+                      </span>
+                    </div>
                   </div>
                   <span className="mt-0.5 text-2xs font-semibold text-slate-700">{acc.role}</span>
                   <span className="mt-0.5 text-3xs font-mono text-slate-400 truncate">{acc.email}</span>

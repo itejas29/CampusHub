@@ -1656,14 +1656,11 @@ def print_credentials(db: Session) -> None:
          "Mentor · CSSI Group 1 · no coordination"),
         ("CLUB_ADMIN", "clubs@campushub.example.com", "Clubs and events management"),
     ]
-    student = db.scalar(select(Student).order_by(Student.id))
-    if student:
-        rows.append(("STUDENT", student.user.email,
-                     f"{student.roll_number} · Semester {student.current_semester}"))
-    sem4 = db.scalar(select(Student).where(Student.current_semester == 4))
-    if sem4:
-        rows.append(("STUDENT (Sem IV)", sem4.user.email,
-                     f"{sem4.roll_number} · Open Elective 1 pending"))
+    for sem in range(1, 9):
+        st = db.scalar(select(Student).where(Student.current_semester == sem).order_by(Student.roll_number))
+        if st:
+            rows.append((f"STUDENT (Sem {sem})", st.user.email,
+                         f"{st.roll_number} · Semester {st.current_semester}"))
     for role, email, note in rows:
         print(f"  {role:<34} {email:<44} {note}")
     print("=" * 74 + "\n")

@@ -40,8 +40,14 @@ them and fills the form on click.
 
 | Role | Email | What it demonstrates |
 |---|---|---|
-| `STUDENT` | `aarav.desai.001@campushub.example.com` | Sem VI — allocated OE3, completed summer internship, active minor |
-| `STUDENT` | `ananya.menon.011@campushub.example.com` | Sem IV — Open Elective 1 pending, CSSI in progress |
+| `STUDENT (Sem I)` | `devansh.joshi.091@campushub.example.com` | Sem I — 1st Year Induction & Foundation Core courses |
+| `STUDENT (Sem II)` | `ishaan.bhatt.041@campushub.example.com` | Sem II — 1st Year CSSI Exploration & Announcement phase |
+| `STUDENT (Sem III)` | `riya.chauhan.031@campushub.example.com` | Sem III — 2nd Year CSSI Live & Faculty Mentor mapped |
+| `STUDENT (Sem IV)` | `ananya.menon.011@campushub.example.com` | Sem IV — 2nd Year Open Elective 1 (OE1) Bidding |
+| `STUDENT (Sem V)` | `kavya.patel.051@campushub.example.com` | Sem V — 3rd Year NPTEL/MOOC & PCE1 Track credits |
+| `STUDENT (Sem VI)` | `aarav.desai.001@campushub.example.com` | Sem VI — 3rd Year Allocated OE3, Minor Specialization active |
+| `STUDENT (Sem VII)` | `arjun.verma.021@campushub.example.com` | Sem VII — 4th Year Summer Industry Internship & OE4 |
+| `STUDENT (Sem VIII)` | `pooja.shah.081@campushub.example.com` | Sem VIII — 4th Year Capstone Project & Degree Completion |
 | `FACULTY` | `anand.mehta@campushub.example.com` | Mentor + CSSI Group 1, submissions awaiting review |
 | `FACULTY` + `INTERNSHIP_COORDINATOR` | `priya.nair@campushub.example.com` | Programme configuration, mentor override |
 | `FACULTY` + `DEPARTMENT_ADMIN` | `rakesh.bhatt@campushub.example.com` | Department-level academic administration |
