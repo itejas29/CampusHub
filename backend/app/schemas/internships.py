@@ -345,6 +345,7 @@ class PresentationQueueRow(BaseModel):
 
 
 class EnrollmentDetail(EnrollmentSummary):
+    report_frequency: str | None = None
     email: str | None = None
     phone: str | None = None
     guardian_name: str | None = None

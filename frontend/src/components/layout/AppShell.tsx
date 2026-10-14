@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { MobileSidebar, Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { slideUp } from "@/lib/motion";
+import { FloatingChatbot } from "@/features/chatbot/FloatingChatbot";
 
 export function AppShell() {
   const [navOpen, setNavOpen] = useState(false);
@@ -84,6 +85,7 @@ export function AppShell() {
           </p>
         </footer>
       </div>
+      <FloatingChatbot />
     </div>
   );
 }

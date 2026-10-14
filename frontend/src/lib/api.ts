@@ -169,3 +169,28 @@ export async function openProtectedFile(path: string): Promise<void> {
   }
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
+
+export async function downloadProtectedFile(path: string, defaultFilename?: string): Promise<void> {
+  const response = await send<Response>(path.replace(API_BASE, ""), { method: "GET", raw: true });
+  const blob = await response.blob();
+  const disposition = response.headers.get("Content-Disposition");
+  let filename = defaultFilename ?? "download.csv";
+  if (disposition && disposition.includes("filename=")) {
+    const match = disposition.match(/filename="?([^";]+)"?/);
+    if (match?.[1]) filename = match[1];
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+export const chatbotApi = {
+  getConfig: () => api.get<import("@/types").ChatInitialConfigResponse>("/chatbot/config"),
+  sendQuery: (query: string, history: import("@/types").ChatMessageItem[] = []) =>
+    api.post<import("@/types").ChatQueryResponse>("/chatbot/query", { query, history }),
+};

@@ -16,5 +16,19 @@ export default defineConfig({
       "/media": { target: process.env.VITE_PROXY_TARGET ?? "http://localhost:8000", changeOrigin: true },
     },
   },
-  build: { outDir: "dist", sourcemap: false },
+  build: {
+    outDir: "dist",
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          "vendor-query": ["@tanstack/react-query"],
+          "vendor-motion": ["framer-motion"],
+          "vendor-icons": ["lucide-react"],
+          "vendor-date": ["date-fns"],
+        },
+      },
+    },
+  },
 });

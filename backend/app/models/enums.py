@@ -362,6 +362,7 @@ class DocumentType(StrEnum):
 
 
 class ReportType(StrEnum):
+    DAILY = "DAILY"
     WEEKLY = "WEEKLY"
     FORTNIGHTLY = "FORTNIGHTLY"
     MONTHLY = "MONTHLY"
@@ -370,6 +371,7 @@ class ReportType(StrEnum):
 
 class ReportFrequency(StrEnum):
     NONE = "NONE"
+    DAILY = "DAILY"
     WEEKLY = "WEEKLY"
     FORTNIGHTLY = "FORTNIGHTLY"
     MONTHLY = "MONTHLY"

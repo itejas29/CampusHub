@@ -366,9 +366,17 @@ def early_rounds(db: Session, student: Student) -> list[
     found = []
     for component_id, window_id in pairs:
         window = db.get(ElectiveRegistrationWindow, window_id)
+        component = db.get(CurriculumComponent, component_id)
         if window.accepts_students_from(student.program_id, student.current_semester,
                                         student.division):
-            found.append((db.get(CurriculumComponent, component_id), window))
+            # Double-check the slot semester is still ahead of the student's
+            # current semester. A round with empty eligible_semesters covers
+            # everyone by default, which is correct while the student is in
+            # the choosing-ahead cohort, but the slot no longer qualifies as
+            # "early access" once the student has been promoted into that
+            # semester (at which point it should appear via the normal path).
+            if component.semester_number > student.current_semester:
+                found.append((component, window))
     found.sort(key=lambda pair: (pair[0].semester_number, pair[0].sequence))
     return found
 

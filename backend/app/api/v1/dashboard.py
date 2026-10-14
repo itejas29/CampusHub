@@ -259,6 +259,26 @@ def student_dashboard(db: DbSession, user: CurrentUser) -> StudentDashboard:
             "avatar_url": faculty.user.avatar_url,
         }
 
+    alloc_by_component = {a.curriculum_component_id: a for a in allocations}
+    allocated_electives = [
+        {
+            "id": a.id,
+            "component_id": a.curriculum_component_id,
+            "component_code": a.curriculum_component.code if a.curriculum_component else None,
+            "component_title": a.curriculum_component.title if a.curriculum_component else None,
+            "component_type": a.curriculum_component.component_type.value if a.curriculum_component else None,
+            "course_offering_id": a.course_offering_id,
+            "course_code": a.course_offering.course.code if a.course_offering and a.course_offering.course else None,
+            "course_title": a.course_offering.course.title if a.course_offering and a.course_offering.course else None,
+            "credits": float(a.course_offering.course.credits) if a.course_offering and a.course_offering.course else (float(a.curriculum_component.credits) if a.curriculum_component else 3.0),
+            "section_name": a.section.name if a.section else None,
+            "preference_order_granted": a.preference_order_granted,
+            "status": a.status.value,
+            "link": serializers.elective_path(a.curriculum_component) if a.curriculum_component else None,
+        }
+        for a in allocations
+    ]
+
     semester_view = None
     if components:
         semester_view = {
@@ -271,6 +291,26 @@ def student_dashboard(db: DbSession, user: CurrentUser) -> StudentDashboard:
                     "scope_label": c.scope_label,
                     "credits": float(c.credits),
                     "status": states[c.id].label,
+                    "allocated_course_code": (
+                        alloc_by_component[c.id].course_offering.course.code
+                        if c.id in alloc_by_component and alloc_by_component[c.id].course_offering and alloc_by_component[c.id].course_offering.course
+                        else None
+                    ),
+                    "allocated_course_title": (
+                        alloc_by_component[c.id].course_offering.course.title
+                        if c.id in alloc_by_component and alloc_by_component[c.id].course_offering and alloc_by_component[c.id].course_offering.course
+                        else None
+                    ),
+                    "allocated_section": (
+                        alloc_by_component[c.id].section.name
+                        if c.id in alloc_by_component and alloc_by_component[c.id].section
+                        else None
+                    ),
+                    "preference_order_granted": (
+                        alloc_by_component[c.id].preference_order_granted
+                        if c.id in alloc_by_component
+                        else None
+                    ),
                 }
                 for c in components
             ],
@@ -278,6 +318,7 @@ def student_dashboard(db: DbSession, user: CurrentUser) -> StudentDashboard:
 
     return StudentDashboard(
         stats=stats, curriculum_semester=semester_view,
+        allocated_electives=allocated_electives,
         action_items=action_items[:6], progress=progress,
         upcoming_events=_event_dicts(db, student=student),
         announcements=_announcement_dicts(db, user), mentor=mentor,

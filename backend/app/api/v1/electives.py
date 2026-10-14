@@ -5,9 +5,11 @@ comes from the curriculum, never from a hard-coded list.
 """
 from __future__ import annotations
 
+import csv
 import datetime as dt
+import io
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import func, select
 
 from app.core.deps import (
@@ -495,6 +497,58 @@ def component_allocations(
         .order_by(ElectiveAllocation.student_id)
     )
     return [_allocation_out(db, a) for a in rows]
+
+
+@router.get("/admin/allocations/export")
+def export_allocations_csv(
+    component_id: int, db: DbSession,
+    user: User = Depends(_manages_electives),
+) -> Response:
+    component = _managed_component(db, user, component_id)
+    rows = db.scalars(
+        select(ElectiveAllocation)
+        .where(ElectiveAllocation.curriculum_component_id == component_id)
+        .order_by(ElectiveAllocation.student_id)
+    ).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Roll Number", "Student Name", "Division", "Department",
+        "Elective Code", "Elective Title", "Allocated Course Code",
+        "Allocated Course Title", "Credits", "Section", "Status",
+        "Preference Granted", "Strategy", "Allocated At",
+    ])
+    for a in rows:
+        student = db.get(Student, a.student_id)
+        student_user = student.user if student else None
+        dept = student.department.name if student and student.department else ""
+        offering = a.course_offering
+        course = offering.course if offering else None
+        writer.writerow([
+            student.roll_number if student else "",
+            student_user.full_name if student_user else "",
+            student.division if student else "",
+            dept,
+            component.code,
+            component.title,
+            course.code if course else "",
+            course.title if course else "",
+            float(course.credits) if course else float(component.credits),
+            a.section.name if a.section else "",
+            a.status.value,
+            a.preference_order_granted or "",
+            a.strategy or "",
+            a.allocated_at.isoformat() if a.allocated_at else "",
+        ])
+
+    csv_data = output.getvalue()
+    code_slug = component.code.replace(" ", "_")
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="allocations_{code_slug}.csv"'},
+    )
 
 
 @router.post("/admin/allocate", response_model=AllocationRunResult)

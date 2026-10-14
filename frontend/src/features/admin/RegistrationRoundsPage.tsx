@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, Eye, Lock, Pencil, Play, Plus, RotateCcw } from "lucide-react";
+import { CalendarClock, CheckCheck, Download, Eye, Lock, Pencil, Play, Plus, RotateCcw, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/ui/Misc";
 import { Tabs } from "@/components/ui/Tabs";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
 import { TBody, TD, TH, THead, TR, TableWrap } from "@/components/ui/Table";
-import { ApiError, api } from "@/lib/api";
+import { ApiError, api, downloadProtectedFile } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { pluralise, roman } from "@/lib/utils";
@@ -47,7 +47,7 @@ function audience(round: RegistrationWindow): string {
   return ahead ? `${semesters} · choosing ahead` : semesters;
 }
 
-type Action = "OPEN" | "LOCKED" | "REOPEN";
+type Action = "OPEN" | "LOCKED" | "ALLOCATED" | "PUBLISHED" | "REOPEN";
 
 /**
  * Where a coordinator runs choice filling: which students, for which elective,
@@ -83,10 +83,24 @@ export function RegistrationRoundsPage() {
   }
 
   const move = useMutation({
-    mutationFn: ({ round, action }: { round: RegistrationWindow; action: Action }) =>
-      api.post<RegistrationWindow>(
+    mutationFn: async ({ round, action }: { round: RegistrationWindow; action: Action }) => {
+      if (action === "ALLOCATED") {
+        // Run the allocation strategy for every slot in this round, then
+        // advance the window status. The strategy runs as a real commit
+        // (dry_run=false) and uses the default first-preference-first rule.
+        const slots = round.slots ?? [];
+        for (const slot of slots) {
+          await api.post("/electives/admin/allocate", {
+            curriculum_component_id: slot.id,
+            strategy: "first_preference",
+            dry_run: false,
+          });
+        }
+      }
+      return api.post<RegistrationWindow>(
         `/electives/admin/windows/${round.id}/status?target=${action === "REOPEN" ? "OPEN" : action}`,
-      ),
+      );
+    },
     onSuccess: (round, { action }) => {
       setConfirm(null);
       const told = pluralise(round.eligible_student_count, "student");
@@ -94,6 +108,10 @@ export function RegistrationRoundsPage() {
         tone: "success",
         text: action === "LOCKED"
           ? `${round.title} is locked. Preferences are frozen.`
+          : action === "ALLOCATED"
+          ? `Allocation complete for ${round.title}. Review the results, then publish to notify students.`
+          : action === "PUBLISHED"
+          ? `Results published for ${round.title}. ${told} notified.`
           : `${round.title} is open. ${told} notified.`,
       });
       refresh();
@@ -158,7 +176,7 @@ export function RegistrationRoundsPage() {
       <Card>
         <CardHeader
           title={pluralise(visible.length, "round")}
-          description="Draft → Open → Locked. Allocation and publishing follow once preferences are in."
+          description="Draft → Open → Locked → Allocated → Published. Run allocation once preferences are in, then publish to release results to students."
           icon={<CalendarClock className="h-4 w-4 text-ink-subtle" aria-hidden />}
         />
         {rounds.isLoading ? (
@@ -251,10 +269,36 @@ export function RegistrationRoundsPage() {
                           </>
                         )}
                         {round.status === "LOCKED" && (
+                          <>
+                            <Button size="sm" variant="secondary"
+                                    onClick={() => setDeadlineFor(round)}
+                                    icon={<RotateCcw className="h-3.5 w-3.5" aria-hidden />}>
+                              Reopen
+                            </Button>
+                            <Button size="sm"
+                                    onClick={() => setConfirm({ round, action: "ALLOCATED" })}
+                                    icon={<Zap className="h-3.5 w-3.5" aria-hidden />}>
+                              Run allocation
+                            </Button>
+                          </>
+                        )}
+                        {(round.status === "ALLOCATED" || round.status === "PUBLISHED") && round.slots.length > 0 && (
                           <Button size="sm" variant="secondary"
-                                  onClick={() => setDeadlineFor(round)}
-                                  icon={<RotateCcw className="h-3.5 w-3.5" aria-hidden />}>
-                            Reopen
+                                  onClick={() => {
+                                    const slot = round.slots[0];
+                                    if (slot) {
+                                      void downloadProtectedFile(`/electives/admin/allocations/export?component_id=${slot.id}`);
+                                    }
+                                  }}
+                                  icon={<Download className="h-3.5 w-3.5" aria-hidden />}>
+                            Export CSV
+                          </Button>
+                        )}
+                        {round.status === "ALLOCATED" && (
+                          <Button size="sm"
+                                  onClick={() => setConfirm({ round, action: "PUBLISHED" })}
+                                  icon={<CheckCheck className="h-3.5 w-3.5" aria-hidden />}>
+                            Publish results
                           </Button>
                         )}
                       </div>
@@ -299,8 +343,18 @@ export function RegistrationRoundsPage() {
           onClose={() => setConfirm(null)}
           onConfirm={() => move.mutate(confirm)}
           loading={move.isPending}
-          title={confirm.action === "LOCKED" ? "Lock this round?" : "Open this round?"}
-          confirmLabel={confirm.action === "LOCKED" ? "Lock round" : "Open round"}
+          title={
+            confirm.action === "LOCKED" ? "Lock this round?"
+            : confirm.action === "ALLOCATED" ? "Run allocation?"
+            : confirm.action === "PUBLISHED" ? "Publish results?"
+            : "Open this round?"
+          }
+          confirmLabel={
+            confirm.action === "LOCKED" ? "Lock round"
+            : confirm.action === "ALLOCATED" ? "Run allocation"
+            : confirm.action === "PUBLISHED" ? "Publish results"
+            : "Open round"
+          }
           message={
             confirm.action === "LOCKED" ? (
               <>
@@ -308,6 +362,20 @@ export function RegistrationRoundsPage() {
                 {pluralise(confirm.round.eligible_student_count, "student")}.{" "}
                 {confirm.round.submitted_student_count} have submitted. You can reopen
                 the round later if needed.
+              </>
+            ) : confirm.action === "ALLOCATED" ? (
+              <>
+                Allocation will run against the{" "}
+                {confirm.round.submitted_student_count} submitted preference lists.
+                Students are <strong>not notified</strong> until you publish the results.
+                You can review and adjust the allocation before publishing.
+              </>
+            ) : confirm.action === "PUBLISHED" ? (
+              <>
+                Results will be sent to all{" "}
+                {pluralise(confirm.round.eligible_student_count, "student")}.
+                Students with a seat will see their course; those without a seat
+                will be told to contact the coordinator. <strong>This cannot be undone.</strong>
               </>
             ) : (
               <>

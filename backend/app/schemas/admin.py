@@ -59,6 +59,7 @@ class ProgressItem(BaseModel):
 class StudentDashboard(BaseModel):
     stats: list[StatCard]
     curriculum_semester: dict | None = None
+    allocated_electives: list[dict] = Field(default_factory=list)
     action_items: list[DeadlineItem] = Field(default_factory=list)
     progress: list[ProgressItem] = Field(default_factory=list)
     upcoming_events: list[dict] = Field(default_factory=list)

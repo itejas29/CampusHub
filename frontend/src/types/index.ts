@@ -474,6 +474,7 @@ export interface InternshipProgress {
 }
 
 export interface EnrollmentDetail extends EnrollmentSummary {
+  report_frequency?: string | null;
   email: string | null; phone: string | null; guardian_name: string | null;
   guardian_phone: string | null; start_date: string | null; end_date: string | null;
   location: string | null; stipend: number | null; industry_mentor_name: string | null;
@@ -628,13 +629,36 @@ export interface DashboardAnnouncement {
   published_at: string | null; excerpt: string;
 }
 
+export interface AllocatedElective {
+  id: number;
+  component_id: number;
+  component_code: string | null;
+  component_title: string | null;
+  component_type: string | null;
+  course_offering_id: number;
+  course_code: string | null;
+  course_title: string | null;
+  credits: number;
+  section_name: string | null;
+  preference_order_granted: number | null;
+  status: string;
+  link: string | null;
+}
+
 export interface StudentDashboard {
   stats: StatCard[];
   curriculum_semester: {
     semester_number: number; total_credits: number;
-    components: { id: number; code: string; title: string; component_type: string;
-      scope_label: string | null; credits: number; status: string }[];
+    components: {
+      id: number; code: string; title: string; component_type: string;
+      scope_label: string | null; credits: number; status: string;
+      allocated_course_code?: string | null;
+      allocated_course_title?: string | null;
+      allocated_section?: string | null;
+      preference_order_granted?: number | null;
+    }[];
   } | null;
+  allocated_electives?: AllocatedElective[];
   action_items: DeadlineItem[]; progress: ProgressItem[];
   upcoming_events: DashboardEvent[]; announcements: DashboardAnnouncement[];
   mentor: MentorSummary | null;
@@ -840,3 +864,30 @@ export interface StudentProfile {
    *  rather than looking like missing data. */
   visible_sections: string[];
 }
+
+export interface ChatActionLink {
+  title: string;
+  path: string;
+}
+
+export interface ChatMessageItem {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface ChatQueryResponse {
+  reply: string;
+  role_context: string;
+  suggestions: string[];
+  action_links: ChatActionLink[];
+  is_confidential_block: boolean;
+  timestamp: string;
+}
+
+export interface ChatInitialConfigResponse {
+  role_context: string;
+  user_name: string;
+  greeting: string;
+  suggestions: string[];
+}
+

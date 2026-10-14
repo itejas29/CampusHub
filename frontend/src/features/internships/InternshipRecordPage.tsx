@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Building2, FileText, Mail, MapPin, Phone,
-  Send, Upload, } from "lucide-react";
+  Award, Building2, FileText, Mail, MapPin, Phone,
+  Send, Upload,
+} from "lucide-react";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { DocumentGroups, DocumentProgress } from "@/components/documents/DocumentGroups";
@@ -20,6 +21,28 @@ import { API_BASE, ApiError, api, tokenStore } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { humanise } from "@/lib/utils";
 import type { EnrollmentDetail } from "@/types";
+import { InternshipCertificateModal } from "./InternshipCertificateModal";
+
+const FREQUENCY_REPORT_TYPE: Record<string, string> = {
+  DAILY: "DAILY",
+  WEEKLY: "WEEKLY",
+  FORTNIGHTLY: "FORTNIGHTLY",
+  MONTHLY: "MONTHLY",
+};
+
+const FREQUENCY_LABEL: Record<string, string> = {
+  DAILY: "daily",
+  WEEKLY: "weekly",
+  FORTNIGHTLY: "fortnightly",
+  MONTHLY: "monthly",
+};
+
+const FREQUENCY_SEQ_LABEL: Record<string, string> = {
+  DAILY: "Day",
+  WEEKLY: "Week",
+  FORTNIGHTLY: "Fortnight",
+  MONTHLY: "Month",
+};
 
 const TABS = [
   { key: "workflow", label: "Workflow" },
@@ -42,6 +65,7 @@ export function InternshipRecordPage() {
   const [reportTasks, setReportTasks] = useState("");
   const [projectOpen, setProjectOpen] = useState(false);
   const [banner, setBanner] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
+  const [certOpen, setCertOpen] = useState(false);
 
   const queryKey = ["internship-record", enrollmentId];
   const { data, isLoading, error, refetch } = useQuery({
@@ -103,14 +127,18 @@ export function InternshipRecordPage() {
   });
 
   const submitReport = useMutation({
-    mutationFn: () =>
-      api.post(`/internships/enrollments/${enrollmentId}/reports`, {
-        report_type: data?.report_schedule.length ? "WEEKLY" : "FINAL",
+    mutationFn: () => {
+      const freq = data?.report_frequency ?? "WEEKLY";
+      const reportType = FREQUENCY_REPORT_TYPE[freq] ?? "WEEKLY";
+      const seqLabel = FREQUENCY_SEQ_LABEL[freq] ?? "Week";
+      return api.post(`/internships/enrollments/${enrollmentId}/reports`, {
+        report_type: reportType,
         sequence_number: reportSeq,
-        title: `Week ${reportSeq} report`,
+        title: `${seqLabel} ${reportSeq} report`,
         summary: reportSummary,
         tasks_completed: reportTasks || null,
-      }),
+      });
+    },
     onSuccess: () => {
       setReportOpen(false);
       setReportSummary("");
@@ -219,6 +247,17 @@ export function InternshipRecordPage() {
               <Badge tone="success">Final marks {data.final_marks}</Badge>
             )}
           </>
+        }
+        actions={
+          (data.status === "COMPLETED" || data.final_marks !== null || data.progress_percent === 100) ? (
+            <Button
+              variant="secondary"
+              onClick={() => setCertOpen(true)}
+              icon={<Award className="h-4 w-4 text-amber-500" aria-hidden />}
+            >
+              Completion Certificate
+            </Button>
+          ) : undefined
         }
       />
 
@@ -414,7 +453,7 @@ export function InternshipRecordPage() {
             action={
               data.report_schedule.length > 0 && (
                 <Button size="sm" onClick={() => { setReportSeq(nextReportSeq); setReportOpen(true); }}>
-                  Submit report
+                  Submit {FREQUENCY_LABEL[data.report_frequency ?? "WEEKLY"] ?? ""} report
                 </Button>
               )
             }
@@ -620,7 +659,7 @@ export function InternshipRecordPage() {
       <Modal
         open={reportOpen}
         onClose={() => setReportOpen(false)}
-        title="Submit report"
+        title={`Submit ${FREQUENCY_LABEL[data.report_frequency ?? "WEEKLY"]} report`}
         footer={
           <>
             <Button variant="secondary" size="sm" onClick={() => setReportOpen(false)}>
@@ -638,9 +677,12 @@ export function InternshipRecordPage() {
         }
       >
         <div className="space-y-4">
-          <FormField label="Report number" required>
+          <FormField
+            label={`${FREQUENCY_SEQ_LABEL[data.report_frequency ?? "WEEKLY"]} number`}
+            required
+          >
             <Input
-              type="number" min={1} max={60} value={reportSeq}
+              type="number" min={1} max={365} value={reportSeq}
               onChange={(e) => setReportSeq(Number(e.target.value))}
             />
           </FormField>
@@ -670,6 +712,13 @@ export function InternshipRecordPage() {
         initial={data.project}
         loading={saveProject.isPending}
         onSave={(body) => saveProject.mutate(body)}
+      />
+
+      {/* Completion certificate */}
+      <InternshipCertificateModal
+        enrollment={data}
+        open={certOpen}
+        onClose={() => setCertOpen(false)}
       />
     </div>
   );

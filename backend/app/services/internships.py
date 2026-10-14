@@ -25,11 +25,13 @@ from app.models.internships import (
 from app.services import audit, notifications
 
 _FREQUENCY_DAYS = {
+    ReportFrequency.DAILY: 1,
     ReportFrequency.WEEKLY: 7,
     ReportFrequency.FORTNIGHTLY: 14,
     ReportFrequency.MONTHLY: 30,
 }
 _FREQUENCY_REPORT_TYPE = {
+    ReportFrequency.DAILY: ReportType.DAILY,
     ReportFrequency.WEEKLY: ReportType.WEEKLY,
     ReportFrequency.FORTNIGHTLY: ReportType.FORTNIGHTLY,
     ReportFrequency.MONTHLY: ReportType.MONTHLY,

@@ -1,7 +1,7 @@
 """API v1 router assembly."""
 from fastapi import APIRouter
 
-from app.api.v1 import (admin, announcements, auth, calendar, clubs,
+from app.api.v1 import (admin, announcements, auth, calendar, chatbot, clubs,
     courses, curriculum, dashboard, electives, events, files, internships,
     mentorship, minors, mooc, notifications, people, roles, student_profile
 )
@@ -11,6 +11,7 @@ api_router = APIRouter()
 api_router.include_router(auth.router)
 api_router.include_router(people.me_router)
 api_router.include_router(dashboard.router)
+api_router.include_router(chatbot.router)
 
 # Academics
 api_router.include_router(curriculum.router)

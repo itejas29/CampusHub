@@ -1,13 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
-import { ClipboardList, Layers, Users } from "lucide-react";
+import { ClipboardList, Download, Layers, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/Misc";
 import { ProgressBar } from "@/components/ui/Stepper";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
 import { TBody, TD, TH, THead, TR, TableWrap } from "@/components/ui/Table";
-import { api } from "@/lib/api";
+import { api, downloadProtectedFile } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { humanise, roman } from "@/lib/utils";
 import type { InternshipGroup, InternshipProgram } from "@/types";
@@ -63,7 +64,19 @@ function ProgramCard({ program }: { program: InternshipProgram }) {
       <CardHeader
         title={program.name}
         description={program.description ?? undefined}
-        action={<StatusBadge status={program.status} />}
+        action={
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => void downloadProtectedFile(`/internships/programs/${program.id}/export`)}
+              icon={<Download className="h-3.5 w-3.5" aria-hidden />}
+            >
+              Export Grades CSV
+            </Button>
+            <StatusBadge status={program.status} />
+          </div>
+        }
       />
       <CardBody className="space-y-5">
         <div className="flex flex-wrap gap-1.5">

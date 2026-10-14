@@ -5,9 +5,11 @@ CSSI and Summer Internship are the same endpoints with different
 """
 from __future__ import annotations
 
+import csv
 import datetime as dt
+import io
 
-from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Query, Response, UploadFile
 from sqlalchemy import func, or_, select
 
 from app.core.deps import (
@@ -317,6 +319,11 @@ def _detail(db, enrollment: InternshipEnrollment) -> EnrollmentDetail:
         phone=student.user.phone if student else None,
         guardian_name=student.guardian_name if student else None,
         guardian_phone=student.guardian_phone if student else None,
+        report_frequency=(
+            enrollment.program.report_frequency.value
+            if enrollment.program and enrollment.program.report_frequency
+            else "WEEKLY"
+        ),
         start_date=enrollment.start_date, end_date=enrollment.end_date,
         presentation_at=enrollment.presentation_at,
         presentation_venue=enrollment.presentation_venue,
@@ -444,6 +451,65 @@ def get_program(program_id: int, db: DbSession, user: CurrentUser) -> Internship
     if student and not _student_visible_programs(db, student, [program]):
         raise NotFoundError("Internship programme not found.")
     return _program_out(db, program, student)
+
+
+@router.get("/programs/{program_id}/export")
+def export_program_enrollments_csv(
+    program_id: int, db: DbSession, user: CurrentUser,
+) -> Response:
+    program = db.get(InternshipProgram, program_id)
+    if program is None:
+        raise NotFoundError("Internship programme not found.")
+    _assert_can_manage_program(db, user, program)
+
+    enrollments = db.scalars(
+        select(InternshipEnrollment)
+        .where(InternshipEnrollment.program_id == program_id)
+        .order_by(InternshipEnrollment.student_id)
+    ).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Roll Number", "Student Name", "Division", "Department",
+        "Company / Organization", "Industry Mentor", "Faculty Mentor",
+        "Current Stage", "Progress %", "Evaluation Status",
+        "Total Marks", "Final Grade", "Status",
+    ])
+    for e in enrollments:
+        student = e.student
+        student_user = student.user if student else None
+        dept = student.department.name if student and student.department else ""
+        mentor = (
+            e.mentor_faculty.user.full_name
+            if e.mentor_faculty and e.mentor_faculty.user
+            else ""
+        )
+        org = e.organization.name if e.organization else ""
+        stage = e.current_stage.title if e.current_stage else ""
+        writer.writerow([
+            student.roll_number if student else "",
+            student_user.full_name if student_user else "",
+            student.division if student else "",
+            dept,
+            org,
+            e.industry_mentor_name or "",
+            mentor,
+            stage,
+            e.progress_percent,
+            e.evaluation_status.value if e.evaluation_status else "",
+            float(e.final_marks) if e.final_marks is not None else "",
+            e.final_grade or "",
+            e.status.value,
+        ])
+
+    csv_data = output.getvalue()
+    code_slug = program.code.replace(" ", "_")
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="internship_{code_slug}_grades.csv"'},
+    )
 
 
 @router.post("/programs", response_model=InternshipProgramOut, status_code=201)

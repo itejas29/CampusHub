@@ -4,6 +4,7 @@ import {
   BookOpen,
   Calendar,
   CalendarDays,
+  CheckCircle2,
   Clock,
   GraduationCap,
   Mail,
@@ -310,6 +311,62 @@ export function StudentDashboard() {
             )}
           </Card>
 
+          {/* Allocated Electives Showcase */}
+          {data.allocated_electives && data.allocated_electives.length > 0 && (
+            <Card className="card-luxe-shadow border-emerald-500/30 bg-gradient-to-br from-surface via-surface to-emerald-50/20 dark:to-emerald-950/10">
+              <CardHeader
+                title="Allocated Elective Courses"
+                description="Official seat allocations confirmed for your curriculum requirements."
+                icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden />}
+              />
+              <div className="divide-y divide-line">
+                {data.allocated_electives.map((alloc) => (
+                  <div key={alloc.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-1.5 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-surface-muted border border-line text-ink">
+                          {alloc.course_code}
+                        </span>
+                        <h3 className="text-sm font-bold text-ink truncate">{alloc.course_title}</h3>
+                        <StatusBadge status={alloc.status} />
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+                        <span className="font-medium text-ink">{alloc.component_title ?? alloc.component_code}</span>
+                        <span>•</span>
+                        <span>{alloc.credits} Credits</span>
+                        {alloc.section_name && (
+                          <>
+                            <span>•</span>
+                            <span className="font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200/60 dark:border-emerald-900">
+                              Section: {alloc.section_name}
+                            </span>
+                          </>
+                        )}
+                        {alloc.preference_order_granted && (
+                          <>
+                            <span>•</span>
+                            <span className="text-emerald-700 dark:text-emerald-400 font-semibold">
+                              ✓ Preference #{alloc.preference_order_granted} Granted
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    {alloc.link && (
+                      <Link
+                        to={alloc.link}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line bg-surface hover:bg-surface-muted text-xs font-semibold text-secondary transition-colors shrink-0 shadow-sm"
+                      >
+                        <span>View Workspace</span>
+                        <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                      </Link>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
           {/* This semester, as the student's own curriculum defines it */}
           <Card className="card-luxe-shadow">
             <div className="p-5 sm:p-6 border-b border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -381,6 +438,23 @@ export function StudentDashboard() {
                             {" • "}{pluralise(component.credits, "credit")}
                             {component.scope_label && ` • ${component.scope_label}`}
                           </p>
+                          {component.allocated_course_code && (
+                            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-2xs font-medium text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-2 py-0.5 rounded">
+                              <CheckCircle2 className="h-3 w-3 text-emerald-600 shrink-0" />
+                              <span className="font-bold">{component.allocated_course_code}</span>
+                              <span className="truncate">— {component.allocated_course_title}</span>
+                              {component.allocated_section && (
+                                <span className="font-semibold px-1 rounded bg-emerald-200/60 dark:bg-emerald-900/60">
+                                  {component.allocated_section}
+                                </span>
+                              )}
+                              {component.preference_order_granted && (
+                                <span className="text-emerald-700 dark:text-emerald-400">
+                                  (Pref #{component.preference_order_granted})
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <StatusBadge status={component.status} />
