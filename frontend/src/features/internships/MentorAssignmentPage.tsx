@@ -48,7 +48,7 @@ const heroReveal: Variants = {
 
 export function MentorAssignmentPage() {
   const queryClient = useQueryClient();
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryProgramId = searchParams.get("program_id");
   const [selectedProgramId, setSelectedProgramId] = useState<string>(queryProgramId ?? "");
@@ -71,34 +71,46 @@ export function MentorAssignmentPage() {
 
   const programs = programsQuery.data ?? [];
 
-  // Detect which domains this faculty coordinates
-  const myCoordinations = user?.faculty?.coordinations ?? [];
-  const myDomains = useMemo(() => new Set(myCoordinations.map((c) => c.domain)), [myCoordinations]);
+  const isSuperAdmin = user?.roles.includes("SUPER_ADMIN");
 
-  // Filter programs based on coordinator permissions
+  // Filter programs strictly based on coordinator permissions and department
   const availablePrograms = useMemo(() => {
-    if (isAdmin || user?.roles.includes("SUPER_ADMIN")) return programs;
-    const filtered = programs.filter((p) => {
-      if (p.type === "CSSI" && myDomains.has("CSSI")) return true;
-      if (p.type === "SUMMER" && myDomains.has("SUMMER_INTERNSHIP")) return true;
-      if (user?.full_name && p.coordinator_name?.toLowerCase().includes(user.full_name.toLowerCase())) return true;
-      return false;
-    });
-    return filtered.length > 0 ? filtered : programs;
-  }, [programs, isAdmin, user, myDomains]);
+    if (isSuperAdmin) return programs;
 
-  // Determine active program: explicit state > search param > user's coordinated program > first available
+    const myCoordinations = user?.faculty?.coordinations ?? [];
+    return programs.filter((p) => {
+      // Check if user has an active coordination matching this program's domain and department
+      const matchesCoordination = myCoordinations.some((c) => {
+        const domainMatches =
+          (p.type === "CSSI" && c.domain === "CSSI") ||
+          (p.type === "SUMMER" && c.domain === "SUMMER_INTERNSHIP");
+        const deptMatches = c.department_id == null || c.department_id === p.department_id;
+        return domainMatches && deptMatches;
+      });
+
+      // Also check if coordinator_name on the program matches user's full name
+      const matchesName = Boolean(
+        user?.full_name &&
+        p.coordinator_name &&
+        p.coordinator_name.toLowerCase().includes(user.full_name.toLowerCase()),
+      );
+
+      return matchesCoordination || matchesName;
+    });
+  }, [programs, isSuperAdmin, user]);
+
+  // Determine active program: explicit state > search param > user's coordinated program
   const activeProgram = useMemo(() => {
     if (selectedProgramId) {
-      const match = programs.find((p) => String(p.id) === selectedProgramId);
+      const match = availablePrograms.find((p) => String(p.id) === selectedProgramId);
       if (match) return match;
     }
     if (queryProgramId) {
-      const match = programs.find((p) => String(p.id) === queryProgramId);
+      const match = availablePrograms.find((p) => String(p.id) === queryProgramId);
       if (match) return match;
     }
-    return availablePrograms[0] ?? programs[0];
-  }, [programs, availablePrograms, selectedProgramId, queryProgramId]);
+    return availablePrograms[0] ?? (isSuperAdmin ? programs[0] : null);
+  }, [availablePrograms, programs, selectedProgramId, queryProgramId, isSuperAdmin]);
 
   const activeProgramId = activeProgram?.id;
 
