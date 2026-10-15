@@ -4,6 +4,7 @@ import {
   AlertCircle,
   CheckCircle2,
   CheckSquare,
+  ChevronDown,
   Dices,
   Download,
   ListOrdered,
@@ -19,7 +20,8 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Form";
 import { Avatar } from "@/components/ui/Misc";
@@ -46,7 +48,10 @@ const heroReveal: Variants = {
 
 export function MentorAssignmentPage() {
   const queryClient = useQueryClient();
-  const [selectedProgramId] = useState<string>("");
+  const { user, isAdmin } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryProgramId = searchParams.get("program_id");
+  const [selectedProgramId, setSelectedProgramId] = useState<string>(queryProgramId ?? "");
   const [mentorFilter, setMentorFilter] = useState<string>("ALL");
   const [mentorSearch, setMentorSearch] = useState("");
   const [assignmentTab, setAssignmentTab] = useState<"ALL" | "UNASSIGNED" | "ASSIGNED">("ALL");
@@ -65,8 +70,45 @@ export function MentorAssignmentPage() {
   });
 
   const programs = programsQuery.data ?? [];
-  const cssiProgram = programs.find((p) => p.code?.includes("CSSI") || p.type === "CSSI") ?? programs[0];
-  const activeProgramId = selectedProgramId ? Number(selectedProgramId) : cssiProgram?.id;
+
+  // Detect which domains this faculty coordinates
+  const myCoordinations = user?.faculty?.coordinations ?? [];
+  const myDomains = useMemo(() => new Set(myCoordinations.map((c) => c.domain)), [myCoordinations]);
+
+  // Filter programs based on coordinator permissions
+  const availablePrograms = useMemo(() => {
+    if (isAdmin || user?.roles.includes("SUPER_ADMIN")) return programs;
+    const filtered = programs.filter((p) => {
+      if (p.type === "CSSI" && myDomains.has("CSSI")) return true;
+      if (p.type === "SUMMER" && myDomains.has("SUMMER_INTERNSHIP")) return true;
+      if (user?.full_name && p.coordinator_name?.toLowerCase().includes(user.full_name.toLowerCase())) return true;
+      return false;
+    });
+    return filtered.length > 0 ? filtered : programs;
+  }, [programs, isAdmin, user, myDomains]);
+
+  // Determine active program: explicit state > search param > user's coordinated program > first available
+  const activeProgram = useMemo(() => {
+    if (selectedProgramId) {
+      const match = programs.find((p) => String(p.id) === selectedProgramId);
+      if (match) return match;
+    }
+    if (queryProgramId) {
+      const match = programs.find((p) => String(p.id) === queryProgramId);
+      if (match) return match;
+    }
+    return availablePrograms[0] ?? programs[0];
+  }, [programs, availablePrograms, selectedProgramId, queryProgramId]);
+
+  const activeProgramId = activeProgram?.id;
+
+  const handleProgramChange = (newId: string) => {
+    setSelectedProgramId(newId);
+    setSearchParams({ program_id: newId });
+    setSelectedMentorIds(new Set());
+    setSelectedStudentIds(new Set());
+    setFeedback(null);
+  };
 
   // Fetch mentor capacities
   const mentorsQuery = useQuery({
@@ -258,7 +300,7 @@ export function MentorAssignmentPage() {
   const unassignedCount = enrollments.filter((e) => !e.mentor_faculty_id).length;
   const assignedCount = enrollments.filter((e) => !!e.mentor_faculty_id).length;
   const activeMentorsCount = mentors.filter((m) => m.assigned_count > 0).length;
-  const totalStudents = enrollments.length || 203;
+  const totalStudents = enrollments.length;
   const allocPct = totalStudents > 0 ? Math.round((assignedCount / totalStudents) * 100) : 0;
   const requiredMentors = Math.min(mentors.length || 25, Math.ceil(totalStudents / 10));
   const avgLoad = activeMentorsCount > 0 ? (assignedCount / activeMentorsCount).toFixed(1) : "—";
@@ -386,7 +428,7 @@ export function MentorAssignmentPage() {
 
   const exportCSV = () => {
     const rows = [
-      ["Roll Number", "Student Name", "Assigned Mentor", "NGO Partner", "Status"],
+      ["Roll Number", "Student Name", "Assigned Mentor", "Organisation / NGO", "Status"],
       ...filteredStudents.map((s) => [
         s.roll_number ?? "",
         s.student_name,
@@ -398,7 +440,10 @@ export function MentorAssignmentPage() {
     const csvContent = "data:text/csv;charset=utf-8," + rows.map((e) => e.join(",")).join("\n");
     const link = document.createElement("a");
     link.setAttribute("href", encodeURI(csvContent));
-    link.setAttribute("download", "CSSI_Mentor_Allocation_PDEU.csv");
+    link.setAttribute(
+      "download",
+      `${(activeProgram?.code ?? "Internship").replace(/[^a-zA-Z0-9_-]/g, "_")}_Mentor_Allocation_PDEU.csv`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -450,27 +495,50 @@ export function MentorAssignmentPage() {
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
             {/* Left: title + meta */}
             <div className="space-y-4 max-w-2xl">
-              {/* Top badges */}
+              {/* Top badges + Program Switcher */}
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-white/10 text-white/90 border border-white/20 backdrop-blur-sm">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   Active Session
                 </span>
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-white/10 text-white/80 border border-white/15">
-                  ICT Department
+                  {user?.faculty?.department_code ? `${user.faculty.department_code} Department` : "ICT Department"}
                 </span>
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/30 text-blue-200 border border-blue-400/30">
-                  CSSI-202
-                </span>
+
+                {/* Program Switcher */}
+                {availablePrograms.length > 1 ? (
+                  <div className="relative inline-flex items-center">
+                    <select
+                      value={activeProgram?.id ?? ""}
+                      onChange={(e) => handleProgramChange(e.target.value)}
+                      className="appearance-none bg-blue-500/30 hover:bg-blue-500/40 text-blue-100 font-semibold text-xs rounded-full pl-3 pr-7 py-1 border border-blue-400/30 backdrop-blur-sm cursor-pointer transition focus:outline-none focus:ring-1 focus:ring-white/40"
+                    >
+                      {availablePrograms.map((p) => (
+                        <option key={p.id} value={p.id} className="text-slate-900 bg-white font-medium">
+                          {p.name} ({p.code})
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-2 h-3.5 w-3.5 text-blue-200 pointer-events-none" />
+                  </div>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/30 text-blue-200 border border-blue-400/30">
+                    {activeProgram?.code ?? "CSSI-202"}
+                  </span>
+                )}
               </div>
 
               {/* Title */}
               <div>
                 <h1 className="font-heading text-3xl sm:text-4xl font-bold text-white leading-tight tracking-tight">
-                  CSSI Mentor Allocation
+                  {activeProgram ? `${activeProgram.name} Mentor Allocation` : "Mentor Allocation"}
                 </h1>
                 <p className="mt-2 text-base text-white/70 font-medium">
-                  Cohort: B.Tech ICT 2024–28 (2nd Year)&nbsp;&nbsp;·&nbsp;&nbsp;Winter 2025
+                  {activeProgram?.type === "SUMMER"
+                    ? "Summer Industry Internship"
+                    : "Community & Social Service Internship"}
+                  &nbsp;&nbsp;·&nbsp;&nbsp;{activeProgram?.target_semester ? `Target Semester ${activeProgram.target_semester}` : "Cohort Year"}
+                  &nbsp;&nbsp;·&nbsp;&nbsp;Code: {activeProgram?.code ?? "—"}
                 </p>
               </div>
 
@@ -479,7 +547,7 @@ export function MentorAssignmentPage() {
                 {[
                   { label: "Total Students", value: String(totalStudents), icon: Users },
                   { label: "Faculty Mentors", value: String(mentors.length || 25), icon: UserCheck },
-                  { label: "Allocated", value: `${allocPct || 95.6}%`, icon: CheckCircle2 },
+                  { label: "Allocated", value: `${allocPct}%`, icon: CheckCircle2 },
                 ].map(({ label, value, icon: Icon }) => (
                   <div
                     key={label}
@@ -534,7 +602,7 @@ export function MentorAssignmentPage() {
                   onClick={() => {
                     setFeedback({
                       tone: "success",
-                      text: "All CSSI mentor allocations locked for AY 2024-25. Verification notifications dispatched.",
+                      text: `All ${activeProgram?.name ?? "internship"} mentor allocations locked for AY 2024-25. Verification notifications dispatched.`,
                     });
                   }}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white/90 border border-white/25 bg-white/10 hover:bg-white/20 transition-all duration-200"
