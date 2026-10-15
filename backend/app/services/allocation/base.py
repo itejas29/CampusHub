@@ -55,7 +55,9 @@ class SeatPool:
 class Award:
     student_id: int
     course_offering_id: int
-    preference_order_granted: int
+    #: None when the seat was not one of the student's choices — a student
+    #: who never submitted, placed at random.
+    preference_order_granted: int | None
     score: float | None = None
     waitlisted: bool = False
     reason: str = ""

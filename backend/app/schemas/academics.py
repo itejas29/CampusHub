@@ -442,8 +442,14 @@ class AllocationStrategyOut(BaseModel):
 
 class RunAllocationRequest(BaseModel):
     curriculum_component_id: int
+    #: The round being allocated. Needed when two rounds share the slot (one
+    #: cohort choosing ahead while another chooses now); inferred otherwise.
+    registration_window_id: int | None = None
     strategy: str = "preference_order"
     dry_run: bool = True
+    #: Course-wide seat limit for this run. Empty means the course's own
+    #: rule: Open Electives open another section, Core Electives have no cap.
+    seats_per_course: int | None = Field(default=None, ge=1, le=10_000)
     config: dict = Field(default_factory=dict)
 
 

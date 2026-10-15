@@ -10,7 +10,7 @@ from app.core.errors import NotFoundError
 from app.core.rbac import P
 from app.models.engagement import Announcement, MentorAssignment
 from app.models.enums import AudienceType, AuditAction, NotificationType, Role
-from app.models.identity import Faculty, Student, User
+from app.models.identity import Faculty, Student, User, UserRole
 from app.schemas.common import Message
 from app.schemas.engagement import (
     AnnouncementCreate, AnnouncementOut, AnnouncementUpdate,
@@ -122,7 +122,14 @@ def _fan_out(db, announcement: Announcement) -> None:
             .where(MentorAssignment.faculty_id == announcement.audience_ref_id,
                    MentorAssignment.is_active.is_(True))
         )
-    elif audience not in (AudienceType.ALL, AudienceType.ROLE):
+    elif audience == AudienceType.ROLE:
+        # Only the holders of that role, as services/announcements.visible_to
+        # shows it. This used to fall through to everyone, so a notice for one
+        # role rang the bell of every student in every semester.
+        stmt = stmt.join(UserRole, UserRole.user_id == User.id).where(
+            UserRole.role == announcement.audience_ref_value
+        )
+    elif audience != AudienceType.ALL:
         return  # Club / internship audiences fan out from their own modules.
 
     user_ids = list(db.scalars(stmt))

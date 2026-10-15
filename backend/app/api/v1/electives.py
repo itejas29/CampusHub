@@ -551,12 +551,58 @@ def export_allocations_csv(
     )
 
 
+def _round_to_allocate(db, user: User, component: CurriculumComponent,
+                       payload: RunAllocationRequest
+                       ) -> ElectiveRegistrationWindow | None:
+    """The round a run is for, or None for a slot run without rounds.
+
+    Named by the caller, or inferred when exactly one round has this slot's
+    courses. With more than one the caller must say which: guessing is how
+    one cohort's run reached the other cohort.
+    """
+    if payload.registration_window_id is not None:
+        window = db.get(ElectiveRegistrationWindow, payload.registration_window_id)
+        if window is None:
+            raise NotFoundError("Registration round not found.")
+    else:
+        round_ids = sorted({
+            wid for (wid,) in db.execute(
+                select(CourseOffering.registration_window_id).where(
+                    CourseOffering.curriculum_component_id == component.id,
+                    CourseOffering.registration_window_id.is_not(None)))
+        })
+        if not round_ids:
+            return None
+        if len(round_ids) > 1:
+            raise BusinessRuleError(
+                f"{component.title} has courses in {len(round_ids)} registration "
+                "rounds. Run allocation from Registration Rounds, for one round "
+                "at a time."
+            )
+        window = db.get(ElectiveRegistrationWindow, round_ids[0])
+    _assert_manages_window(db, user, window)
+    if component.id not in {c.id for c in registration.round_components(db, window)}:
+        raise ValidationError(f"{window.title} has no courses in {component.title}.")
+    if not payload.dry_run and window.status != RegistrationWindowStatus.LOCKED:
+        raise BusinessRuleError(
+            f"{window.title} is {window.status.value.lower()}. Lock the round "
+            "before allocating, so no one is still changing their choices."
+        )
+    return window
+
+
 @router.post("/admin/allocate", response_model=AllocationRunResult)
 def run_allocation(
     payload: RunAllocationRequest, db: DbSession, request_ctx=Depends(request_context),
     user: User = Depends(_manages_electives),
 ) -> AllocationRunResult:
-    """Run a registered allocation strategy. Defaults to a dry run."""
+    """Run a registered allocation strategy. Defaults to a dry run.
+
+    A run is for one round. Two cohorts can be choosing for the same slot at
+    once (Semester III ahead, Semester IV now), and a run over the whole slot
+    used to seat and notify both. Only the round's courses, and only the
+    students it covers, are considered.
+    """
     component = _managed_component(db, user, payload.curriculum_component_id)
 
     strategy = get_strategy(payload.strategy)
@@ -565,14 +611,27 @@ def run_allocation(
             f"The '{strategy.key}' strategy is not enabled: {strategy.description}"
         )
 
-    prefs = list(db.scalars(
-        select(ElectivePreference)
-        .where(ElectivePreference.curriculum_component_id == component.id,
-               ElectivePreference.status == PreferenceStatus.SUBMITTED)
+    window = _round_to_allocate(db, user, component, payload)
+    offerings = list(db.scalars(
+        select(CourseOffering).where(
+            CourseOffering.curriculum_component_id == component.id,
+            (CourseOffering.registration_window_id == window.id) if window
+            else CourseOffering.registration_window_id.is_(None),
+        ).order_by(CourseOffering.id)
     ))
-    if not prefs:
-        raise BusinessRuleError("No preferences have been submitted for this component.")
+    offering_ids = {o.id for o in offerings}
+    covered = ({st.id for st in registration.students_in_window(db, window)}
+               if window else None)
 
+    prefs = [
+        p for p in db.scalars(
+            select(ElectivePreference)
+            .where(ElectivePreference.curriculum_component_id == component.id,
+                   ElectivePreference.status == PreferenceStatus.SUBMITTED)
+        )
+        if p.course_offering_id in offering_ids
+        and (covered is None or p.student_id in covered)
+    ]
     already = {
         a.student_id for a in db.scalars(
             select(ElectiveAllocation).where(
@@ -585,29 +644,39 @@ def run_allocation(
                   preference_order=p.preference_order, submitted_at=p.submitted_at)
         for p in prefs if p.student_id not in already
     ]
-    offerings = list(db.scalars(
-        select(CourseOffering).where(
-            CourseOffering.curriculum_component_id == component.id
-        )
-    ))
+    non_submitters = sorted(
+        (covered or set()) - {p.student_id for p in prefs} - already)
+    if not prefs and not (strategy.key == "first_come_first_served" and non_submitters):
+        raise BusinessRuleError("No preferences have been submitted for this component.")
+
     # Capacity here is the *course-wide* ceiling used by the strategy. Open
-    # Electives have none — demand above one section opens another section
-    # rather than turning students away — so we pass a very large pool and let
-    # services/sections.py do the splitting afterwards.
+    # Electives have none (demand above one section opens another section
+    # rather than turning students away), so we pass a very large pool and let
+    # services/sections.py do the splitting afterwards. A seat limit set for
+    # this run caps every course; first come, first served needs one for the
+    # order to matter.
     UNLIMITED = 10_000
     pools = {
         o.id: SeatPool(
             course_offering_id=o.id,
-            capacity=(o.section_capacity
-                      if (o.section_capacity is not None
-                          and not o.allow_multiple_sections)
-                      else UNLIMITED),
+            capacity=min(
+                (o.section_capacity
+                 if (o.section_capacity is not None
+                     and not o.allow_multiple_sections)
+                 else UNLIMITED),
+                payload.seats_per_course or UNLIMITED,
+            ),
             seats_taken=o.seats_filled,
         )
         for o in offerings
     }
 
-    outcome = strategy.allocate(candidates, pools, config=payload.config)
+    config = dict(payload.config)
+    # Who did not submit, and the seed of the random draw, come from the
+    # server, never from the request. The seed makes a dry run match the run.
+    config["non_submitter_ids"] = non_submitters
+    config["seed"] = f"{window.id if window else 0}:{component.id}"
+    outcome = strategy.allocate(candidates, pools, config=config)
     preview: list[AllocationOut] = []
 
     if not payload.dry_run:
@@ -622,6 +691,7 @@ def run_allocation(
                 allocation_round=1, strategy=strategy.key, score=award.score,
                 preference_order_granted=award.preference_order_granted,
                 allocated_by_user_id=user.id, allocated_at=now,
+                remarks=award.reason or None,
             )
             db.add(allocation)
             if not award.waitlisted:
@@ -629,7 +699,9 @@ def run_allocation(
                 if offering:
                     offering.seats_filled += 1
             student = db.get(Student, award.student_id)
-            if student:
+            # A round's students hear when the coordinator publishes the
+            # results; only a slot with no round is told at run time.
+            if student and window is None:
                 notifications.notify(
                     db, user_id=student.user_id,
                     type=NotificationType.ELECTIVE_ALLOCATION,
@@ -652,8 +724,12 @@ def run_allocation(
         audit.record(
             db, action=AuditAction.ALLOCATION_RUN, entity_type="curriculum_component",
             entity_id=component.id, actor=user,
-            description=f"Ran '{strategy.key}' allocation for {component.code}",
-            meta={"allocated": outcome.allocated_count,
+            description=(f"Ran '{strategy.key}' allocation for {component.code}"
+                         + (f" in round {window.code}" if window else "")),
+            meta={"registration_window_id": window.id if window else None,
+                  "seats_per_course": payload.seats_per_course,
+                  "non_submitters": len(non_submitters),
+                  "allocated": outcome.allocated_count,
                   "waitlisted": len(outcome.awards) - outcome.allocated_count,
                   "unallocated": len(outcome.unallocated_student_ids)},
             **request_ctx,
@@ -662,7 +738,8 @@ def run_allocation(
         preview = [
             _allocation_out(db, a) for a in db.scalars(
                 select(ElectiveAllocation)
-                .where(ElectiveAllocation.curriculum_component_id == component.id)
+                .where(ElectiveAllocation.curriculum_component_id == component.id,
+                       ElectiveAllocation.course_offering_id.in_(offering_ids or [0]))
                 .order_by(ElectiveAllocation.id)
             )
         ]
@@ -1354,7 +1431,7 @@ def _notify_allocation_published(db, window: ElectiveRegistrationWindow) -> int:
             db, user_id=student.user_id,
             type=NotificationType.ELECTIVE_ALLOCATION,
             title=f"{window.title} — result published",
-            message=message, link="/academics/open-electives",
+            message=message, link=_round_link(db, window),
         )
         sent += 1
     return sent

@@ -15,7 +15,9 @@ import { ApiError, api, downloadProtectedFile } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { pluralise, roman } from "@/lib/utils";
-import type { ComponentType, RegistrationWindow, RoundSlot } from "@/types";
+import type {
+  AllocationRunResult, AllocationStrategy, ComponentType, RegistrationWindow, RoundSlot,
+} from "@/types";
 
 const FAMILY_LABEL: Record<string, string> = {
   OPEN_ELECTIVE: "Open Elective",
@@ -62,6 +64,7 @@ export function RegistrationRoundsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<RegistrationWindow | null>(null);
   const [deadlineFor, setDeadlineFor] = useState<RegistrationWindow | null>(null);
+  const [allocateFor, setAllocateFor] = useState<RegistrationWindow | null>(null);
   const [confirm, setConfirm] = useState<{ round: RegistrationWindow; action: Action } | null>(null);
   const [banner, setBanner] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
 
@@ -84,19 +87,6 @@ export function RegistrationRoundsPage() {
 
   const move = useMutation({
     mutationFn: async ({ round, action }: { round: RegistrationWindow; action: Action }) => {
-      if (action === "ALLOCATED") {
-        // Run the allocation strategy for every slot in this round, then
-        // advance the window status. The strategy runs as a real commit
-        // (dry_run=false) and uses the default first-preference-first rule.
-        const slots = round.slots ?? [];
-        for (const slot of slots) {
-          await api.post("/electives/admin/allocate", {
-            curriculum_component_id: slot.id,
-            strategy: "first_preference",
-            dry_run: false,
-          });
-        }
-      }
       return api.post<RegistrationWindow>(
         `/electives/admin/windows/${round.id}/status?target=${action === "REOPEN" ? "OPEN" : action}`,
       );
@@ -276,7 +266,7 @@ export function RegistrationRoundsPage() {
                               Reopen
                             </Button>
                             <Button size="sm"
-                                    onClick={() => setConfirm({ round, action: "ALLOCATED" })}
+                                    onClick={() => setAllocateFor(round)}
                                     icon={<Zap className="h-3.5 w-3.5" aria-hidden />}>
                               Run allocation
                             </Button>
@@ -331,6 +321,18 @@ export function RegistrationRoundsPage() {
           onClose={() => setDeadlineFor(null)}
           onDone={(text) => {
             setDeadlineFor(null);
+            setBanner({ tone: "success", text });
+            refresh();
+          }}
+        />
+      )}
+
+      {allocateFor && (
+        <AllocateModal
+          round={allocateFor}
+          onClose={() => setAllocateFor(null)}
+          onDone={(text) => {
+            setAllocateFor(null);
             setBanner({ tone: "success", text });
             refresh();
           }}
@@ -670,6 +672,141 @@ function DeadlineModal({
           <Input type="datetime-local" value={closesAt} data-autofocus
                  onChange={(e) => setClosesAt(e.target.value)} />
         </FormField>
+      </div>
+    </Modal>
+  );
+}
+
+/** What a run did, added up over the round's slots. */
+function addUp(results: AllocationRunResult[]) {
+  return results.reduce(
+    (sum, r) => ({
+      allocated: sum.allocated + r.allocated,
+      waitlisted: sum.waitlisted + r.waitlisted,
+      unallocated: sum.unallocated + r.unallocated,
+      random: sum.random + r.preview.filter(
+        (row) => !row.preference_order_granted && row.status === "ALLOCATED").length,
+      notes: [...sum.notes, ...r.notes],
+    }),
+    { allocated: 0, waitlisted: 0, unallocated: 0, random: 0, notes: [] as string[] },
+  );
+}
+
+/**
+ * Allocate a locked round: choose the rule and the seat limit, preview, run.
+ * Only this round's courses and students are touched, and nobody is told until
+ * the results are published.
+ */
+function AllocateModal({
+  round, onClose, onDone,
+}: {
+  round: RegistrationWindow; onClose: () => void; onDone: (text: string) => void;
+}) {
+  const strategies = useQuery({
+    queryKey: ["allocation-strategies"],
+    queryFn: () => api.get<AllocationStrategy[]>("/electives/strategies"),
+  });
+  const usable = (strategies.data ?? []).filter((s) => s.is_available && s.key !== "manual");
+  const [strategy, setStrategy] = useState("first_come_first_served");
+  // An even split, so every covered student can be seated. A suggestion: the
+  // coordinator knows the real room sizes.
+  const coursesPerSlot = Math.max(1, Math.round(round.offering_count / Math.max(1, round.slots.length)));
+  const [seats, setSeats] = useState(
+    String(Math.max(1, Math.ceil(round.eligible_student_count / coursesPerSlot))),
+  );
+  const [preview, setPreview] = useState<ReturnType<typeof addUp> | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const chosen = usable.find((s) => s.key === strategy);
+
+  async function runAll(dryRun: boolean) {
+    const results: AllocationRunResult[] = [];
+    for (const slot of round.slots) {
+      results.push(await api.post<AllocationRunResult>("/electives/admin/allocate", {
+        curriculum_component_id: slot.id,
+        registration_window_id: round.id,
+        strategy,
+        seats_per_course: Number(seats) || null,
+        dry_run: dryRun,
+      }));
+    }
+    return addUp(results);
+  }
+
+  const check = useMutation({
+    mutationFn: () => runAll(true),
+    onSuccess: (sum) => { setError(null); setPreview(sum); },
+    onError: (err) => setError(errorText(err, "Could not preview the allocation.")),
+  });
+  const run = useMutation({
+    mutationFn: async () => {
+      const sum = await runAll(false);
+      await api.post<RegistrationWindow>(
+        `/electives/admin/windows/${round.id}/status?target=ALLOCATED`);
+      return sum;
+    },
+    onSuccess: (sum) => onDone(
+      `Allocation complete for ${round.title}: ${pluralise(sum.allocated, "seat")} assigned`
+      + (sum.random ? `, ${sum.random} placed at random` : "")
+      + (sum.unallocated ? `, ${sum.unallocated} not seated` : "")
+      + ". Review it, then publish to notify students."),
+    onError: (err) => setError(errorText(err, "Could not run the allocation.")),
+  });
+
+  return (
+    <Modal
+      open onClose={onClose} size="lg"
+      title="Run allocation"
+      description={`${round.title} · ${pluralise(round.eligible_student_count, "student")}, `
+        + `${round.submitted_student_count} submitted`}
+      footer={
+        <>
+          <Button variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
+          <Button variant="secondary" size="sm" loading={check.isPending}
+                  disabled={!chosen || run.isPending} onClick={() => check.mutate()}>
+            Preview
+          </Button>
+          <Button size="sm" loading={run.isPending}
+                  disabled={!chosen || check.isPending} onClick={() => run.mutate()}>
+            Run allocation
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {error && <Alert variant="danger">{error}</Alert>}
+        <FormField label="Allocation rule" hint={chosen?.description}>
+          <Select value={strategy}
+                  onChange={(e) => { setStrategy(e.target.value); setPreview(null); }}>
+            {usable.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+          </Select>
+        </FormField>
+        <FormField
+          label="Seats per course"
+          hint={`Prefilled so all ${round.eligible_student_count} students fit across `
+            + `${pluralise(coursesPerSlot, "course")}. Leave empty for no limit.`}
+        >
+          <Input type="number" min={1} value={seats}
+                 onChange={(e) => { setSeats(e.target.value); setPreview(null); }} />
+        </FormField>
+        <p className="text-sm text-ink-muted">
+          Only this round&apos;s courses and students are allocated. Students are{" "}
+          <strong>not notified</strong> until you publish the results.
+        </p>
+        {preview && (
+          <Alert variant={preview.unallocated ? "warning" : "info"}>
+            <p>
+              Preview: {pluralise(preview.allocated, "seat")} from choices and at random
+              {preview.random ? ` (${preview.random} at random)` : ""}
+              {preview.waitlisted ? `, ${preview.waitlisted} waitlisted` : ""}
+              {preview.unallocated ? `, ${preview.unallocated} without a seat` : ""}.
+            </p>
+            {preview.notes.length > 0 && (
+              <ul className="mt-1 list-disc pl-5">
+                {preview.notes.map((note, i) => <li key={i}>{note}</li>)}
+              </ul>
+            )}
+          </Alert>
+        )}
       </div>
     </Modal>
   );

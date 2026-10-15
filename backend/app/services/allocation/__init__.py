@@ -3,7 +3,8 @@ from app.services.allocation.base import (
     available_strategies, get_strategy, register,
 )
 from app.services.allocation.strategies import (  # noqa: F401  (registers strategies)
-    ManualAllocation, MeritAllocation, PreferenceOrderAllocation,
+    FirstComeFirstServedAllocation, ManualAllocation, MeritAllocation,
+    PreferenceOrderAllocation,
 )
 
 __all__ = [

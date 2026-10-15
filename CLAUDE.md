@@ -189,7 +189,25 @@ described its practice to the project team; it is not from a written rule.)
   (`registration.early_rounds`), so they are never told to choose without a
   screen to do it on.
 
-Allocation after a round locks is **not built yet** and is the next piece.
+### Allocation is per round, and first come, first served
+
+- **A run allocates one round**, never the whole slot (`registration_window_id`
+  on `POST /electives/admin/allocate`; inferred only when exactly one round
+  has the slot's courses). Two cohorts can share a slot, and a slot-wide run
+  used to seat and notify both. Only the round's courses and the students it
+  covers are touched. A real run needs the round **LOCKED**; a dry run does not.
+- **Students hear on Publish, not at run time.** A run for a round sends no
+  notification; `_notify_allocation_published` tells exactly the covered students.
+- `first_come_first_served` (`services/allocation/strategies.py`): lists are
+  served in submission order, each student seated in their highest choice with
+  a seat left. Covered students who never submitted, and submitters whose every
+  choice filled, are placed **at random** in the seats that remain. The draw is
+  seeded by round and slot, so the preview equals the run. Who did not submit
+  is computed by the server; a client-sent `non_submitter_ids` is overwritten.
+- With no seat limit every course is unlimited (Open Electives add sections,
+  Core Electives have no cap), so the order would not matter. The coordinator
+  sets `seats_per_course` for the run; the screen suggests an even split. That
+  number is the coordinator's call, not a university rule.
 
 ---
 

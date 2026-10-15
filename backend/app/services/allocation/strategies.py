@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import random
 from typing import Any
 
 from app.core.errors import BusinessRuleError
@@ -87,6 +88,109 @@ class PreferenceOrderAllocation(AllocationStrategy):
                     reason="All preferred offerings were full",
                 ))
         outcome.unallocated_student_ids = leftover
+        return outcome
+
+
+@register
+class FirstComeFirstServedAllocation(AllocationStrategy):
+    """Seats go in the order preference lists were submitted.
+
+    The earliest submission is seated first, in the highest choice that still
+    has a seat; then the next, and so on. A student who submitted later can
+    lose a full course to one who submitted earlier, whatever either ranked.
+
+    Students the round covered who never submitted are not left without an
+    elective: once every submitted list has been served they are placed at
+    random in the seats that remain. So is a submitter whose every choice
+    filled up. The draw is seeded, so a dry run shows exactly what the real
+    run will do.
+
+    Server-supplied config (never taken from the client):
+      ``non_submitter_ids`` — covered students with no submitted list
+      ``seed``              — makes the random draw repeatable
+    """
+
+    key = "first_come_first_served"
+    label = "First come, first served (non-submitters placed at random)"
+    description = (
+        "Students are seated in the order they submitted, each in their "
+        "highest choice that still has a seat. Students who did not submit "
+        "before the round was locked are placed at random in the remaining "
+        "seats. Set a seat limit per course for the order to matter."
+    )
+    is_available = True
+
+    def allocate(self, candidates: list[Candidate], pools: dict[int, SeatPool],
+                 *, config: dict[str, Any] | None = None) -> AllocationOutcome:
+        config = config or {}
+        rng = random.Random(str(config.get("seed", "")))
+        outcome = AllocationOutcome(strategy=self.key)
+        remaining = {pid: pool.remaining for pid, pool in pools.items()}
+
+        lists: dict[int, list[Candidate]] = {}
+        for cand in candidates:
+            lists.setdefault(cand.student_id, []).append(cand)
+        # A student's list is submitted at once; the earliest row stands for it.
+        queue = sorted(lists, key=lambda sid: (
+            min((c.submitted_at or _FAR_FUTURE) for c in lists[sid]), sid))
+
+        unseated: list[int] = []
+        for student_id in queue:
+            for cand in sorted(lists[student_id], key=lambda c: c.preference_order):
+                if remaining.get(cand.course_offering_id, 0) > 0:
+                    remaining[cand.course_offering_id] -= 1
+                    outcome.awards.append(Award(
+                        student_id=student_id,
+                        course_offering_id=cand.course_offering_id,
+                        preference_order_granted=cand.preference_order,
+                        reason=f"Granted preference #{cand.preference_order}",
+                    ))
+                    break
+            else:
+                unseated.append(student_id)
+        outcome.notes.append(
+            f"{len(queue)} submitted list(s) served in submission order; "
+            f"{len(queue) - len(unseated)} seated from their choices."
+        )
+
+        def place_at_random(student_id: int, reason: str) -> bool:
+            open_courses = sorted(pid for pid, left in remaining.items() if left > 0)
+            if not open_courses:
+                return False
+            chosen = rng.choice(open_courses)
+            remaining[chosen] -= 1
+            outcome.awards.append(Award(
+                student_id=student_id, course_offering_id=chosen,
+                preference_order_granted=None, reason=reason,
+            ))
+            return True
+
+        left_out: list[int] = []
+        for student_id in unseated:
+            if not place_at_random(
+                    student_id, "Every course you chose was full; placed at random"):
+                left_out.append(student_id)
+
+        non_submitters = sorted(set(config.get("non_submitter_ids") or []) - set(lists))
+        rng.shuffle(non_submitters)
+        placed = 0
+        for student_id in non_submitters:
+            if place_at_random(student_id,
+                               "No preferences submitted; placed at random"):
+                placed += 1
+            else:
+                left_out.append(student_id)
+        if non_submitters:
+            outcome.notes.append(
+                f"{len(non_submitters)} student(s) did not submit; "
+                f"{placed} placed at random."
+            )
+        if left_out:
+            outcome.notes.append(
+                f"{len(left_out)} student(s) could not be seated: every course "
+                "is full. Raise the seat limit or allocate them by hand."
+            )
+        outcome.unallocated_student_ids = sorted(left_out)
         return outcome
 
 
