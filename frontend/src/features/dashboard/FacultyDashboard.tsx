@@ -47,10 +47,15 @@ export function FacultyDashboard() {
     );
   }
 
+  const isSummerCoordinator = coordinates("SUMMER_INTERNSHIP");
+  const isCssiCoordinator = coordinates("CSSI");
   const isInternshipCoordinator =
-    can("internships:manage") || coordinates("CSSI") || coordinates("SUMMER_INTERNSHIP");
+    can("internships:manage") || isSummerCoordinator || isCssiCoordinator;
 
-  const firstName = user?.full_name ? user.full_name.split(" ")[1] ?? user.full_name : "Sneha";
+  const targetProgramId = isSummerCoordinator ? "2" : "1";
+  const coordinations = user?.faculty?.coordinations ?? [];
+
+  const firstName = user?.full_name ? user.full_name.split(" ")[1] ?? user.full_name : "Faculty";
 
   const menteesCount = data.stats.find((s) => s.key === "mentees")?.value ?? 254;
   const pendingReviewsCount = data.stats.find((s) => s.key === "pending_reviews")?.value ?? 4;
@@ -66,7 +71,13 @@ export function FacultyDashboard() {
             <ChevronRight className="h-3 w-3 text-ink-subtle" />
             <span>Faculty Portal</span>
             <ChevronRight className="h-3 w-3 text-ink-subtle" />
-            <span className="font-medium text-ink-muted">ICT Coordination</span>
+            <span className="font-medium text-ink-muted">
+              {isSummerCoordinator
+                ? "Summer Internship Coordination"
+                : isCssiCoordinator
+                ? "CSSI Coordination"
+                : "Department Portal"}
+            </span>
             <ChevronRight className="h-3 w-3 text-ink-subtle" />
             <span className="font-semibold text-primary">Dashboard</span>
           </nav>
@@ -81,9 +92,34 @@ export function FacultyDashboard() {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               Active Faculty
             </span>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-200 border border-blue-200 dark:border-blue-900 text-xs font-semibold">
-              CSSI Coordinator — ICT
-            </span>
+            {coordinations.length > 0 ? (
+              coordinations.map((c, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-200 border border-blue-200 dark:border-blue-900 text-xs font-semibold"
+                >
+                  {c.domain === "SUMMER_INTERNSHIP"
+                    ? `Summer Internship Coordinator — ${c.department_code ?? "ICT"}`
+                    : c.domain === "CSSI"
+                    ? `CSSI Coordinator — ${c.department_code ?? "ICT"}`
+                    : c.domain === "OPEN_ELECTIVE"
+                    ? `Open Elective Coordinator — ${c.department_code ?? "ICT"}`
+                    : c.domain === "CORE_ELECTIVE"
+                    ? `Core Elective Coordinator — ${c.department_code ?? "ICT"}`
+                    : c.domain === "MINOR"
+                    ? `Minor Coordinator — ${c.department_code ?? "ICT"}`
+                    : c.domain === "MOOC"
+                    ? `NPTEL / MOOC Coordinator — ${c.department_code ?? "ICT"}`
+                    : `${c.domain} Coordinator — ${c.department_code ?? "ICT"}`}
+                </span>
+              ))
+            ) : (
+              user?.faculty?.designation && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-200 border border-blue-200 dark:border-blue-900 text-xs font-semibold">
+                  {user.faculty.designation}
+                </span>
+              )
+            )}
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-surface-muted text-ink-muted border border-line text-xs font-medium">
               School of Technology
             </span>
@@ -110,7 +146,7 @@ export function FacultyDashboard() {
           </LinkButton>
           {isInternshipCoordinator && (
             <LinkButton
-              to="/internships/mentor-assignment"
+              to={`/internships/mentor-assignment?program_id=${targetProgramId}`}
               variant="primary"
               size="sm"
               icon={<UserCheck className="h-4 w-4" />}
@@ -121,7 +157,7 @@ export function FacultyDashboard() {
         </div>
       </div>
 
-      {/* 2. CSSI COORDINATION PORTAL HERO BANNER (Stitch Design) */}
+      {/* 2. COORDINATION PORTAL HERO BANNER */}
       {isInternshipCoordinator && (
         <section className="relative overflow-hidden rounded-xl bg-gradient-to-r from-[#1e3a5f] via-[#162c48] to-[#2563eb] p-6 text-white shadow-md">
           {/* Decorative Subtle Geometric Grid Pattern */}
@@ -132,20 +168,26 @@ export function FacultyDashboard() {
             <div className="max-w-2xl space-y-2">
               <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-white/10 backdrop-blur-md text-[11px] font-semibold tracking-wide uppercase text-blue-200">
                 <ShieldAlert className="h-3.5 w-3.5" />
-                B.Tech ICT — 2nd Year Cohort • CSSI
+                {isSummerCoordinator
+                  ? "B.Tech ICT — 3rd & 4th Year Cohort • Summer Internship"
+                  : "B.Tech ICT — 2nd Year Cohort • CSSI"}
               </div>
               <h2 className="font-heading text-xl sm:text-2xl font-bold tracking-tight text-white">
-                CSSI Coordination Portal — ICT
+                {isSummerCoordinator
+                  ? "Summer Internship Coordination Portal — ICT"
+                  : "CSSI Coordination Portal — ICT"}
               </h2>
               <p className="text-sm text-blue-100 max-w-xl leading-relaxed">
-                Community & Social Service Internship management, NGO verification desk, and faculty mentor allocation workflow for 203 registered students.
+                {isSummerCoordinator
+                  ? "Summer Industry Internship management, organization offer letter verification, and faculty mentor allocation workflow for 409 registered students."
+                  : "Community & Social Service Internship management, NGO verification desk, and faculty mentor allocation workflow for 203 registered students."}
               </p>
             </div>
 
             {/* Hero Action CTAs */}
             <div className="flex flex-wrap items-center gap-3 shrink-0">
               <Link
-                to="/internships/mentor-assignment"
+                to={`/internships/mentor-assignment?program_id=${targetProgramId}`}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white text-[#1e3a5f] font-heading text-sm font-bold shadow-md hover:bg-slate-100 transition-all hover:scale-[1.02] active:scale-95"
               >
                 <UserCheck className="h-4 w-4 text-blue-600" />
@@ -168,7 +210,9 @@ export function FacultyDashboard() {
                 Registered Students
               </p>
               <div className="flex items-baseline gap-2">
-                <span className="font-heading text-2xl font-bold text-white">203</span>
+                <span className="font-heading text-2xl font-bold text-white">
+                  {isSummerCoordinator ? "409" : "203"}
+                </span>
                 <span className="text-2xs text-emerald-300 font-semibold font-mono">100% Cohort</span>
               </div>
             </div>
@@ -178,8 +222,12 @@ export function FacultyDashboard() {
                 Mentors Assigned
               </p>
               <div className="flex items-baseline gap-2">
-                <span className="font-heading text-2xl font-bold text-white">21</span>
-                <span className="text-2xs text-blue-200 font-mono">~9.6/mentor</span>
+                <span className="font-heading text-2xl font-bold text-white">
+                  {isSummerCoordinator ? "38" : "21"}
+                </span>
+                <span className="text-2xs text-blue-200 font-mono">
+                  {isSummerCoordinator ? "~10.8/mentor" : "~9.6/mentor"}
+                </span>
               </div>
             </div>
 
@@ -188,19 +236,23 @@ export function FacultyDashboard() {
                 Allocation Status
               </p>
               <div className="flex items-baseline gap-2">
-                <span className="font-heading text-2xl font-bold text-emerald-300">0</span>
+                <span className="font-heading text-2xl font-bold text-emerald-300">
+                  {isSummerCoordinator ? "24" : "0"}
+                </span>
                 <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-200 text-[10px] font-bold uppercase tracking-wider">
-                  All Allocated
+                  {isSummerCoordinator ? "In Progress" : "All Allocated"}
                 </span>
               </div>
             </div>
 
             <div className="space-y-1">
               <p className="text-2xs uppercase tracking-wider text-blue-200/90 font-medium">
-                Pending NGO Approvals
+                {isSummerCoordinator ? "Pending Offer Letters" : "Pending NGO Approvals"}
               </p>
               <div className="flex items-baseline gap-2">
-                <span className="font-heading text-2xl font-bold text-amber-300">4</span>
+                <span className="font-heading text-2xl font-bold text-amber-300">
+                  {isSummerCoordinator ? "8" : "4"}
+                </span>
                 <span className="text-2xs text-amber-200 font-mono">Requires Action</span>
               </div>
             </div>
