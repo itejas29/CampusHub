@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight, ArrowUpRight, Award, BadgeCheck, BookOpen, Briefcase, CalendarClock,
@@ -18,7 +17,7 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDateTime, relativeTime } from "@/lib/format";
-import { listContainer, listItem, transition } from "@/lib/motion";
+
 import { cn, pluralise, roman } from "@/lib/utils";
 import type {
   CoordinationDomain, FacultyDashboard as Data, FacultyPortfolio, PortfolioStat,
@@ -135,9 +134,8 @@ function PortfolioCard({ portfolio }: { portfolio: FacultyPortfolio }) {
   const allocatedPct = showProgress ? Math.round(((registered - awaiting) / registered) * 100) : 0;
 
   return (
-    <motion.article
-      variants={listItem}
-      className="group relative flex min-w-0 flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-sm transition-[box-shadow,border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-card-hover"
+    <article
+      className="group relative flex min-w-0 flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-sm transition-[box-shadow,border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-card-hover animate-in"
     >
       <div aria-hidden className={cn("h-1 bg-gradient-to-r", meta.bar)} />
       <div className="flex flex-1 flex-col p-5">
@@ -196,12 +194,11 @@ function PortfolioCard({ portfolio }: { portfolio: FacultyPortfolio }) {
               role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={allocatedPct}
               aria-label="Students with a mentor"
             >
-              <motion.div
-                className={cn("h-full rounded-full", allocatedPct === 100 ? "bg-success-solid" : "bg-accent-gradient")}
-                initial={{ width: 0 }}
-                animate={{ width: `${allocatedPct}%` }}
-                transition={{ ...transition, duration: 0.8, delay: 0.15 }}
+              <div
+                className={cn("h-full rounded-full transition-[width] duration-700 ease-out", allocatedPct === 100 ? "bg-success-solid" : "bg-accent-gradient")}
+                style={{ width: `${allocatedPct}%` }}
               />
+
             </div>
           </div>
         )}
@@ -238,7 +235,7 @@ function PortfolioCard({ portfolio }: { portfolio: FacultyPortfolio }) {
           )}
         </div>
       </div>
-    </motion.article>
+    </article>
   );
 }
 
@@ -293,12 +290,7 @@ export function FacultyDashboard() {
   return (
     <div className="space-y-6">
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <motion.section
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={transition}
-        className="relative overflow-hidden rounded-2xl bg-brand-gradient text-white shadow-lg"
-      >
+      <section className="relative overflow-hidden rounded-2xl bg-brand-gradient text-white shadow-lg animate-in">
         <div aria-hidden className="hero-grid absolute inset-0 opacity-60" />
         <div aria-hidden className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-electric/30 blur-3xl" />
         <div aria-hidden className="absolute -bottom-24 right-1/3 h-56 w-56 rounded-full bg-violet/25 blur-3xl" />
@@ -365,7 +357,7 @@ export function FacultyDashboard() {
             </div>
           </div>
         </div>
-      </motion.section>
+      </section>
 
       {/* ── Coordination portfolios ──────────────────────────────────────── */}
       {data.portfolios.length > 0 && (
@@ -381,14 +373,11 @@ export function FacultyDashboard() {
             </div>
             <Badge tone="accent">{pluralise(data.portfolios.length, "portfolio")}</Badge>
           </div>
-          <motion.div
-            variants={listContainer} initial="hidden" animate="shown"
-            className={cn("grid gap-4", data.portfolios.length > 1 && "md:grid-cols-2")}
-          >
+          <div className={cn("grid gap-4", data.portfolios.length > 1 && "md:grid-cols-2")}>
             {data.portfolios.map((p) => (
               <PortfolioCard key={`${p.domain}-${p.program_id ?? p.department_id ?? "all"}`} portfolio={p} />
             ))}
-          </motion.div>
+          </div>
         </section>
       )}
 
@@ -422,7 +411,7 @@ export function FacultyDashboard() {
                       )}
                     >
                       {reviewFilter === key && (
-                        <motion.span layoutId="review-filter" className="absolute inset-0 rounded-md bg-surface shadow-xs" transition={transition} aria-hidden />
+                        <span className="absolute inset-0 rounded-md bg-surface shadow-xs" aria-hidden />
                       )}
                       <span className="relative">{label} <span className="tabular-nums text-ink-subtle">{counts[key]}</span></span>
                     </button>
@@ -438,13 +427,13 @@ export function FacultyDashboard() {
                 description="Submissions from students you mentor appear here as they arrive."
               />
             ) : (
-              <motion.ul variants={listContainer} initial="hidden" animate="shown" className="divide-y divide-line">
+              <ul className="divide-y divide-line">
                 {shownReviews.map((review) => {
                   const age = daysSince(review.submitted_at);
                   const overdue = age !== null && age >= 7;
                   const TypeIcon = review.type === "stage" ? Milestone : FileText;
                   return (
-                    <motion.li key={`${review.type}-${review.id}`} variants={listItem}>
+                    <li key={`${review.type}-${review.id}`}>
                       <Link
                         to={review.link}
                         className="group flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-surface-soft/60 focus-visible:bg-surface-soft/60"
@@ -475,10 +464,10 @@ export function FacultyDashboard() {
                           Review <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" aria-hidden />
                         </span>
                       </Link>
-                    </motion.li>
+                    </li>
                   );
                 })}
-              </motion.ul>
+              </ul>
             )}
           </Card>
 
@@ -494,9 +483,9 @@ export function FacultyDashboard() {
             {data.mentees_preview.length === 0 ? (
               <EmptyState compact title="No mentees assigned" description="Mentees appear here once your HoD's office allocates them." />
             ) : (
-              <motion.ul variants={listContainer} initial="hidden" animate="shown" className="grid gap-3 p-5 sm:grid-cols-2">
+              <ul className="grid gap-3 p-5 sm:grid-cols-2">
                 {data.mentees_preview.map((mentee) => (
-                  <motion.li key={mentee.student_id} variants={listItem} className="min-w-0">
+                  <li key={mentee.student_id} className="min-w-0">
                     <Link
                       to={`/people/students/${mentee.student_id}`}
                       className="flex items-center gap-3 rounded-lg border border-line bg-surface p-3 transition-all hover:-translate-y-px hover:border-accent/40 hover:shadow-card-hover"
@@ -510,9 +499,9 @@ export function FacultyDashboard() {
                       </span>
                       <ArrowUpRight className="h-4 w-4 shrink-0 text-ink-subtle" aria-hidden />
                     </Link>
-                  </motion.li>
+                  </li>
                 ))}
-              </motion.ul>
+              </ul>
             )}
           </Card>
 

@@ -330,3 +330,24 @@
   70%  { box-shadow: 0 0 0 6px transparent; }
   100% { box-shadow: 0 0 0 0 transparent; }
 }
+
+/* ── Lightweight CSS entrance animation ─────────────────────────────────────
+   .animate-in replaces framer-motion JS-driven entrance animations in places
+   where a stagger or spring is not needed. CSS animations run on the GPU
+   compositor thread and therefore never block INP or contribute to long tasks.
+
+   Use it on dashboard hero sections and portfolio cards where a simple fade-up
+   on load is enough — not on elements that need spring physics or layout
+   coordination with other elements. */
+@layer utilities {
+  .animate-in {
+    animation: slide-up 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-in {
+      animation: none;
+    }
+  }
+}
+
