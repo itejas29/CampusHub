@@ -242,9 +242,9 @@ NAMED_STUDENTS = [
     ("Rohan Kulkarni", "22BIT003", 6, "A", 7.28, 1, 2022),
     ("Meera Joshi", "22BIT004", 6, "B", 8.95, 0, 2022),
     ("Vivaan Patel", "22BIT005", 6, "B", 6.84, 2, 2022),
-    ("Ananya Menon", "23BIT011", 4, "A", 8.63, 0, 2023),
-    ("Kabir Sethi", "23BIT012", 4, "A", 7.95, 0, 2023),
-    ("Diya Bhatnagar", "23BIT013", 4, "B", 9.32, 0, 2023),
+    ("Ananya Menon", "23BIT911", 4, "A", 8.63, 0, 2023),
+    ("Kabir Sethi", "23BIT912", 4, "A", 7.95, 0, 2023),
+    ("Diya Bhatnagar", "23BIT913", 4, "B", 9.32, 0, 2023),
     ("Arjun Verma", "21BIT021", 7, "A", 8.07, 0, 2021),
     ("Saanvi Kapoor", "21BIT022", 7, "A", 8.88, 0, 2021),
     ("Neel Trivedi", "21BIT023", 7, "B", 7.41, 1, 2021),
@@ -260,7 +260,7 @@ NAMED_STUDENTS = [
     # no results on record yet.
     ("Devansh Joshi", "25BIT091", 1, "A", None, 0, 2025),
     # Semester V — Program Core Elective & MOOC credits.
-    ("Kavya Patel", "23BIT051", 5, "A", 8.35, 0, 2023),
+    ("Kavya Patel", "23BIT951", 5, "A", 8.35, 0, 2023),
     # Semester VIII — Capstone Project & Degree Completion.
     ("Pooja Shah", "21BIT081", 8, "A", 8.92, 0, 2021),
 ]
@@ -339,6 +339,23 @@ def generate_program_cohort(rng, prefix, admission_year, semester, divisions,
     return students
 
 
+# ── real students (kept out of git) ───────────────────────────────────────
+# seed/private/ holds real student lists the department provided. It is
+# gitignored: real names and roll numbers never go into the repository. When a
+# list is present, its students replace the generated cohort of that semester
+# and cannot sign in; without it, the demo is fully generated as before.
+# Demo personas above moved to 9xx rolls so no real roll number is reused.
+_PRIVATE = _Path(__file__).parent / "private"
+REAL_STUDENTS = [
+    s for f in sorted(_PRIVATE.glob("ict_students_*.json"))
+    for s in _json.loads(f.read_text(encoding="utf-8"))["students"]
+]
+REAL_SEMESTERS = {s["semester"] for s in REAL_STUDENTS}
+#: Marks a generated student a real list replaced. The seed still makes the
+#: same random draws for it, so every later generated value is unchanged.
+REPLACED = "__replaced__"
+
+
 def generate_cohort(rng) -> list[tuple]:
     """Named students first, then a filled-out cohort across four divisions.
 
@@ -347,7 +364,7 @@ def generate_cohort(rng) -> list[tuple]:
     elective selection.
     """
     students = list(NAMED_STUDENTS)
-    taken_rolls = {s[1] for s in students}
+    taken_rolls = {s[1] for s in students} | {s["roll_number"] for s in REAL_STUDENTS}
     seen_names = {s[0] for s in students}
 
     for prefix, admission_year, semester in YEAR_GROUPS:
@@ -367,7 +384,7 @@ def generate_cohort(rng) -> list[tuple]:
                 taken_rolls.add(roll)
 
                 students.append((
-                    name, roll, semester, division,
+                    REPLACED if semester in REAL_SEMESTERS else name, roll, semester, division,
                     round(rng.uniform(6.0, 9.6), 2),
                     rng.choices([0, 0, 0, 1, 2], k=1)[0],
                     admission_year,
