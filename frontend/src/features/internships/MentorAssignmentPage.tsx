@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  CalendarClock, Check, Download, Eraser, Filter, ListOrdered, RotateCcw, Search,
-  ShieldAlert, UserCheck, Users, UserX, X,
+  CalendarClock, Check, Download, Eraser, Filter, ListOrdered, Lock, LockOpen, Plus,
+  Repeat2, RotateCcw, Search, ShieldAlert, Trash2, UserCheck, Users, UserX, X,
 } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -11,11 +11,12 @@ import { Button, LinkButton } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input, Select } from "@/components/ui/Form";
 import { Avatar, PageHeader } from "@/components/ui/Misc";
-import { ConfirmDialog } from "@/components/ui/Modal";
+import { ConfirmDialog, Modal } from "@/components/ui/Modal";
 import { StatGrid, StatTile } from "@/components/ui/StatTile";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
 import { ApiError, api, qs } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { EnrollmentSummary, InternshipProgram, MentorCapacity, ProgramWindows } from "@/types";
 
@@ -85,6 +86,7 @@ export function MentorAssignmentPage() {
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<number>>(new Set());
   const [selectedMentorIds, setSelectedMentorIds] = useState<Set<number>>(new Set());
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [lockDialog, setLockDialog] = useState<"lock" | "unlock" | null>(null);
   const [feedback, setFeedback] = useState<{ tone: "success" | "danger" | "info"; text: string } | null>(null);
 
   // Fetch internship programs
@@ -173,6 +175,9 @@ export function MentorAssignmentPage() {
   );
 
   const mentors = mentorsQuery.data ?? [];
+  const isLocked = Boolean(activeProgram?.mentor_allocation_locked_at);
+  // While locked, a student can only be moved to a mentor in the allocation.
+  const assignable = isLocked ? mentors.filter((m) => m.in_allocation) : mentors;
   // Until both lists arrive, "0 students" would be a claim, not a fact.
   const loadingData = mentorsQuery.isLoading || enrollmentsQuery.isLoading;
   const enrollments = enrollmentsQuery.data ?? [];
@@ -218,6 +223,32 @@ export function MentorAssignmentPage() {
         tone: "danger",
         text: err instanceof ApiError ? err.message : "Failed to allocate students.",
       });
+    },
+  });
+
+  // Lock, unlock and the one-step changes a locked allocation allows. The
+  // server holds every rule (who may, the cap, the allocation's members).
+  const allocationChange = useMutation({
+    mutationFn: ({ method, path, body }: { method: "post" | "put" | "delete"; path: string; body?: unknown }) => {
+      const url = `/internships/programs/${activeProgramId}/mentor-allocation${path}`;
+      return method === "delete" ? api.delete<{ message?: string }>(url)
+        : method === "put" ? api.put<{ message?: string }>(url, body)
+          : api.post<{ message?: string }>(url, body);
+    },
+    onSuccess: (res, vars) => {
+      const text = vars.path === "/lock" ? "Allocation locked. Change it one mentor at a time from here."
+        : vars.path === "/unlock" ? "Allocation unlocked. Runs and resets are available again."
+          : res?.message ?? "Updated.";
+      setFeedback({ tone: "success", text });
+      setLockDialog(null);
+      setSelectedMentorIds(new Set());
+      void queryClient.invalidateQueries({ queryKey: ["internship-programs"] });
+      void queryClient.invalidateQueries({ queryKey: ["mentor-capacity"] });
+      void queryClient.invalidateQueries({ queryKey: ["internship-enrollments"] });
+    },
+    onError: (err) => {
+      setLockDialog(null);
+      setFeedback({ tone: "danger", text: err instanceof ApiError ? err.message : "That change could not be made." });
     },
   });
 
@@ -374,8 +405,19 @@ export function MentorAssignmentPage() {
     setSelectedMentorIds(picked);
     setFeedback({
       tone: "info",
-      text: `✓ Auto-selected ${picked.size} faculty mentors required for ${totalStudents} students (${cap ?? "—"} per mentor). Click "Auto-Allocate Roll No Wise" to assign!`,
+      text: `✓ Auto-selected ${picked.size} faculty mentors required for ${totalStudents} students (${cap ?? "—"} per mentor). Click Auto-allocate to assign them.`,
     });
+  }
+
+  // One click: with no mentors ticked, take the ones the cohort needs — the
+  // same name-ordered pool the server would use — tick them so the panel shows
+  // who was picked, and run the roll-number allocation with exactly those.
+  function handleAutoAllocate() {
+    const ids = selectedMentorIds.size > 0
+      ? Array.from(selectedMentorIds)
+      : mentors.slice(0, runUsed).map((m) => m.faculty_id);
+    if (selectedMentorIds.size === 0) setSelectedMentorIds(new Set(ids));
+    allocateByRollNo.mutate(ids);
   }
 
   function handleSelectAllMentors() {
@@ -533,20 +575,27 @@ export function MentorAssignmentPage() {
                   tone={assignedCount && !unassignedCount ? "success" : "accent"} hint={loadingData ? null : `${allocPct}% of the cohort`} />
         <StatTile label="Awaiting a mentor" value={loadingData ? "—" : unassignedCount} icon={UserX}
                   tone={unassignedCount ? "warning" : "neutral"}
-                  hint={unassignedCount ? "Run allocation or assign below" : "Everyone is allocated"} />
+                  hint={unassignedCount ? "Auto-allocate or assign below" : "Everyone is allocated"} />
         <StatTile label="Average load" value={loadingData ? "—" : avgLoad} icon={ListOrdered} tone="neutral"
                   hint={cap ? `Cap ${cap} per mentor · ${activeMentorsCount} mentors in use` : null} />
       </StatGrid>
 
       <div className="grid items-start gap-5 lg:grid-cols-[22rem_minmax(0,1fr)]">
         {/* ── Faculty mentors ─────────────────────────────────────────── */}
+        {isLocked ? (
+          <LockedMentorsPanel
+            mentors={mentors} ranges={rangesByMentor} pending={allocationChange.isPending}
+            mentorFilter={mentorFilter} onFilter={setMentorFilter}
+            onChange={(change) => allocationChange.mutate(change)}
+          />
+        ) : (
         <Card className="lg:sticky lg:top-20">
           <PanelHeader
             title="Faculty mentors"
             meta={<Badge tone="neutral">{selectedMentorIds.size ? `${selectedMentorIds.size} of ${mentors.length} selected` : `${mentors.length} eligible`}</Badge>}
           >
             <p className="mt-1 text-xs text-ink-muted">
-              Choose who takes part in the next run. With none selected, every eligible mentor does.
+              Leave these unticked and Auto-allocate picks the mentors needed. Tick mentors to use only them.
             </p>
             <div className="relative mt-3">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-subtle" aria-hidden />
@@ -614,20 +663,28 @@ export function MentorAssignmentPage() {
             </ul>
           )}
         </Card>
+        )}
 
         <div className="min-w-0 space-y-5">
           {/* ── The next run ──────────────────────────────────────────── */}
           <Card>
             <div className="flex flex-col gap-4 p-5 md:flex-row md:items-center">
-              <span className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent md:flex">
-                <ListOrdered className="h-5 w-5" aria-hidden />
+              <span className={cn("hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl md:flex",
+                isLocked ? "bg-success-soft text-success" : "bg-accent-soft text-accent")}>
+                {isLocked ? <Lock className="h-5 w-5" aria-hidden /> : <ListOrdered className="h-5 w-5" aria-hidden />}
               </span>
               <div className="min-w-0 flex-1">
+                {isLocked ? (
+                  <LockedSummary lockedAt={activeProgram.mentor_allocation_locked_at!}
+                                 mentors={mentors.filter((m) => m.in_allocation).length}
+                                 students={assignedCount} waiting={unassignedCount}
+                                 onUnlock={() => setLockDialog("unlock")} />
+                ) : (<>
                 <h2 className="font-heading text-md font-semibold text-ink">Allocate by roll number</h2>
                 <p className="mt-0.5 text-sm text-ink-muted">
                   {!cap || loadingData ? "Loading the cohort…" : totalStudents === 0 ? "No students have registered yet." : (
                     <>
-                      Consecutive roll numbers go to the same mentor:{" "}
+                      {selectedMentorIds.size === 0 ? "Picks the mentors needed and gives each a block of consecutive roll numbers: " : "Consecutive roll numbers go to the same mentor: "}
                       <strong className="text-ink">{runSeated}</strong> of {totalStudents} students across{" "}
                       <strong className="text-ink">{runUsed}</strong> mentor{runUsed === 1 ? "" : "s"}, at most {cap} each.
                       {runLeft > 0 && (
@@ -636,8 +693,10 @@ export function MentorAssignmentPage() {
                     </>
                   )}
                 </p>
-                <p className="mt-1 text-xs text-ink-subtle">Replaces every current mentor in this programme. Students and mentors are notified.</p>
+                <p className="mt-1 text-xs text-ink-subtle">Replaces every current mentor in this programme. Students and mentors are notified. Lock it when it is final.</p>
+                </>)}
               </div>
+              {isLocked ? null : (
               <div className="flex shrink-0 flex-wrap gap-2">
                 <Button variant="ghost" size="sm" className="text-danger"
                         icon={<RotateCcw className="h-3.5 w-3.5" aria-hidden />}
@@ -647,10 +706,18 @@ export function MentorAssignmentPage() {
                 <Button variant="accent" size="sm" loading={allocateByRollNo.isPending}
                         disabled={allocationLocked || !totalStudents || !runUsed}
                         icon={<UserCheck className="h-3.5 w-3.5" aria-hidden />}
-                        onClick={() => allocateByRollNo.mutate(selectedMentorIds.size > 0 ? Array.from(selectedMentorIds) : undefined)}>
-                  Run allocation
+                        onClick={handleAutoAllocate}>
+                  Auto-allocate
+                </Button>
+                <Button variant="secondary" size="sm"
+                        disabled={!totalStudents || unassignedCount > 0 || allocationChange.isPending}
+                        title={unassignedCount > 0 ? "Every student needs a mentor before the allocation can be locked" : undefined}
+                        icon={<Lock className="h-3.5 w-3.5" aria-hidden />}
+                        onClick={() => setLockDialog("lock")}>
+                  Lock
                 </Button>
               </div>
+              )}
             </div>
           </Card>
 
@@ -762,7 +829,7 @@ export function MentorAssignmentPage() {
                             className="h-8 w-full text-xs"
                           >
                             <option value="">No mentor</option>
-                            {mentors.map((m) => {
+                            {assignable.map((m) => {
                               const full = m.is_full && m.faculty_id !== row.mentor_faculty_id;
                               return (
                                 <option key={m.faculty_id} value={m.faculty_id} disabled={full}>
@@ -801,7 +868,169 @@ export function MentorAssignmentPage() {
         message={`All ${assignedCount} allocated students in ${activeProgram.code} go back to awaiting a mentor. This is recorded in the audit log.`}
         confirmLabel="Remove all"
       />
+      <ConfirmDialog
+        open={lockDialog !== null} onClose={() => setLockDialog(null)}
+        loading={allocationChange.isPending} destructive={lockDialog === "unlock"}
+        onConfirm={() => allocationChange.mutate({ method: "post", path: lockDialog === "unlock" ? "/unlock" : "/lock" })}
+        title={lockDialog === "unlock" ? "Unlock the mentor allocation?" : "Lock the mentor allocation?"}
+        message={lockDialog === "unlock"
+          ? "Auto-allocate and Reset all become available again, and any mentor can be chosen. Unlocking is recorded in the audit log."
+          : `The ${activeMentorsCount} mentors carrying students become the allocation. After this, nothing re-runs or resets it — you add, remove or replace one mentor at a time. Recorded in the audit log.`}
+        confirmLabel={lockDialog === "unlock" ? "Unlock" : "Lock allocation"}
+      />
     </div>
+  );
+}
+
+type AllocationChange = { method: "post" | "put" | "delete"; path: string; body?: unknown };
+
+function LockedSummary({ lockedAt, mentors, students, waiting, onUnlock }: {
+  lockedAt: string; mentors: number; students: number; waiting: number; onUnlock: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="min-w-0">
+        <h2 className="flex items-center gap-2 font-heading text-md font-semibold text-ink">
+          Allocation locked <Badge tone="success">Final</Badge>
+        </h2>
+        <p className="mt-0.5 text-sm text-ink-muted">
+          <strong className="text-ink">{students}</strong> students with{" "}
+          <strong className="text-ink">{mentors}</strong> mentors, locked {formatDateTime(lockedAt)}.
+          {waiting > 0 && <span className="text-warning"> {waiting} need a mentor — move them to one below.</span>}
+        </p>
+        <p className="mt-1 text-xs text-ink-subtle">
+          Runs and resets are off. Add, remove or replace a mentor in the panel, or move a single student below.
+        </p>
+      </div>
+      <Button variant="secondary" size="sm" icon={<LockOpen className="h-3.5 w-3.5" aria-hidden />}
+              className="shrink-0" onClick={onUnlock}>
+        Unlock
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * The mentor panel once the allocation is locked: only the mentors in it, and
+ * the three changes a locked allocation allows.
+ */
+function LockedMentorsPanel({ mentors, ranges, pending, mentorFilter, onFilter, onChange }: {
+  mentors: MentorCapacity[]; ranges: Map<number, string>; pending: boolean;
+  mentorFilter: string; onFilter: (value: string) => void;
+  onChange: (change: AllocationChange) => void;
+}) {
+  const allocated = mentors.filter((m) => m.in_allocation);
+  const available = mentors.filter((m) => !m.in_allocation && m.assigned_count === 0);
+  const [adding, setAdding] = useState("");
+  const [dialog, setDialog] = useState<{ kind: "replace" | "remove"; mentor: MentorCapacity } | null>(null);
+  const [target, setTarget] = useState("");
+
+  function open(kind: "replace" | "remove", mentor: MentorCapacity) {
+    setTarget("");
+    setDialog({ kind, mentor });
+  }
+
+  function confirm() {
+    if (!dialog) return;
+    const id = dialog.mentor.faculty_id;
+    if (dialog.kind === "replace") {
+      onChange({ method: "put", path: `/mentors/${id}`, body: { new_faculty_id: Number(target) } });
+    } else {
+      onChange({ method: "delete", path: `/mentors/${id}${target ? `?move_to=${target}` : ""}` });
+    }
+    setDialog(null);
+  }
+
+  return (
+    <Card className="lg:sticky lg:top-20">
+      <PanelHeader title="Allocated mentors" meta={<Badge tone="success">{allocated.length} in the allocation</Badge>}>
+        <p className="mt-1 text-xs text-ink-muted">Only these mentors can hold students while the allocation is locked.</p>
+        <div className="mt-3 flex gap-2">
+          <Select aria-label="Mentor to add" value={adding} onChange={(e) => setAdding(e.target.value)}
+                  className="h-9 min-w-0 flex-1 text-xs">
+            <option value="">{available.length ? "Add a mentor…" : "No other eligible mentors"}</option>
+            {available.map((m) => <option key={m.faculty_id} value={m.faculty_id}>{m.name}</option>)}
+          </Select>
+          <Button variant="secondary" size="sm" disabled={!adding || pending}
+                  icon={<Plus className="h-3.5 w-3.5" aria-hidden />}
+                  onClick={() => { onChange({ method: "post", path: "/mentors", body: { faculty_id: Number(adding) } }); setAdding(""); }}>
+            Add
+          </Button>
+        </div>
+      </PanelHeader>
+      {allocated.length === 0 ? <EmptyState compact title="No mentors in the allocation" /> : (
+        <ul className="max-h-[34rem] divide-y divide-line overflow-y-auto">
+          {allocated.map((m) => {
+            const filtering = mentorFilter === String(m.faculty_id);
+            return (
+              <li key={m.faculty_id} className="px-4 py-3">
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="truncate text-sm font-semibold text-ink" title={m.name}>{m.name}</p>
+                  <span className={cn("shrink-0 font-mono text-xs tabular-nums", m.is_full ? "font-semibold text-warning" : "text-ink-muted")}>
+                    {m.assigned_count}/{m.max_capacity}
+                  </span>
+                </div>
+                <p className="truncate text-xs text-ink-subtle">{[m.designation, m.department_code].filter(Boolean).join(" · ")}</p>
+                <div className="mt-1.5"><LoadBar count={m.assigned_count} cap={m.max_capacity} /></div>
+                <p className="mt-1.5 truncate font-mono text-2xs text-ink-subtle">{ranges.get(m.faculty_id) ?? "No students yet"}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs font-semibold">
+                  {m.assigned_count > 0 && (
+                    <button type="button" onClick={() => onFilter(filtering ? "ALL" : String(m.faculty_id))}
+                            className={cn("cursor-pointer hover:underline", filtering ? "text-ink" : "text-accent")}>
+                      {filtering ? "Showing" : "View students"}
+                    </button>
+                  )}
+                  <button type="button" disabled={pending} onClick={() => open("replace", m)}
+                          className="inline-flex cursor-pointer items-center gap-1 text-accent hover:underline disabled:text-ink-subtle">
+                    <Repeat2 className="h-3 w-3" aria-hidden />Replace
+                  </button>
+                  <button type="button" disabled={pending} onClick={() => open("remove", m)}
+                          className="inline-flex cursor-pointer items-center gap-1 text-danger hover:underline disabled:text-ink-subtle">
+                    <Trash2 className="h-3 w-3" aria-hidden />Remove
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <Modal
+        open={dialog !== null} onClose={() => setDialog(null)} size="sm"
+        title={dialog?.kind === "replace" ? `Replace ${dialog.mentor.name}` : `Remove ${dialog?.mentor.name ?? ""}`}
+        description={dialog?.kind === "replace"
+          ? `All ${dialog.mentor.assigned_count} of their students move to the new mentor. Everyone affected is notified.`
+          : `Choose where their ${dialog?.mentor.assigned_count ?? 0} students go. Everyone affected is notified.`}
+        footer={
+          <>
+            <Button variant="secondary" size="sm" onClick={() => setDialog(null)}>Cancel</Button>
+            <Button variant={dialog?.kind === "remove" ? "danger" : "primary"} size="sm"
+                    disabled={dialog?.kind === "replace" && !target} onClick={confirm}>
+              {dialog?.kind === "replace" ? "Replace mentor" : "Remove mentor"}
+            </Button>
+          </>
+        }
+      >
+        {dialog?.kind === "replace" ? (
+          <Select aria-label="New mentor" value={target} onChange={(e) => setTarget(e.target.value)} className="w-full">
+            <option value="">Choose the new mentor…</option>
+            {available.map((m) => <option key={m.faculty_id} value={m.faculty_id}>{m.name}</option>)}
+          </Select>
+        ) : dialog ? (
+          <Select aria-label="Move their students to" value={target} onChange={(e) => setTarget(e.target.value)} className="w-full">
+            <option value="">Leave them waiting for a mentor</option>
+            {allocated.filter((m) => m.faculty_id !== dialog.mentor.faculty_id).map((m) => {
+              const over = m.assigned_count + dialog.mentor.assigned_count > m.max_capacity;
+              return (
+                <option key={m.faculty_id} value={m.faculty_id} disabled={over}>
+                  Move to {m.name} — {m.assigned_count}/{m.max_capacity}{over ? " (not enough room)" : ""}
+                </option>
+              );
+            })}
+          </Select>
+        ) : null}
+      </Modal>
+    </Card>
   );
 }
 

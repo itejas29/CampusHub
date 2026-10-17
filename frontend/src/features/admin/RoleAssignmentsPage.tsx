@@ -15,6 +15,7 @@ import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 import { humanise } from "@/lib/utils";
+import { RoleBoard } from "./RoleBoard";
 import type {
   DepartmentRow, FacultyRow, RoleAssignment, RoleDefinition, RoleMatrix,
 } from "@/types";
@@ -37,7 +38,7 @@ export function RoleAssignmentsPage() {
   const { user } = useAuth();
   // A Head of Department works inside one department; the registrar sees all.
   const headed = user?.faculty?.hod_department_code ?? null;
-  const [tab, setTab] = useState("faculty");
+  const [tab, setTab] = useState("board");
   const [search, setSearch] = useState("");
   const [assignOpen, setAssignOpen] = useState(false);
   const [revoke, setRevoke] = useState<RoleAssignment | null>(null);
@@ -120,6 +121,7 @@ export function RoleAssignmentsPage() {
 
       <Tabs
         tabs={[
+          { key: "board", label: "Roles" },
           { key: "assignments", label: "Assignments",
             count: assignments.data?.length },
           { key: "faculty", label: "By faculty", count: summary.length },
@@ -130,6 +132,11 @@ export function RoleAssignmentsPage() {
         onChange={setTab}
         className="mb-5"
       />
+
+      {/* ── roles as cards: holders as chips, + Add, × to remove ──────── */}
+      {tab === "board" && (domains.data && roles.data
+        ? <RoleBoard domains={domains.data} roles={roles.data} />
+        : <LoadingState rows={6} />)}
 
       {/* ── every assignment: faculty · role · module · dept · status ─── */}
       {tab === "assignments" && (
@@ -209,8 +216,8 @@ export function RoleAssignmentsPage() {
         </Card>
       )}
 
-      {matrix.isLoading && tab !== "assignments" && <LoadingState rows={5} />}
-      {matrix.error && tab !== "assignments" && (
+      {matrix.isLoading && tab !== "assignments" && tab !== "board" && <LoadingState rows={5} />}
+      {matrix.error && tab !== "assignments" && tab !== "board" && (
         <ErrorState onRetry={() => matrix.refetch()} />
       )}
 

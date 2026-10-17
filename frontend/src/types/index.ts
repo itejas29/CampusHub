@@ -375,6 +375,10 @@ export interface InternshipProgram {
   requires_group: boolean; default_group_size: number; requires_organization: boolean;
   /** Students per mentor; `confirmed` is false while it is the portal default. */
   mentor_capacity: number; mentor_capacity_confirmed: boolean;
+  /** Set once the coordinator locks the mentor allocation. */
+  mentor_allocation_locked_at?: string | null;
+  /** The mentors in a locked allocation; empty while unlocked. */
+  mentor_allocation_ids?: number[];
   allowed_organization_types: string[]; report_frequency: string;
   expected_report_count: number; requires_industry_mentor: boolean;
   registration_opens_at: string | null; registration_closes_at: string | null;
@@ -459,6 +463,8 @@ export interface MentorSummary {
 
 export interface MentorCapacity {
   faculty_id: number;
+  /** In the locked allocation (always false while it is unlocked). */
+  in_allocation?: boolean;
   name: string;
   employee_code: string | null;
   department_code: string | null;

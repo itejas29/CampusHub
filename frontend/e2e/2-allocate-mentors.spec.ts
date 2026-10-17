@@ -24,8 +24,8 @@ test("a CSSI coordinator re-allocates every student without overloading a mentor
   await confirm.getByRole("button", { name: "Remove all" }).click();
   await expect(page.getByText(/Cleared the mentor for \d+ students/)).toBeVisible();
 
-  // Allocate in roll-number blocks across every eligible mentor.
-  await page.getByRole("button", { name: "Run allocation" }).click();
+  // One click: pick the mentors needed and allocate in roll-number blocks.
+  await page.getByRole("button", { name: "Auto-allocate" }).click();
   await expect(page.getByText(/Allocated 203 students across \d+ mentors \(at most 10 each\)/))
     .toBeVisible();
 
@@ -36,8 +36,24 @@ test("a CSSI coordinator re-allocates every student without overloading a mentor
   for (const mentor of carried) {
     expect(mentor.assigned_count).toBeLessThanOrEqual(mentor.max_capacity);
   }
+  // One click picked the mentors itself, and the panel shows exactly who.
+  await expect(page.getByRole("checkbox", { name: /in the next run/, checked: true }))
+    .toHaveCount(carried.length);
   // Mentors come from the programme's own department only.
   expect(new Set(loads.map((m) => m.department_code))).toEqual(new Set(["ICT"]));
+
+  // Lock it: runs and resets go, and the panel lists only the allocated mentors.
+  await page.getByRole("button", { name: "Lock", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Lock allocation" }).click();
+  await expect(page.getByRole("heading", { name: /Allocation locked/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Auto-allocate" })).toHaveCount(0);
+  await expect(page.getByText(`${carried.length} in the allocation`)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Replace" })).toHaveCount(carried.length);
+
+  // Unlock again, through its own audited confirmation.
+  await page.getByRole("button", { name: "Unlock" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Unlock" }).click();
+  await expect(page.getByRole("button", { name: "Auto-allocate" })).toBeVisible();
 });
 
 test("a coordinator cannot open another module's allocation", async ({ page }) => {
