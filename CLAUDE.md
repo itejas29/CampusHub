@@ -197,6 +197,12 @@ described its practice to the project team; it is not from a written rule.)
 - The student's sidebar, dashboard and elective list follow the round
   (`registration.early_rounds`), so they are never told to choose without a
   screen to do it on.
+- **A round can be deleted until allocation has run** (Draft, Open, Locked —
+  `registration.delete_round`, `DELETE /electives/admin/windows/{id}`), by the
+  same coordinator who may run it. Its courses go back to no round, the choices
+  filled in it are removed, and students who were told it opened are told it
+  was withdrawn. From Allocated on — or once a run has committed seats — it is
+  refused: students hold seats from it.
 
 ### Allocation is per round, and first come, first served
 

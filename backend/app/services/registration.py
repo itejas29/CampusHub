@@ -274,6 +274,68 @@ def transition(window: ElectiveRegistrationWindow,
         window.published_at = now
 
 
+#: A round can be deleted until allocation has run. Up to Locked nobody holds a
+#: seat from it; from Allocated on, deleting it would take seats away.
+DELETABLE = (
+    RegistrationWindowStatus.DRAFT,
+    RegistrationWindowStatus.OPEN,
+    RegistrationWindowStatus.LOCKED,
+)
+
+
+@dataclass(slots=True)
+class DeletedRound:
+    courses_released: int
+    preferences_removed: int
+    #: Students whose choice list was removed (a list is several ranked rows).
+    students_with_choices: int
+    #: Students who had been told the round was open, and must hear it is gone.
+    told_user_ids: list[int]
+
+
+def delete_round(db: Session, window: ElectiveRegistrationWindow) -> DeletedRound:
+    """Remove a round that has not been allocated, and everything it holds.
+
+    Its courses go back to being in no round, so a new round can take them.
+    Choices students filled in it are removed too: they were made against
+    this round's courses and dates, and left behind they would look like a
+    submission for whatever round the courses join next.
+    """
+    if window.status not in DELETABLE:
+        raise BusinessRuleError(
+            f"This round is {window.status.value.lower()}. A round can be deleted "
+            "until allocation has run; after that students hold seats from it."
+        )
+    offering_ids = [o.id for o in db.scalars(select(CourseOffering).where(
+        CourseOffering.registration_window_id == window.id))]
+    if offering_ids and db.scalar(select(func.count(ElectiveAllocation.id)).where(
+            ElectiveAllocation.course_offering_id.in_(offering_ids))):
+        raise BusinessRuleError(
+            "Allocation has already run for this round's courses, so it can no "
+            "longer be deleted. Undo the allocation first."
+        )
+
+    told = ([s.user_id for s in students_in_window(db, window)]
+            if window.status != RegistrationWindowStatus.DRAFT else [])
+    removed = 0
+    choosers: set[int] = set()
+    if offering_ids:
+        for pref in db.scalars(select(ElectivePreference).where(
+                ElectivePreference.course_offering_id.in_(offering_ids))):
+            choosers.add(pref.student_id)
+            db.delete(pref)
+            removed += 1
+        for offering in db.scalars(select(CourseOffering).where(
+                CourseOffering.id.in_(offering_ids))):
+            offering.registration_window_id = None
+    db.flush()
+    db.delete(window)
+    db.flush()
+    return DeletedRound(courses_released=len(offering_ids),
+                        preferences_removed=removed,
+                        students_with_choices=len(choosers), told_user_ids=told)
+
+
 def _window_student_filter(window: ElectiveRegistrationWindow):
     """The WHERE clauses that describe who a round covers."""
     clauses = []
