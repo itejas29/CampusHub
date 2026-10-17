@@ -1355,6 +1355,47 @@ def set_window_offerings(
     return _window_out(db, window, user)
 
 
+@router.delete("/admin/windows/{window_id}", response_model=Message)
+def delete_window(
+    window_id: int, db: DbSession,
+    user: User = Depends(_manages_electives),
+) -> Message:
+    """Delete a round that has not been allocated yet.
+
+    For a coordinator who opened a round by mistake, or a demo that needs its
+    courses back: they return to no round, and any choices filled are removed.
+    """
+    window = db.get(ElectiveRegistrationWindow, window_id)
+    if window is None:
+        raise NotFoundError("Registration round not found.")
+    _assert_manages_window(db, user, window)
+    title, code, status = window.title, window.code, window.status
+    link = _round_link(db, window)
+
+    outcome = registration.delete_round(db, window)
+    if outcome.told_user_ids:
+        notifications.notify_many(
+            db, user_ids=outcome.told_user_ids, type=NotificationType.ELECTIVE_DEADLINE,
+            title=f"{title}: round withdrawn",
+            message=("The coordinator has withdrawn this registration round. "
+                     "Any choices you filled in it have been removed; you will be "
+                     "told when a new round opens."),
+            link=link,
+        )
+    audit.record(db, action=AuditAction.DELETE, entity_type="registration_window",
+                 entity_id=window_id, actor=user,
+                 description=f"Deleted registration round {code} ({status.value})",
+                 meta={"courses_released": outcome.courses_released,
+                       "preferences_removed": outcome.preferences_removed,
+                       "students_with_choices": outcome.students_with_choices,
+                       "notified": len(outcome.told_user_ids)})
+    db.commit()
+    return Message(message=(
+        f"{title} deleted. {outcome.courses_released} course(s) are free for a new "
+        f"round; the choices of {outcome.students_with_choices} student(s) were "
+        "removed."))
+
+
 @router.post("/admin/windows/{window_id}/status", response_model=RegistrationWindowOut)
 def move_window(
     window_id: int, target: RegistrationWindowStatus, db: DbSession,

@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, CheckCheck, Download, Eye, Lock, Pencil, Play, Plus, RotateCcw, Zap } from "lucide-react";
+import {
+  CalendarClock, CheckCheck, Download, Eye, Lock, Pencil, Play, Plus, RotateCcw, Trash2, Zap,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
@@ -49,7 +51,10 @@ function audience(round: RegistrationWindow): string {
   return ahead ? `${semesters} · choosing ahead` : semesters;
 }
 
-type Action = "OPEN" | "LOCKED" | "ALLOCATED" | "PUBLISHED" | "REOPEN";
+type Action = "OPEN" | "LOCKED" | "ALLOCATED" | "PUBLISHED" | "REOPEN" | "DELETE";
+
+/** Until allocation has run nobody holds a seat from a round, so it can go. */
+const DELETABLE = new Set(["DRAFT", "OPEN", "LOCKED"]);
 
 /**
  * Where a coordinator runs choice filling: which students, for which elective,
@@ -84,6 +89,20 @@ export function RegistrationRoundsPage() {
     void queryClient.invalidateQueries({ queryKey: ["registration-rounds"] });
     void queryClient.invalidateQueries({ queryKey: ["round-slots"] });
   }
+
+  const remove = useMutation({
+    mutationFn: (round: RegistrationWindow) =>
+      api.delete<{ message: string }>(`/electives/admin/windows/${round.id}`),
+    onSuccess: (result) => {
+      setConfirm(null);
+      setBanner({ tone: "success", text: result.message });
+      refresh();
+    },
+    onError: (err) => {
+      setConfirm(null);
+      setBanner({ tone: "danger", text: errorText(err, "Could not delete the round.") });
+    },
+  });
 
   const move = useMutation({
     mutationFn: async ({ round, action }: { round: RegistrationWindow; action: Action }) => {
@@ -291,6 +310,14 @@ export function RegistrationRoundsPage() {
                             Publish results
                           </Button>
                         )}
+                        {DELETABLE.has(round.status) && (
+                          <Button size="sm" variant="ghost"
+                                  onClick={() => setConfirm({ round, action: "DELETE" })}
+                                  aria-label={`Delete ${round.title}`}
+                                  icon={<Trash2 className="h-3.5 w-3.5" aria-hidden />}>
+                            Delete
+                          </Button>
+                        )}
                       </div>
                     )}
                   </TD>
@@ -343,22 +370,42 @@ export function RegistrationRoundsPage() {
         <ConfirmDialog
           open
           onClose={() => setConfirm(null)}
-          onConfirm={() => move.mutate(confirm)}
-          loading={move.isPending}
+          onConfirm={() => (confirm.action === "DELETE"
+            ? remove.mutate(confirm.round) : move.mutate(confirm))}
+          loading={move.isPending || remove.isPending}
+          destructive={confirm.action === "DELETE"}
           title={
-            confirm.action === "LOCKED" ? "Lock this round?"
+            confirm.action === "DELETE" ? "Delete this round?"
+            : confirm.action === "LOCKED" ? "Lock this round?"
             : confirm.action === "ALLOCATED" ? "Run allocation?"
             : confirm.action === "PUBLISHED" ? "Publish results?"
             : "Open this round?"
           }
           confirmLabel={
-            confirm.action === "LOCKED" ? "Lock round"
+            confirm.action === "DELETE" ? "Delete round"
+            : confirm.action === "LOCKED" ? "Lock round"
             : confirm.action === "ALLOCATED" ? "Run allocation"
             : confirm.action === "PUBLISHED" ? "Publish results"
             : "Open round"
           }
           message={
-            confirm.action === "LOCKED" ? (
+            confirm.action === "DELETE" ? (
+              <>
+                <strong>{confirm.round.title}</strong> will be removed and its{" "}
+                {pluralise(confirm.round.offering_count, "course")} freed for a new round.
+                {confirm.round.status === "DRAFT" ? (
+                  " Students have not seen it yet."
+                ) : (
+                  <>
+                    {" "}The {confirm.round.submitted_student_count} choice list(s) filled
+                    in it are deleted, and{" "}
+                    {pluralise(confirm.round.eligible_student_count, "student")} are told
+                    it was withdrawn.
+                  </>
+                )}{" "}
+                <strong>This cannot be undone.</strong>
+              </>
+            ) : confirm.action === "LOCKED" ? (
               <>
                 Choice filling stops now for{" "}
                 {pluralise(confirm.round.eligible_student_count, "student")}.{" "}
