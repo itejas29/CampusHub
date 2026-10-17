@@ -16,16 +16,16 @@ test("a CSSI coordinator re-allocates every student without overloading a mentor
   const programId = new URL(page.url()).searchParams.get("program_id");
 
   // Start from nothing, through the confirmation dialog.
-  await page.getByRole("button", { name: "Reset", exact: true }).click();
-  const confirm = page.getByRole("dialog", { name: /Clear All Mentor Assignments/ });
+  await page.getByRole("button", { name: "Reset all" }).click();
+  const confirm = page.getByRole("dialog", { name: /Remove every mentor allocation/ });
   await expect(confirm).toBeVisible();
   // A destructive dialog opens on Cancel, so a stray Enter cannot wipe data.
   await expect(confirm.getByRole("button", { name: "Cancel" })).toBeFocused();
-  await confirm.getByRole("button", { name: "Yes, Clear All" }).click();
+  await confirm.getByRole("button", { name: "Remove all" }).click();
   await expect(page.getByText(/Cleared the mentor for \d+ students/)).toBeVisible();
 
   // Allocate in roll-number blocks across every eligible mentor.
-  await page.getByRole("button", { name: "Auto-Allocate Roll No Wise" }).first().click();
+  await page.getByRole("button", { name: "Run allocation" }).click();
   await expect(page.getByText(/Allocated 203 students across \d+ mentors \(at most 10 each\)/))
     .toBeVisible();
 

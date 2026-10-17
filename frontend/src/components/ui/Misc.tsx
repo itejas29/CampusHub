@@ -76,7 +76,9 @@ export function PageHeader({
     <header className={cn("mb-6", bordered && "border-b border-line pb-5", className)}>
       {breadcrumbs && <div className="mb-2.5"><Breadcrumbs items={breadcrumbs} /></div>}
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
+        {/* A minimum basis lets the actions wrap below on a phone instead of
+            squeezing the title into a narrow column beside them. */}
+        <div className="min-w-0 flex-1 basis-[18rem]">
           <h1 className="text-xl font-bold tracking-tight text-ink sm:text-2xl font-display">
             {title}
           </h1>

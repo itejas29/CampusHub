@@ -380,7 +380,10 @@ def eligible_mentors(db: Session, program: InternshipProgram) -> list[Faculty]:
     hods = select(Department.hod_faculty_id).where(Department.hod_faculty_id.is_not(None))
     stmt = (
         select(Faculty).join(Faculty.user)
-        .where(Faculty.is_active.is_(True), Faculty.id.not_in(hods))
+        # `is_mentor` is false for the HoD and for office accounts, which are
+        # not people who can take students.
+        .where(Faculty.is_active.is_(True), Faculty.is_mentor.is_(True),
+               Faculty.id.not_in(hods))
         .order_by(User.full_name)
     )
     if program.department_id is not None:
