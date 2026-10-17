@@ -55,6 +55,12 @@ class Settings(BaseSettings):
 
     SEED_DEFAULT_PASSWORD: str = "Campus@123"
 
+    #: Whether real (non-demo) faculty get a performance score. Off until the
+    #: portal runs on real activity: before that, a real person's score would be
+    #: made of seeded demo data — a judgement nobody earned. Demo personas are
+    #: always scored. See `services/faculty_scoring`.
+    SCORE_REAL_FACULTY: bool = False
+
     #: How a Minor coordinator's department scope is read — see
     #: `services/scope.MinorScopeRule`. "OFFERING" limits them to the minors
     #: their department offers; "APPLICANT" to applications from their own

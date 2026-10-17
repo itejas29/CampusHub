@@ -944,3 +944,33 @@ export interface ChatInitialConfigResponse {
   suggestions: string[];
 }
 
+
+// ── Faculty performance score ─────────────────────────────────────────────
+export type ScoreCategory = "REVIEW" | "MARKS" | "MEETING";
+export type ScoreOutcome = "ON_TIME" | "LATE" | "OVERDUE" | "MISSED";
+
+export interface ScoreEntry {
+  when: string; category: ScoreCategory; label: string; outcome: ScoreOutcome;
+  points: number; days: number | null;
+}
+
+export interface FacultyScore {
+  faculty_id: number; name: string; designation: string | null; is_demo: boolean;
+  /** False for real faculty until the department switches scoring on. */
+  is_scored: boolean;
+  points: number; on_time: number; late: number; overdue: number; missed: number;
+  /** Waiting, still within time — not scored yet. */
+  pending: number; scored: number;
+  on_time_rate: number | null;
+  band: "Excellent" | "Good" | "Needs attention" | "At risk" | "Not enough activity"
+    | "Not scored yet";
+  by_category: Partial<Record<ScoreCategory, number>>;
+  entries: ScoreEntry[];
+}
+
+export type ScorePolicy = Record<string, number>;
+
+export interface DepartmentScores {
+  department_code: string; department_name: string;
+  policy: ScorePolicy; scores_real_faculty: boolean; faculty: FacultyScore[];
+}

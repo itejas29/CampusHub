@@ -251,6 +251,23 @@ a programme that lists no windows keeps the semester-only rules. Enforced in
 6. The coordinator may extend, reschedule or reopen a window (audited, notifies);
    nobody else can.
 
+## Faculty performance score
+
+Requested by the department (not a PDEU rule — weights are flagged as
+department-set). `services/faculty_scoring.py` holds the policy and the rules;
+the screens read them from `/faculty-scores/policy` and never restate them.
+
+- Points come only from dated records: review turnaround (stages, reports,
+  documents), marks entered by a presentation window's deadline, and how fast
+  meeting requests are answered (`mentor_meetings.responded_at`).
+- Work is credited to whoever reviewed it; waiting work is the mentor's.
+- Compare by **on-time rate**, not points — workloads differ.
+- A faculty member sees their own; the HoD their department (not themselves);
+  the registrar any. Students and colleagues see none.
+- **Real faculty are not scored until `SCORE_REAL_FACULTY` is on.** While the
+  portal runs on seeded activity, their score would be a judgement about a real
+  person made of demo data. Department office accounts are never scored.
+
 ## Security invariants
 
 Phase 4 closed two real vulnerabilities. Do not undo them.

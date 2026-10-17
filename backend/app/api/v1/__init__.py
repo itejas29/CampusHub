@@ -2,7 +2,7 @@
 from fastapi import APIRouter
 
 from app.api.v1 import (admin, announcements, auth, calendar, chatbot, clubs,
-    courses, curriculum, dashboard, electives, events, files, internships,
+    courses, curriculum, dashboard, electives, events, faculty_scores, files, internships,
     mentorship, minors, mooc, notifications, people, roles, student_profile
 )
 
@@ -37,6 +37,7 @@ api_router.include_router(people.departments_router)
 api_router.include_router(people.academic_router)
 api_router.include_router(student_profile.router)
 api_router.include_router(mentorship.router)
+api_router.include_router(faculty_scores.router)
 api_router.include_router(announcements.router)
 api_router.include_router(notifications.router)
 
