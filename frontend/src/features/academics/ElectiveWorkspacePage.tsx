@@ -16,6 +16,7 @@ import { ApiError, api } from "@/lib/api";
 import { deadlineLabel, formatDateTime } from "@/lib/format";
 import { cn, roman } from "@/lib/utils";
 import type { CourseOffering, ElectiveWorkspace } from "@/types";
+import { RoundChoicePanel } from "./RoundChoicePanel";
 
 export function ElectiveWorkspacePage({ backLabel, backTo }: {
   backLabel: string; backTo: string;
@@ -96,6 +97,57 @@ export function ElectiveWorkspacePage({ backLabel, backTo }: {
   }
 
   const { component, my_allocation: allocation } = data;
+
+  // A two-stage round is chosen by ticking subjects across the whole round,
+  // not by ranking this slot's courses, so it gets its own screen — before
+  // and after allocation. (Per-slot enrolment counts would mislead here: a
+  // subject's strength is counted across all the round's slots.)
+  if (data.round) {
+    return (
+      <div>
+        <PageHeader
+          title={data.round.title}
+          description={data.round.slot_titles.length > 1
+            ? `${data.round.slot_titles.join(" and ")} are chosen together in this round: `
+              + `you take ${data.round.slot_titles.length} subjects, one for each.`
+            : `${component.title} is chosen in this round.`}
+          breadcrumbs={[
+            { label: "Academics" },
+            { label: backLabel, to: backTo },
+            { label: data.round.slot_codes.length ? data.round.slot_codes.join(" · ") : component.code },
+          ]}
+          meta={
+            <>
+              <Badge tone="brand">
+                {data.round.stage === "FINAL" ? "Final round" : "Interest round"}
+              </Badge>
+              <Badge tone="neutral">Semester {roman(component.semester_number)}</Badge>
+            </>
+          }
+        />
+        {allocation ? (
+          <Alert variant="success" title={`${component.title}: your elective`}>
+            You have been allocated{" "}
+            <strong>{allocation.course_code} · {allocation.course_title}</strong>
+            {allocation.section_name ? ` (${allocation.section_name})` : ""}.
+            {allocation.remarks && (
+              <p className="mt-1 text-sm">{allocation.remarks}.</p>
+            )}
+          </Alert>
+        ) : (
+          <RoundChoicePanel
+            round={data.round}
+            onSaved={(saved) => {
+              queryClient.setQueryData<ElectiveWorkspace>(queryKey,
+                (old) => (old ? { ...old, round: saved } : old));
+              void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+            }}
+          />
+        )}
+      </div>
+    );
+  }
+
   const locked = Boolean(allocation) || !data.eligible || !data.window_open;
   const deadline = deadlineLabel(data.closes_at);
   const canSubmit =

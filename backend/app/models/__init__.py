@@ -3,6 +3,7 @@ from app.db.base import Base
 from app.models.academics import (
     Course, CourseOffering, CourseSection, Curriculum, CurriculumComponent,
     ElectiveAllocation, ElectivePreference, ElectiveRegistrationWindow,
+    ElectiveRoundChoice,
     ElectiveType, MoocRegistration, Program, ProgramDivision,
 )
 from app.models.community import (
@@ -35,6 +36,7 @@ __all__ = [
     "Program", "ProgramDivision", "ElectiveType", "Curriculum", "CurriculumComponent",
     "Course",
     "CourseOffering", "CourseSection", "ElectivePreference", "ElectiveAllocation",
+    "ElectiveRoundChoice",
     "ElectiveRegistrationWindow",
     "MoocRegistration",
     # minors
