@@ -44,12 +44,13 @@ from app.schemas.internships import (
     StageActionRequest, StageOut, StageProgressOut, StageReviewRequest,
     MentorCapacityOut, BatchMentorAssignRequest, BatchMentorAssignResponse,
     InternshipWindowOpen, InternshipWindowOut, InternshipWindowUpdate, MentorRosterGroup,
-    MentorRosterStudent, ProgramWindowsOut,
+    MentorRosterStudent, ProgramWindowsOut, AllocationMentorAdd, AllocationMentorReplace,
 )
 from app.services import (
     audit, documents as docs, internships as engine, notifications, scope,
 )
 from app.services import internship_windows as program_windows
+from app.services import mentor_allocation
 from app.models.enums import InternshipWindowKind
 from app.models.internships import InternshipWindow
 from app.services.files import save_upload, signed_url
@@ -181,6 +182,8 @@ def _program_out(db, program: InternshipProgram,
         mentor_capacity=engine.mentor_capacity(program),
         window_kinds=[k.value for k in program_windows.kinds_for(program)],
         mentor_capacity_confirmed=engine.mentor_capacity_confirmed(program),
+        mentor_allocation_locked_at=mentor_allocation.locked_at(program),
+        mentor_allocation_ids=mentor_allocation.allocated_ids(program),
         id=program.id, code=program.code, name=program.name, type=program.type,
         description=program.description, department_id=program.department_id,
         target_semester=program.target_semester,
@@ -1184,6 +1187,7 @@ def override_mentor(
         raise NotFoundError("Internship record not found.")
     _assert_can_manage_program(db, user, enrollment.program)
     program_windows.assert_can_allocate_mentors(db, enrollment.program)
+    mentor_allocation.assert_allowed_target(enrollment.program, payload.mentor_faculty_id)
     if payload.group_id is not None:
         group = db.get(InternshipGroup, payload.group_id)
         if group is None or group.program_id != enrollment.program_id:
@@ -1228,6 +1232,7 @@ def get_mentors_capacity(
     already = [f for f in (db.get(Faculty, fid) for fid in assigned_counts)
                if f is not None and f.id not in pool_ids]
 
+    allocated = set(mentor_allocation.allocated_ids(program))
     out = []
     for f in sorted(pool + already, key=lambda f: f.user.full_name):
         count = assigned_counts.get(f.id, 0)
@@ -1243,6 +1248,7 @@ def get_mentors_capacity(
             capacity_confirmed=confirmed,
             remaining_capacity=max(0, capacity - count),
             is_full=count >= capacity,
+            in_allocation=f.id in allocated,
         ))
     return out
 
@@ -1259,6 +1265,13 @@ def batch_assign_mentors(
     _assert_can_manage_program(db, user, program)
     if not payload.clear_all:
         program_windows.assert_can_allocate_mentors(db, program)
+    # A locked allocation changes one deliberate step at a time, never by a run.
+    if payload.assignments and not (payload.clear_all or payload.allocate_by_roll_no
+                                    or payload.rebalance or payload.auto_distribute):
+        for item in payload.assignments:
+            mentor_allocation.assert_allowed_target(program, item.mentor_faculty_id)
+    else:
+        mentor_allocation.assert_not_locked(program)
 
     capacity = engine.mentor_capacity(program)
     pool = engine.eligible_mentors(db, program)
@@ -1373,6 +1386,73 @@ def batch_assign_mentors(
                                          message=f"Updated {changed} mentor assignments.")
 
     return BatchMentorAssignResponse(assigned_count=0, message="No changes performed.")
+
+
+# ── locked mentor allocation ──────────────────────────────────────────────
+def _allocation_program(db, user, program_id: int) -> InternshipProgram:
+    program = db.get(InternshipProgram, program_id)
+    if program is None:
+        raise NotFoundError("Program not found.")
+    _assert_can_manage_program(db, user, program)
+    return program
+
+
+@router.post("/programs/{program_id}/mentor-allocation/lock", response_model=InternshipProgramOut)
+def lock_mentor_allocation(
+    program_id: int, db: DbSession,
+    user: User = Depends(require_permission(P["INTERNSHIP_MANAGE"])),
+) -> InternshipProgramOut:
+    program = _allocation_program(db, user, program_id)
+    mentor_allocation.lock(db, program, actor=user)
+    db.commit()
+    return _program_out(db, program)
+
+
+@router.post("/programs/{program_id}/mentor-allocation/unlock", response_model=InternshipProgramOut)
+def unlock_mentor_allocation(
+    program_id: int, db: DbSession,
+    user: User = Depends(require_permission(P["INTERNSHIP_MANAGE"])),
+) -> InternshipProgramOut:
+    program = _allocation_program(db, user, program_id)
+    mentor_allocation.unlock(db, program, actor=user)
+    db.commit()
+    return _program_out(db, program)
+
+
+@router.post("/programs/{program_id}/mentor-allocation/mentors", response_model=Message)
+def add_allocation_mentor(
+    program_id: int, payload: AllocationMentorAdd, db: DbSession,
+    user: User = Depends(require_permission(P["INTERNSHIP_MANAGE"])),
+) -> Message:
+    program = _allocation_program(db, user, program_id)
+    mentor_allocation.add_mentor(db, program, payload.faculty_id, actor=user)
+    db.commit()
+    return Message(message="Mentor added to the allocation. Move students to them below.")
+
+
+@router.put("/programs/{program_id}/mentor-allocation/mentors/{faculty_id}", response_model=Message)
+def replace_allocation_mentor(
+    program_id: int, faculty_id: int, payload: AllocationMentorReplace, db: DbSession,
+    user: User = Depends(require_permission(P["INTERNSHIP_MANAGE"])),
+) -> Message:
+    program = _allocation_program(db, user, program_id)
+    moved = mentor_allocation.replace_mentor(db, program, faculty_id, payload.new_faculty_id,
+                                             actor=user)
+    db.commit()
+    return Message(message=f"Mentor replaced; {moved} students moved and notified.")
+
+
+@router.delete("/programs/{program_id}/mentor-allocation/mentors/{faculty_id}", response_model=Message)
+def remove_allocation_mentor(
+    program_id: int, faculty_id: int, db: DbSession,
+    move_to: int | None = None,
+    user: User = Depends(require_permission(P["INTERNSHIP_MANAGE"])),
+) -> Message:
+    program = _allocation_program(db, user, program_id)
+    moved = mentor_allocation.remove_mentor(db, program, faculty_id, move_to=move_to, actor=user)
+    db.commit()
+    return Message(message=(f"Mentor removed; {moved} students moved and notified." if move_to
+                            else f"Mentor removed; {moved} students now need a mentor."))
 
 
 # ── coordinator-run windows ───────────────────────────────────────────────

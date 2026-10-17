@@ -268,6 +268,18 @@ the screens read them from `/faculty-scores/policy` and never restate them.
   portal runs on seeded activity, their score would be a judgement about a real
   person made of demo data. Department office accounts are never scored.
 
+### Locking the mentor allocation (`services/mentor_allocation.py`)
+
+Asked for by the department (not from a written rule). One click of
+**Auto-allocate** picks the mentors the cohort needs (name order, as many as the
+cap requires) and allocates by roll number. Once every student has a mentor the
+coordinator may **lock** it; the mentors carrying students become the
+allocation (`config["mentor_allocation"]`). While locked, no run, auto-distribute
+or Reset all is accepted, and a student can be moved only to a mentor in the
+allocation. Changes are one step at a time — add a mentor, remove one (their
+students move within the cap, or wait), replace one (the whole block moves) —
+each audited and notified. Unlocking is audited.
+
 ## Security invariants
 
 Phase 4 closed two real vulnerabilities. Do not undo them.

@@ -118,6 +118,10 @@ class InternshipProgramOut(ORMModel):
     #: (False = the portal's default of 10, not a confirmed PDEU rule).
     mentor_capacity: int = 10
     mentor_capacity_confirmed: bool = False
+    #: Set once the coordinator locks the mentor allocation; while locked, only
+    #: the mentors listed can hold students — see services/mentor_allocation.
+    mentor_allocation_locked_at: dt.datetime | None = None
+    mentor_allocation_ids: list[int] = Field(default_factory=list)
     #: Window kinds this programme runs (e.g. ["REGISTRATION", "PRESENTATION"]);
     #: empty means the older semester-only rules apply.
     window_kinds: list[str] = Field(default_factory=list)
@@ -439,6 +443,8 @@ class MentorCapacityOut(BaseModel):
     capacity_confirmed: bool = False
     remaining_capacity: int
     is_full: bool
+    #: In the locked allocation (always False while it is unlocked).
+    in_allocation: bool = False
 
 
 class StudentMentorAssignment(BaseModel):
@@ -456,6 +462,14 @@ class BatchMentorAssignRequest(BaseModel):
     min_students_per_mentor: int = 2
     max_students_per_mentor: int = 10
     reason: str = "Roll number-wise mentor allocation"
+
+
+class AllocationMentorAdd(BaseModel):
+    faculty_id: int
+
+
+class AllocationMentorReplace(BaseModel):
+    new_faculty_id: int
 
 
 class BatchMentorAssignResponse(BaseModel):
