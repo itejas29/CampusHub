@@ -27,6 +27,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { deadlineLabel, formatDate, formatDateTime } from "@/lib/format";
 import { cn, pluralise, roman } from "@/lib/utils";
+import { EnergyGrid } from "@/components/brand/Brand";
 import type { StudentDashboard as Data } from "@/types";
 
 type Component = NonNullable<Data["curriculum_semester"]>["components"][number];
@@ -55,7 +56,6 @@ function componentLink(component: Component): string | null {
 }
 
 const TILE = "rounded-xl p-5 card-luxe-shadow hover-lift relative overflow-hidden";
-const TILE_DARK = `${TILE} text-white border border-accent/60`;
 const TILE_LABEL = "text-2xs font-semibold tracking-wider uppercase";
 const TILE_VALUE = "font-heading text-2xl font-bold tracking-tight mb-1";
 const TILE_ICON = "w-8 h-8 rounded-lg flex items-center justify-center";
@@ -96,103 +96,90 @@ export function StudentDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* 1. PAGE HERO HEADER */}
-      <section className="bg-gradient-to-r from-surface-muted via-surface to-blue-50/40 dark:to-blue-950/20 rounded-xl p-5 sm:p-6 border border-line card-luxe-shadow">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-          <div className="space-y-2">
+      {/* 1. HERO — the portal's signature navy band, shared with staff dashboards */}
+      <section className="relative overflow-hidden rounded-2xl bg-brand-gradient text-white shadow-lg">
+        <EnergyGrid tone="dark" className="absolute inset-y-0 right-0 h-full w-[70%] max-w-[44rem]" />
+        <div className="relative flex flex-col gap-5 p-6 sm:p-7 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0 space-y-2">
+            <p className="text-2xs font-semibold uppercase tracking-[0.14em] text-white/60">
+              Student portal{user?.academic_year && ` · AY ${user.academic_year}`}
+            </p>
             <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="font-heading text-xl sm:text-2xl font-bold text-ink tracking-tight">
+              <h1 className="font-heading text-2xl font-semibold tracking-tight text-white sm:text-3xl">
                 Welcome back, {firstName}
               </h1>
               {student && (
-                backlogs === 0 ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-success-soft text-success border border-success/25 text-xs font-bold">
-                    <span className="w-2 h-2 rounded-full bg-success-solid" />
-                    No backlogs
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-warning-soft text-warning border border-warning/25 text-xs font-bold">
-                    <span className="w-2 h-2 rounded-full bg-warning-solid" />
-                    {pluralise(backlogs, "backlog")}
-                  </span>
-                )
+                <span className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold",
+                  backlogs === 0
+                    ? "border-emerald-300/30 bg-emerald-400/15 text-emerald-100"
+                    : "border-amber-300/30 bg-amber-400/15 text-amber-100",
+                )}>
+                  <span className={cn("h-1.5 w-1.5 rounded-full", backlogs === 0 ? "bg-emerald-300" : "bg-amber-300")} />
+                  {backlogs === 0 ? "No backlogs" : pluralise(backlogs, "backlog")}
+                </span>
               )}
             </div>
-            {student?.program_name && (
-              <p className="text-xs sm:text-sm text-ink-muted">{student.program_name}</p>
-            )}
-
+            {student?.program_name && <p className="text-sm text-white/75">{student.program_name}</p>}
             {student && (
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <span className="px-2.5 py-1 rounded bg-surface border border-line text-xs font-semibold text-primary">
-                  Semester {roman(student.current_semester)}
-                  {student.division && ` • Division ${student.division}`}
-                </span>
-                <span className="px-2.5 py-1 rounded bg-surface border border-line font-mono text-xs font-bold text-primary">
-                  Roll No: {student.roll_number}
-                </span>
-                {user?.academic_year && (
-                  <span className="px-2.5 py-1 rounded bg-surface border border-line text-xs text-ink-subtle">
-                    AY {user.academic_year}
-                  </span>
-                )}
-              </div>
+              <ul className="flex flex-wrap gap-2 pt-1.5 text-xs font-medium text-white/90">
+                <li className="rounded-full border border-white/20 bg-white/10 px-2.5 py-1">
+                  Semester {roman(student.current_semester)}{student.division && ` · ${student.division.startsWith("Div") ? student.division : `Division ${student.division}`}`}
+                </li>
+                <li className="rounded-full border border-white/20 bg-white/10 px-2.5 py-1 font-mono">{student.roll_number}</li>
+              </ul>
             )}
           </div>
-
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-            <LinkButton to="/profile" variant="secondary" size="sm">
-              View Full Profile
-            </LinkButton>
+          <div className="flex shrink-0 flex-wrap gap-2">
             {pendingCount > 0 && pending?.link && (
-              <LinkButton
-                to={pending.link}
-                variant="primary"
-                size="sm"
-                icon={<Sparkles className="h-3.5 w-3.5" aria-hidden />}
-              >
-                Elective Actions
-              </LinkButton>
+              <Link to={pending.link}
+                    className="inline-flex h-9 items-center gap-2 rounded-lg bg-white px-3.5 text-sm font-semibold text-navy shadow-sm transition-transform hover:-translate-y-px">
+                <Sparkles className="h-4 w-4" aria-hidden /> Elective actions
+              </Link>
             )}
+            <Link to="/profile"
+                  className="inline-flex h-9 items-center rounded-lg border border-white/25 bg-white/10 px-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/20">
+              View profile
+            </Link>
           </div>
         </div>
       </section>
 
       {/* 2. STAT TILES */}
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <div className={cn(TILE_DARK, "bg-gradient-to-br from-navy via-navy-deep to-navy")}>
+        <div className={cn(TILE, "border border-line bg-surface")}>
           <div className="flex items-center justify-between mb-3">
-            <span className={cn(TILE_LABEL, "text-blue-200")}>Active Term</span>
-            <div className={cn(TILE_ICON, "bg-white/10 text-blue-200")}>
+            <span className={cn(TILE_LABEL, "text-ink-subtle")}>Active Term</span>
+            <div className={cn(TILE_ICON, "bg-accent-soft text-accent")}>
               <GraduationCap className="h-4 w-4" aria-hidden />
             </div>
           </div>
-          <div className={cn(TILE_VALUE, "text-white")}>
+          <div className={cn(TILE_VALUE, "text-ink")}>
             {semesterNumber ? `Semester ${roman(semesterNumber)}` : "—"}
           </div>
-          <p className="text-2xs text-blue-200/80">
+          <p className="text-2xs text-ink-subtle">
             {semester
               ? `${pluralise(components.length, "requirement")} on record`
               : "Curriculum not on record"}
           </p>
         </div>
 
-        <div className={cn(TILE_DARK, "bg-brand-gradient")}>
+        <div className={cn(TILE, "border border-accent/25 bg-gradient-to-br from-surface to-accent-soft/60")}>
           <div className="flex items-center justify-between mb-3">
-            <span className={cn(TILE_LABEL, "text-blue-200")}>Cumulative CPI</span>
-            <div className={cn(TILE_ICON, "bg-white/10 text-blue-200")}>
+            <span className={cn(TILE_LABEL, "text-ink-subtle")}>Cumulative CPI</span>
+            <div className={cn(TILE_ICON, "bg-accent-soft text-accent")}>
               <TrendingUp className="h-4 w-4" aria-hidden />
             </div>
           </div>
           <div className="flex items-baseline gap-2 mb-1">
-            <span className={cn(TILE_VALUE, "text-white mb-0")}>
+            <span className={cn(TILE_VALUE, "text-ink mb-0")}>
               {student?.cpi != null ? student.cpi.toFixed(2) : "—"}
             </span>
             {student?.cpi != null && (
-              <span className="font-mono text-xs text-blue-200">/ 10.0</span>
+              <span className="font-mono text-xs text-ink-subtle">/ 10.0</span>
             )}
           </div>
-          <p className="text-2xs text-blue-200/90">
+          <p className="text-2xs text-ink-subtle">
             {student?.cpi != null
               ? (backlogs === 0 ? "No backlogs" : pluralise(backlogs, "backlog"))
               : "Published after your first semester results"}

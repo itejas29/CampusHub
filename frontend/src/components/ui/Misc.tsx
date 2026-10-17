@@ -6,6 +6,7 @@ import {
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn, initials } from "@/lib/utils";
+import { EnergyGrid } from "@/components/brand/Brand";
 import { popoverPanel } from "@/lib/motion";
 
 export function Avatar({
@@ -73,7 +74,22 @@ export function PageHeader({
   bordered?: boolean;
 }) {
   return (
-    <header className={cn("mb-6", bordered && "border-b border-line pb-5", className)}>
+    <header
+      className={cn(
+        "relative mb-6",
+        // The signature band: a hairline brand gradient on top and the energy
+        // grid fading in on the right. Static SVG and CSS — no runtime cost.
+        bordered && "overflow-hidden rounded-2xl border border-line bg-gradient-to-br from-surface via-surface to-surface-soft px-5 pb-5 pt-5 shadow-xs sm:px-6",
+        className,
+      )}
+    >
+      {bordered && (
+        <>
+          <span aria-hidden className="absolute inset-x-0 top-0 h-[3px] bg-accent-gradient" />
+          <EnergyGrid className="absolute inset-y-0 right-0 hidden h-full w-[58%] max-w-[34rem] sm:block" />
+        </>
+      )}
+      <div className="relative">
       {breadcrumbs && <div className="mb-2.5"><Breadcrumbs items={breadcrumbs} /></div>}
       <div className="flex flex-wrap items-start justify-between gap-4">
         {/* A minimum basis lets the actions wrap below on a phone instead of
@@ -90,6 +106,7 @@ export function PageHeader({
         {actions && (
           <div className="flex shrink-0 flex-wrap items-center gap-2.5 pt-0.5">{actions}</div>
         )}
+      </div>
       </div>
     </header>
   );

@@ -1,11 +1,12 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowRight, BookOpen, Briefcase, Eye, EyeOff, GraduationCap, ShieldCheck, Sparkles,
+  ArrowRight, BookOpen, Briefcase, Eye, EyeOff, ShieldCheck, Sparkles,
   UserCheck, Users,
 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { Alert } from "@/components/ui/Alert";
+import { CampusHubMark, EnergyGrid } from "@/components/brand/Brand";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { ApiError } from "@/lib/api";
@@ -238,14 +239,12 @@ export function LoginPage() {
           className="absolute inset-0 h-full w-full object-cover object-center"
         />
         <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-navy-deep via-navy/70 to-navy/30" />
-        <div aria-hidden className="hero-grid absolute inset-0 opacity-30" />
+        <EnergyGrid tone="dark" className="absolute inset-0 h-full w-full opacity-80" />
         <div aria-hidden className="absolute -left-24 bottom-10 h-72 w-72 rounded-full bg-electric/30 blur-3xl" />
 
         <div className="relative z-10 flex w-full flex-col justify-between p-10 xl:p-12">
           <div className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-gradient text-white shadow-glow-accent">
-              <GraduationCap className="h-5 w-5" aria-hidden />
-            </span>
+            <CampusHubMark className="h-10 w-10 shadow-glow-accent rounded-[10px]" title="" />
             <span>
               <span className="block font-heading text-base font-semibold leading-tight text-white">CampusHub</span>
               <span className="block text-2xs font-semibold uppercase tracking-[0.14em] text-white/60">Gandhinagar, Gujarat</span>
