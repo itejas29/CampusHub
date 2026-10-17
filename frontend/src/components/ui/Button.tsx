@@ -3,13 +3,17 @@ import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger" | "subtle";
+type Variant = "primary" | "accent" | "secondary" | "ghost" | "danger" | "subtle";
 type Size = "sm" | "md" | "lg" | "icon";
 
 const VARIANTS: Record<Variant, string> = {
   primary:
-    "bg-brand text-brand-fg hover:bg-brand/90 active:bg-brand/95 shadow-sm " +
+    "bg-brand text-brand-fg hover:bg-brand-hover shadow-sm " +
     "disabled:bg-brand/50 disabled:shadow-none",
+  // The interactive blue, for the one action a screen is about.
+  accent:
+    "bg-accent text-accent-fg hover:bg-accent-hover hover:shadow-glow-accent shadow-sm " +
+    "disabled:bg-accent/50 disabled:shadow-none",
   secondary:
     "bg-surface text-ink border border-line-strong hover:bg-surface-muted " +
     "active:bg-surface-muted shadow-xs disabled:shadow-none",
@@ -29,7 +33,8 @@ const SIZES: Record<Size, string> = {
 
 const BASE =
   "inline-flex items-center justify-center font-medium whitespace-nowrap " +
-  "transition-all duration-150 cursor-pointer select-none " +
+  "transition-[background-color,box-shadow,color,transform] duration-150 cursor-pointer select-none " +
+  "active:scale-[0.98] disabled:active:scale-100 " +
   "disabled:cursor-not-allowed disabled:opacity-60";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

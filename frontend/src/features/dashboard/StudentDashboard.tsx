@@ -55,7 +55,7 @@ function componentLink(component: Component): string | null {
 }
 
 const TILE = "rounded-xl p-5 card-luxe-shadow hover-lift relative overflow-hidden";
-const TILE_DARK = `${TILE} text-white border border-blue-400/20`;
+const TILE_DARK = `${TILE} text-white border border-accent/60`;
 const TILE_LABEL = "text-2xs font-semibold tracking-wider uppercase";
 const TILE_VALUE = "font-heading text-2xl font-bold tracking-tight mb-1";
 const TILE_ICON = "w-8 h-8 rounded-lg flex items-center justify-center";
@@ -106,13 +106,13 @@ export function StudentDashboard() {
               </h1>
               {student && (
                 backlogs === 0 ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800 text-xs font-bold">
-                    <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                  <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-success-soft text-success border border-success/25 text-xs font-bold">
+                    <span className="w-2 h-2 rounded-full bg-success-solid" />
                     No backlogs
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-800 text-xs font-bold">
-                    <span className="w-2 h-2 rounded-full bg-amber-600" />
+                  <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-warning-soft text-warning border border-warning/25 text-xs font-bold">
+                    <span className="w-2 h-2 rounded-full bg-warning-solid" />
                     {pluralise(backlogs, "backlog")}
                   </span>
                 )
@@ -160,7 +160,7 @@ export function StudentDashboard() {
 
       {/* 2. STAT TILES */}
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <div className={cn(TILE_DARK, "bg-gradient-to-br from-[#1e3a5f] via-[#162c48] to-[#1e3a5f]")}>
+        <div className={cn(TILE_DARK, "bg-gradient-to-br from-navy via-navy-deep to-navy")}>
           <div className="flex items-center justify-between mb-3">
             <span className={cn(TILE_LABEL, "text-blue-200")}>Active Term</span>
             <div className={cn(TILE_ICON, "bg-white/10 text-blue-200")}>
@@ -177,7 +177,7 @@ export function StudentDashboard() {
           </p>
         </div>
 
-        <div className={cn(TILE_DARK, "bg-gradient-to-br from-[#1e3a5f] via-[#162c48] to-[#2563eb]")}>
+        <div className={cn(TILE_DARK, "bg-brand-gradient")}>
           <div className="flex items-center justify-between mb-3">
             <span className={cn(TILE_LABEL, "text-blue-200")}>Cumulative CPI</span>
             <div className={cn(TILE_ICON, "bg-white/10 text-blue-200")}>
@@ -202,14 +202,14 @@ export function StudentDashboard() {
         <div
           className={cn(
             TILE, "bg-surface border",
-            pendingCount > 0 ? "border-amber-300/80 dark:border-amber-700" : "border-line",
+            pendingCount > 0 ? "border-warning/25" : "border-line",
           )}
         >
           <div className="flex items-center justify-between mb-3">
             <span
               className={cn(
                 TILE_LABEL,
-                pendingCount > 0 ? "text-amber-800 dark:text-amber-300" : "text-ink-muted",
+                pendingCount > 0 ? "text-warning" : "text-ink-muted",
               )}
             >
               Elective Actions
@@ -218,7 +218,7 @@ export function StudentDashboard() {
               className={cn(
                 TILE_ICON,
                 pendingCount > 0
-                  ? "bg-amber-50 dark:bg-amber-950 text-amber-600"
+                  ? "bg-warning-soft text-warning"
                   : "bg-surface-muted text-primary",
               )}
             >
@@ -231,7 +231,7 @@ export function StudentDashboard() {
           <p
             className={cn(
               "text-2xs",
-              pendingCount > 0 ? "text-amber-700 dark:text-amber-400 font-medium" : "text-ink-subtle",
+              pendingCount > 0 ? "text-warning font-medium" : "text-ink-subtle",
             )}
           >
             {pendingCount > 0
@@ -313,11 +313,11 @@ export function StudentDashboard() {
 
           {/* Allocated Electives Showcase */}
           {data.allocated_electives && data.allocated_electives.length > 0 && (
-            <Card className="card-luxe-shadow border-emerald-500/30 bg-gradient-to-br from-surface via-surface to-emerald-50/20 dark:to-emerald-950/10">
+            <Card className="card-luxe-shadow border-success/60 bg-gradient-to-br from-surface via-surface to-emerald-50/20 dark:to-emerald-950/10">
               <CardHeader
                 title="Allocated Elective Courses"
                 description="Official seat allocations confirmed for your curriculum requirements."
-                icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden />}
+                icon={<CheckCircle2 className="h-4 w-4 text-success" aria-hidden />}
               />
               <div className="divide-y divide-line">
                 {data.allocated_electives.map((alloc) => (
@@ -337,7 +337,7 @@ export function StudentDashboard() {
                         {alloc.section_name && (
                           <>
                             <span>•</span>
-                            <span className="font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200/60 dark:border-emerald-900">
+                            <span className="font-semibold text-success bg-success-soft px-1.5 py-0.5 rounded border border-success/25">
                               Section: {alloc.section_name}
                             </span>
                           </>
@@ -345,7 +345,7 @@ export function StudentDashboard() {
                         {alloc.preference_order_granted && (
                           <>
                             <span>•</span>
-                            <span className="text-emerald-700 dark:text-emerald-400 font-semibold">
+                            <span className="text-success font-semibold">
                               ✓ Preference #{alloc.preference_order_granted} Granted
                             </span>
                           </>
@@ -355,7 +355,7 @@ export function StudentDashboard() {
                     {alloc.link && (
                       <Link
                         to={alloc.link}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line bg-surface hover:bg-surface-muted text-xs font-semibold text-secondary transition-colors shrink-0 shadow-sm"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line bg-surface hover:bg-surface-muted text-xs font-semibold text-ink-muted transition-colors shrink-0 shadow-sm"
                       >
                         <span>View Workspace</span>
                         <ArrowRight className="h-3.5 w-3.5" aria-hidden />
@@ -372,7 +372,7 @@ export function StudentDashboard() {
             <div className="p-5 sm:p-6 border-b border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="font-heading text-base sm:text-lg font-bold text-ink flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-secondary" aria-hidden />
+                  <BookOpen className="h-5 w-5 text-ink-muted" aria-hidden />
                   {semester
                     ? `Semester ${roman(semester.semester_number)} Requirements`
                     : "This Semester"}
@@ -383,7 +383,7 @@ export function StudentDashboard() {
               </div>
               {semester && (
                 <div className="sm:text-right">
-                  <span className="font-mono text-sm sm:text-base font-bold text-secondary block">
+                  <span className="font-mono text-sm sm:text-base font-bold text-ink-muted block">
                     {semester.total_credits} Credits
                   </span>
                   <span className="text-2xs text-ink-subtle">
@@ -417,7 +417,7 @@ export function StudentDashboard() {
                         className={cn(
                           "flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg transition-colors gap-2 border",
                           needsAction
-                            ? "bg-amber-50/70 dark:bg-amber-950/30 border-amber-200/80 dark:border-amber-900"
+                            ? "bg-warning-soft/70 border-warning/25"
                             : "bg-surface-muted/40 hover:bg-surface-muted border-line",
                         )}
                       >
@@ -426,7 +426,7 @@ export function StudentDashboard() {
                             <span
                               className={cn(
                                 "font-mono text-2xs font-bold shrink-0",
-                                needsAction ? "text-amber-900 dark:text-amber-200" : "text-secondary",
+                                needsAction ? "text-warning" : "text-ink-muted",
                               )}
                             >
                               {component.code}
@@ -439,17 +439,17 @@ export function StudentDashboard() {
                             {component.scope_label && ` • ${component.scope_label}`}
                           </p>
                           {component.allocated_course_code && (
-                            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-2xs font-medium text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-2 py-0.5 rounded">
-                              <CheckCircle2 className="h-3 w-3 text-emerald-600 shrink-0" />
+                            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-2xs font-medium text-success bg-success-soft border border-success/25 px-2 py-0.5 rounded">
+                              <CheckCircle2 className="h-3 w-3 text-success shrink-0" />
                               <span className="font-bold">{component.allocated_course_code}</span>
                               <span className="truncate">— {component.allocated_course_title}</span>
                               {component.allocated_section && (
-                                <span className="font-semibold px-1 rounded bg-emerald-200/60 dark:bg-emerald-900/60">
+                                <span className="font-semibold px-1 rounded bg-success-soft/60">
                                   {component.allocated_section}
                                 </span>
                               )}
                               {component.preference_order_granted && (
-                                <span className="text-emerald-700 dark:text-emerald-400">
+                                <span className="text-success">
                                   (Pref #{component.preference_order_granted})
                                 </span>
                               )}
@@ -461,7 +461,7 @@ export function StudentDashboard() {
                           {needsAction && link && (
                             <Link
                               to={link}
-                              className="px-2.5 py-0.5 bg-amber-600 text-white rounded text-2xs font-bold hover:bg-amber-700 transition-colors"
+                              className="px-2.5 py-0.5 bg-warning-solid text-white rounded text-2xs font-bold hover:bg-warning-solid transition-colors"
                             >
                               {component.component_type === "MOOC" ? "Register" : "Choose Now"}
                             </Link>
@@ -475,7 +475,7 @@ export function StudentDashboard() {
                 <div className="pt-3 border-t border-line flex justify-end">
                   <Link
                     to="/academics/curriculum"
-                    className="inline-flex items-center gap-1 text-xs font-bold text-secondary hover:underline"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-ink-muted hover:underline"
                   >
                     View Full Curriculum
                     <ArrowRight className="h-3.5 w-3.5" aria-hidden />
@@ -491,7 +491,7 @@ export function StudentDashboard() {
               <CardHeader
                 title="Programme progress"
                 description="Counted from the documents you have actually submitted."
-                icon={<Route className="h-4 w-4 text-secondary" aria-hidden />}
+                icon={<Route className="h-4 w-4 text-ink-muted" aria-hidden />}
               />
               <CardBody className="space-y-4">
                 {data.progress.map((item) => (
@@ -570,7 +570,7 @@ export function StudentDashboard() {
           <Card className="card-luxe-shadow">
             <CardHeader
               title="Upcoming Events"
-              icon={<Calendar className="h-4 w-4 text-purple-600" aria-hidden />}
+              icon={<Calendar className="h-4 w-4 text-violet" aria-hidden />}
               action={<CardAction to="/events" label="All events">All</CardAction>}
             />
             {data.upcoming_events.length === 0 ? (

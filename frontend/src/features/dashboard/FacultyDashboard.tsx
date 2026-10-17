@@ -1,343 +1,243 @@
 import { useQuery } from "@tanstack/react-query";
+import { motion } from "framer-motion";
+import type { LucideIcon } from "lucide-react";
 import {
-  ArrowRight,
-  Award,
-  BadgeCheck,
-  BookOpen,
-  Briefcase,
-  Calendar,
-  CalendarClock,
-  ChevronRight,
-  ClipboardCheck,
-  FileText,
-  GraduationCap,
-  Layers,
-  Megaphone,
-  PlusCircle,
-  Sparkles,
-  UserCheck,
-  Users,
-  Users2,
-  UserSquare2,
+  ArrowRight, ArrowUpRight, Award, BadgeCheck, BookOpen, Briefcase, CalendarClock,
+  ClipboardCheck, Clock, FileText, Layers, Megaphone, Milestone, Sparkles, UserCheck,
+  Users, Users2, UserSquare2,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { StatusBadge } from "@/components/ui/Badge";
+import { Badge, StatusBadge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
-import { Card, CardAction, CardBody, CardHeader } from "@/components/ui/Card";
+import { Card, CardAction, CardHeader } from "@/components/ui/Card";
+import { CountUp } from "@/components/ui/CountUp";
 import { Avatar } from "@/components/ui/Misc";
+import { StatGrid, StatTile } from "@/components/ui/StatTile";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDateTime, relativeTime } from "@/lib/format";
-import { roman } from "@/lib/utils";
-import type { Coordination, FacultyDashboard as Data } from "@/types";
+import { listContainer, listItem, transition } from "@/lib/motion";
+import { cn, pluralise, roman } from "@/lib/utils";
+import type {
+  CoordinationDomain, FacultyDashboard as Data, FacultyPortfolio, PortfolioStat,
+} from "@/types";
 
-function getPortfolioDetails(coord: Coordination) {
-  const dept = coord.department_code || "ICT";
-  switch (coord.domain) {
-    case "SUMMER_INTERNSHIP":
-      return {
-        title: "Summer Internship Coordination",
-        roleBadge: "Summer Industry Internship",
-        badgeStyle:
-          "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/70 dark:text-blue-300 dark:border-blue-800",
-        cohortBadge: `B.Tech ${dept} — 3rd & 4th Year`,
-        description:
-          "Oversee summer industry internships, student registration, corporate offer letter verification, and faculty mentor assignments.",
-        icon: Briefcase,
-        iconBg: "bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
-        stats: [
-          { label: "Registered Students", value: "409", hint: "100% Cohort" },
-          { label: "Mentors Assigned", value: "38", hint: "~10.8/mentor" },
-          {
-            label: "Allocation Status",
-            value: "In Progress",
-            statusColor: "text-emerald-600 dark:text-emerald-400",
-          },
-          { label: "Offer Letters", value: "8", hint: "Requires Action" },
-        ],
-        primaryAction: {
-          label: "Assign Mentors",
-          to: "/internships/mentor-assignment?program_id=2",
-          icon: UserCheck,
-        },
-        secondaryAction: {
-          label: "View All Students",
-          to: "/internships/students?program_id=2",
-        },
-      };
-    case "CSSI":
-      return {
-        title: "CSSI Coordination",
-        roleBadge: "Community & Social Service Internship",
-        badgeStyle:
-          "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/70 dark:text-emerald-300 dark:border-emerald-800",
-        cohortBadge: `B.Tech ${dept} — 2nd Year`,
-        description:
-          "Community and social service internship administration, NGO organization verification desk, and faculty mentor allocation.",
-        icon: Users,
-        iconBg:
-          "bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
-        stats: [
-          { label: "Registered Students", value: "203", hint: "100% Cohort" },
-          { label: "Mentors Assigned", value: "21", hint: "~9.6/mentor" },
-          {
-            label: "Allocation Status",
-            value: "Completed",
-            statusColor: "text-emerald-600 dark:text-emerald-400",
-          },
-          { label: "Pending Approvals", value: "4", hint: "NGO Check" },
-        ],
-        primaryAction: {
-          label: "Assign Mentors",
-          to: "/internships/mentor-assignment?program_id=1",
-          icon: UserCheck,
-        },
-        secondaryAction: {
-          label: "View All Students",
-          to: "/internships/students?program_id=1",
-        },
-      };
-    case "MINOR":
-      return {
-        title: "Minor Specialization Coordination",
-        roleBadge: "Minor Track Management",
-        badgeStyle:
-          "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/70 dark:text-purple-300 dark:border-purple-800",
-        cohortBadge: `Dept. of ${dept} • Interdisciplinary`,
-        description:
-          "Oversee departmental minor track offerings, review cross-department student applications, seat quotas, and prerequisite validations.",
-        icon: Sparkles,
-        iconBg:
-          "bg-purple-50 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
-        stats: [
-          { label: "Track Status", value: "Active", hint: "Enrolling" },
-          {
-            label: "Applications",
-            value: "Open",
-            statusColor: "text-emerald-600 dark:text-emerald-400",
-          },
-        ],
-        primaryAction: {
-          label: "Review Applications",
-          to: "/admin/minors",
-          icon: ClipboardCheck,
-        },
-        secondaryAction: {
-          label: "Curriculum Explorer",
-          to: "/academics/curriculums",
-        },
-      };
-    case "OPEN_ELECTIVE":
-      return {
-        title: "Open Electives Coordination",
-        roleBadge: "University Open Electives",
-        badgeStyle:
-          "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/70 dark:text-amber-300 dark:border-amber-800",
-        cohortBadge: `Dept. of ${dept}`,
-        description:
-          "Manage institution-wide open elective course offerings, student preference rounds, and automated seat allocations.",
-        icon: BookOpen,
-        iconBg:
-          "bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
-        stats: [
-          { label: "Basket Status", value: "Active", hint: "Curriculum" },
-          { label: "Registration", value: "Scheduled", hint: "Round 1" },
-        ],
-        primaryAction: {
-          label: "Registration Rounds",
-          to: "/admin/elective-rounds",
-          icon: CalendarClock,
-        },
-        secondaryAction: {
-          label: "Run Allocation",
-          to: "/admin/electives",
-        },
-      };
-    case "CORE_ELECTIVE":
-      return {
-        title: "Core Electives Coordination",
-        roleBadge: "Department Core Electives",
-        badgeStyle:
-          "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/70 dark:text-indigo-300 dark:border-indigo-800",
-        cohortBadge: `Dept. of ${dept}`,
-        description:
-          "Oversee department elective baskets, track distributions, section capacities, and student preference allocations.",
-        icon: Layers,
-        iconBg:
-          "bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400",
-        stats: [
-          { label: "Baskets", value: "Defined", hint: "Syllabus" },
-          { label: "Quota Allocation", value: "Ready", hint: "Pending Window" },
-        ],
-        primaryAction: {
-          label: "Registration Rounds",
-          to: "/admin/elective-rounds",
-          icon: CalendarClock,
-        },
-        secondaryAction: {
-          label: "Run Allocation",
-          to: "/admin/electives",
-        },
-      };
-    case "MOOC":
-      return {
-        title: "NPTEL / MOOC Coordination",
-        roleBadge: "Online Learning & Equivalence",
-        badgeStyle:
-          "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/70 dark:text-cyan-300 dark:border-cyan-800",
-        cohortBadge: `Dept. of ${dept}`,
-        description:
-          "Review and verify external SWAYAM/NPTEL certificates, validate course credits, and execute grade transfers.",
-        icon: BadgeCheck,
-        iconBg:
-          "bg-cyan-50 text-cyan-600 dark:bg-cyan-950 dark:text-cyan-400",
-        primaryAction: {
-          label: "Verify Certificates",
-          to: "/admin/nptel",
-          icon: BadgeCheck,
-        },
-      };
-    case "MENTORSHIP":
-      return {
-        title: "Faculty Mentorship Programme",
-        roleBadge: "Student Welfare & Mentorship",
-        badgeStyle:
-          "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/70 dark:text-rose-300 dark:border-rose-800",
-        cohortBadge: `Dept. of ${dept}`,
-        description:
-          "Oversee faculty mentor allocations, student counselor meetings, and semester progress tracking.",
-        icon: UserSquare2,
-        iconBg:
-          "bg-rose-50 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
-        primaryAction: {
-          label: "Mentorship Desk",
-          to: "/mentorship",
-          icon: Users,
-        },
-      };
-    default:
-      return {
-        title: `${coord.domain} Coordination`,
-        roleBadge: "Department Portfolio",
-        badgeStyle:
-          "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800",
-        cohortBadge: `Dept. of ${dept}`,
-        description:
-          "Institutional portfolio management and coordination responsibilities.",
-        icon: Award,
-        iconBg:
-          "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
-        primaryAction: {
-          label: "Access Desk",
-          to: "/",
-          icon: ArrowRight,
-        },
-      };
-  }
+// ── presentation metadata ──────────────────────────────────────────────────
+// What each module is called, how it is drawn and where its desk lives. This is
+// UI vocabulary only: every figure on the card comes from `portfolio.stats`.
+type DomainMeta = {
+  label: string;
+  icon: LucideIcon;
+  /** Icon chip + accent bar classes — tokens only, so dark mode follows. */
+  chip: string;
+  bar: string;
+  primary: (p: FacultyPortfolio) => { label: string; to: string; icon: LucideIcon };
+  secondary?: (p: FacultyPortfolio) => { label: string; to: string };
+};
+
+const internshipActions = {
+  primary: (p: FacultyPortfolio) => ({
+    label: "Allocate mentors",
+    to: `/internships/mentor-assignment${p.program_id ? `?program_id=${p.program_id}` : ""}`,
+    icon: UserCheck,
+  }),
+  secondary: (p: FacultyPortfolio) => ({
+    label: "All students",
+    to: `/internships/students${p.program_id ? `?program_id=${p.program_id}` : ""}`,
+  }),
+};
+
+const DOMAIN_META: Record<CoordinationDomain, DomainMeta> = {
+  CSSI: {
+    label: "CSSI", icon: Users, chip: "bg-success-soft text-success",
+    bar: "from-success-solid to-success-solid/40", ...internshipActions,
+  },
+  SUMMER_INTERNSHIP: {
+    label: "Summer Internship", icon: Briefcase, chip: "bg-accent-soft text-accent",
+    bar: "from-accent to-electric/50", ...internshipActions,
+  },
+  MINOR: {
+    label: "Minor Specialisation", icon: Sparkles, chip: "bg-violet-soft text-violet",
+    bar: "from-violet to-violet/40",
+    primary: () => ({ label: "Review applications", to: "/admin/minors", icon: ClipboardCheck }),
+  },
+  OPEN_ELECTIVE: {
+    label: "Open Electives", icon: BookOpen, chip: "bg-warning-soft text-warning",
+    bar: "from-warning-solid to-warning-solid/40",
+    primary: () => ({ label: "Registration rounds", to: "/admin/elective-rounds", icon: CalendarClock }),
+    secondary: () => ({ label: "Allocation", to: "/admin/electives" }),
+  },
+  CORE_ELECTIVE: {
+    label: "Program Core Electives", icon: Layers, chip: "bg-iris-soft text-iris",
+    bar: "from-iris to-iris/40",
+    primary: () => ({ label: "Registration rounds", to: "/admin/elective-rounds", icon: CalendarClock }),
+    secondary: () => ({ label: "Allocation", to: "/admin/electives" }),
+  },
+  MOOC: {
+    label: "NPTEL / MOOC", icon: BadgeCheck, chip: "bg-info-soft text-info",
+    bar: "from-info to-info/40",
+    primary: () => ({ label: "Verify certificates", to: "/admin/nptel", icon: BadgeCheck }),
+  },
+  MENTORSHIP: {
+    label: "Faculty Mentorship", icon: UserSquare2, chip: "bg-danger-soft text-danger",
+    bar: "from-danger to-danger/40",
+    primary: () => ({ label: "Mentorship desk", to: "/mentorship", icon: Users }),
+  },
+};
+
+const FALLBACK_META: DomainMeta = {
+  label: "Coordination", icon: Award, chip: "bg-surface-muted text-ink-muted",
+  bar: "from-line-strong to-line", primary: () => ({ label: "Open", to: "/", icon: ArrowRight }),
+};
+
+function scopeLabel(p: { department_code: string | null; is_institution_wide: boolean }) {
+  if (p.is_institution_wide) return "Institution-wide";
+  return p.department_code ? `Dept. of ${p.department_code}` : "Department";
 }
 
-function PortfolioCard({ coord }: { coord: Coordination }) {
-  const details = getPortfolioDetails(coord);
-  const Icon = details.icon;
-  const PrimaryIcon = details.primaryAction.icon;
+function greeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+function daysSince(iso: string | null): number | null {
+  if (!iso) return null;
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+}
+
+const STAT_TONE: Record<PortfolioStat["tone"], string> = {
+  default: "text-ink",
+  warning: "text-warning",
+  success: "text-success",
+};
+
+// ── portfolio card ────────────────────────────────────────────────────────
+function PortfolioCard({ portfolio }: { portfolio: FacultyPortfolio }) {
+  const meta = DOMAIN_META[portfolio.domain] ?? FALLBACK_META;
+  const Icon = meta.icon;
+  const primary = meta.primary(portfolio);
+  const secondary = meta.secondary?.(portfolio);
+  const PrimaryIcon = primary.icon;
+
+  // Internship programmes get an allocation progress bar — the one workflow a
+  // coordinator returns to most. Both figures are the server's.
+  const registered = portfolio.stats.find((s) => s.label === "Registered")?.value;
+  const awaiting = portfolio.stats.find((s) => s.label === "Awaiting mentor")?.value;
+  const showProgress = registered !== undefined && awaiting !== undefined && registered > 0;
+  const allocatedPct = showProgress ? Math.round(((registered - awaiting) / registered) * 100) : 0;
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-line bg-surface p-5 shadow-xs hover:border-line-strong hover-lift transition-all flex flex-col justify-between">
-      {/* Top subtle highlight */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-primary/30" />
-
-      <div>
-        {/* Top Badges and Title */}
-        <div className="flex items-start justify-between gap-3 mb-2.5">
-          <div className="flex items-center gap-3">
-            <div
-              className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${details.iconBg}`}
-            >
-              <Icon className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="font-heading text-base font-bold text-ink leading-tight">
-                {details.title}
-              </h3>
-              <p className="text-2xs text-ink-subtle mt-0.5 font-medium">
-                {details.cohortBadge}
-              </p>
-            </div>
-          </div>
-          <span
-            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${details.badgeStyle}`}
-          >
-            {details.roleBadge}
+    <motion.article
+      variants={listItem}
+      className="group relative flex min-w-0 flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-sm transition-[box-shadow,border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-card-hover"
+    >
+      <div aria-hidden className={cn("h-1 bg-gradient-to-r", meta.bar)} />
+      <div className="flex flex-1 flex-col p-5">
+        <div className="flex items-start gap-3">
+          <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105", meta.chip)}>
+            <Icon className="h-5 w-5" aria-hidden />
           </span>
+          <div className="min-w-0 flex-1">
+            <h3 className="font-heading text-base font-semibold leading-snug text-ink">
+              {meta.label} coordination
+            </h3>
+            <p className="mt-0.5 text-xs text-ink-subtle">
+              {scopeLabel(portfolio)}
+              {portfolio.program_name && (
+                <>
+                  <span className="mx-1.5 opacity-50">·</span>
+                  <span className="break-anywhere">{portfolio.program_name}</span>
+                </>
+              )}
+            </p>
+          </div>
         </div>
 
-        {/* Portfolio Description */}
-        <p className="text-xs text-ink-muted leading-relaxed mb-4">
-          {details.description}
-        </p>
-
-        {/* Embedded Stats Strip */}
-        {details.stats && details.stats.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 py-2.5 px-3 mb-4 rounded-lg bg-surface-muted/60 border border-line/60">
-            {details.stats.map((s, idx) => (
-              <div key={idx} className="space-y-0.5">
-                <span className="text-[10px] uppercase font-semibold text-ink-subtle tracking-wider block">
+        {portfolio.stats.length > 0 && (
+          <dl
+            className={cn(
+              "mt-4 grid gap-px overflow-hidden rounded-lg border border-line bg-line",
+              // Columns follow the number of figures, so no empty cell shows through.
+              {
+                1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3",
+              }[portfolio.stats.length] ?? "grid-cols-2 sm:grid-cols-4",
+            )}
+          >
+            {portfolio.stats.map((s) => (
+              <div key={s.label} className="min-w-0 bg-surface-sunken px-3 py-2.5">
+                <dt className="text-2xs font-semibold uppercase leading-tight tracking-wide text-ink-subtle">
                   {s.label}
-                </span>
-                <div className="flex items-baseline gap-1.5">
-                  <span
-                    className={`font-mono text-sm font-bold ${
-                      s.statusColor ?? "text-ink"
-                    }`}
-                  >
-                    {s.value}
-                  </span>
-                  {s.hint && (
-                    <span className="text-[10px] text-ink-subtle font-mono">
-                      {s.hint}
-                    </span>
-                  )}
-                </div>
+                </dt>
+                <dd className={cn("mt-1 font-heading text-lg font-semibold leading-none tabular-nums", STAT_TONE[s.tone])}>
+                  <CountUp value={s.value} />
+                </dd>
+                {s.hint && <dd className="mt-1 truncate text-2xs text-ink-subtle" title={s.hint}>{s.hint}</dd>}
               </div>
             ))}
+          </dl>
+        )}
+
+        {showProgress && (
+          <div className="mt-4">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-medium text-ink-muted">Mentor allocation</span>
+              <span className="font-semibold tabular-nums text-ink">{allocatedPct}%</span>
+            </div>
+            <div
+              className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface-muted"
+              role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={allocatedPct}
+              aria-label="Students with a mentor"
+            >
+              <motion.div
+                className={cn("h-full rounded-full", allocatedPct === 100 ? "bg-success-solid" : "bg-accent-gradient")}
+                initial={{ width: 0 }}
+                animate={{ width: `${allocatedPct}%` }}
+                transition={{ ...transition, duration: 0.8, delay: 0.15 }}
+              />
+            </div>
           </div>
         )}
-      </div>
 
-      {/* Action Buttons */}
-      <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-line/60">
-        <Link
-          to={details.primaryAction.to}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-white text-xs font-semibold hover:bg-primary/90 transition-colors shadow-xs"
-        >
-          {PrimaryIcon && <PrimaryIcon className="h-3.5 w-3.5" />}
-          <span>{details.primaryAction.label}</span>
-        </Link>
-        {details.secondaryAction && (
-          <Link
-            to={details.secondaryAction.to}
-            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-line bg-surface hover:bg-surface-muted text-ink text-xs font-medium transition-colors"
-          >
-            <span>{details.secondaryAction.label}</span>
-          </Link>
-        )}
+        <div className="mt-auto flex flex-wrap items-center gap-2 pt-5">
+          <LinkButton to={primary.to} size="sm" variant="accent" icon={<PrimaryIcon className="h-3.5 w-3.5" aria-hidden />}>
+            {primary.label}
+          </LinkButton>
+          {secondary && (
+            <LinkButton to={secondary.to} size="sm" variant="secondary">
+              {secondary.label}
+            </LinkButton>
+          )}
+        </div>
       </div>
-    </div>
+    </motion.article>
   );
 }
 
+// ── page ──────────────────────────────────────────────────────────────────
+type ReviewFilter = "all" | "stage" | "report";
+
 export function FacultyDashboard() {
   const { user } = useAuth();
-  const [reviewTab, setReviewTab] = useState<"all" | "cssi" | "summer">("all");
+  const [reviewFilter, setReviewFilter] = useState<ReviewFilter>("all");
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["dashboard", "faculty"],
     queryFn: () => api.get<Data>("/dashboard/faculty"),
   });
 
-  if (isLoading) return <LoadingState rows={4} />;
+  // Oldest first: the student who has waited longest is the first to answer.
+  const reviews = useMemo(
+    () => [...(data?.pending_reviews ?? [])].sort(
+      (a, b) => (a.submitted_at ?? "").localeCompare(b.submitted_at ?? ""),
+    ),
+    [data?.pending_reviews],
+  );
+
+  if (isLoading) return <LoadingState rows={5} />;
   if (error || !data) {
     return (
       <ErrorState
@@ -347,586 +247,333 @@ export function FacultyDashboard() {
     );
   }
 
-  const rawCoordinations = user?.faculty?.coordinations ?? [];
-  // Deduplicate coordinations by domain to prevent redundant badges and cards
-  const uniqueCoordinations = Array.from(
-    new Map(rawCoordinations.map((c) => [c.domain, c])).values()
-  );
+  const stat = (key: string) => data.stats.find((s) => s.key === key);
+  const reviewCount = stat("pending_reviews")?.value ?? 0;
+  const counts = {
+    all: reviews.length,
+    stage: reviews.filter((r) => r.type === "stage").length,
+    report: reviews.filter((r) => r.type === "report").length,
+  };
+  const shownReviews = reviewFilter === "all" ? reviews : reviews.filter((r) => r.type === reviewFilter);
+  const faculty = user?.faculty;
+  const openMeetings = data.upcoming_meetings.filter((m) => m.status === "REQUESTED").length;
 
-  const firstName = user?.full_name ? user.full_name.split(" ")[1] ?? user.full_name : "Faculty";
-
-  const menteesCount = data.stats.find((s) => s.key === "mentees")?.value ?? 254;
-  const pendingReviewsCount = data.stats.find((s) => s.key === "pending_reviews")?.value ?? 4;
-
-  const filteredReviews = data.pending_reviews.filter((review) => {
-    if (reviewTab === "cssi") {
-      return (
-        review.label.toLowerCase().includes("cssi") ||
-        review.link.includes("cssi") ||
-        review.label.toLowerCase().includes("ngo")
-      );
-    }
-    if (reviewTab === "summer") {
-      return (
-        !review.label.toLowerCase().includes("cssi") &&
-        !review.link.includes("cssi")
-      );
-    }
-    return true;
-  });
+  const STAT_ICONS: Record<string, { icon: LucideIcon; tone: "accent" | "success" | "warning" | "brand" }> = {
+    mentees: { icon: Users2, tone: "accent" },
+    internship_students: { icon: Briefcase, tone: "brand" },
+    pending_reviews: { icon: ClipboardCheck, tone: "warning" },
+    pending_evaluations: { icon: Award, tone: "success" },
+  };
 
   return (
     <div className="space-y-6">
-      {/* 1. Page Header & Institutional Breadcrumbs */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2 border-b border-line">
-        <div className="space-y-1.5">
-          {/* Breadcrumb trail */}
-          <nav className="flex items-center gap-1.5 text-xs text-ink-subtle">
-            <Link to="/" className="hover:text-primary transition-colors">
-              CampusHub
-            </Link>
-            <ChevronRight className="h-3 w-3 text-ink-subtle" />
-            <span>Faculty Portal</span>
-            <ChevronRight className="h-3 w-3 text-ink-subtle" />
-            <span className="font-semibold text-primary">Dashboard</span>
-          </nav>
+      {/* ── Hero ─────────────────────────────────────────────────────────── */}
+      <motion.section
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={transition}
+        className="relative overflow-hidden rounded-2xl bg-brand-gradient text-white shadow-lg"
+      >
+        <div aria-hidden className="hero-grid absolute inset-0 opacity-60" />
+        <div aria-hidden className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-electric/30 blur-3xl" />
+        <div aria-hidden className="absolute -bottom-24 right-1/3 h-56 w-56 rounded-full bg-violet/25 blur-3xl" />
 
-          <h1 className="font-heading text-xl sm:text-2xl font-bold tracking-tight text-ink">
-            Welcome back, Prof. {firstName} 👋
-          </h1>
+        <div className="relative grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/60">
+              Faculty portal
+              {user?.academic_year && <span> · {user.academic_year}</span>}
+              {user?.current_semester_label && <span> · {user.current_semester_label}</span>}
+            </p>
+            <h1 className="mt-2 font-heading text-2xl font-semibold leading-tight tracking-tight text-white sm:text-3xl">
+              {greeting()}, <span className="break-anywhere">{user?.full_name ?? "Faculty"}</span>
+            </h1>
+            <p className="mt-1.5 text-sm text-white/75">
+              {[faculty?.designation, faculty?.department_code && `Department of ${faculty.department_code}`, faculty?.cabin && `Cabin ${faculty.cabin}`]
+                .filter(Boolean).join(" · ") || "PDEU faculty"}
+            </p>
 
-          {/* Badges Cluster */}
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              Active Faculty
-            </span>
-            {user?.faculty?.designation && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-medium">
-                {user.faculty.designation}
-              </span>
-            )}
-            {user?.faculty?.department_code && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-900 text-xs font-medium">
-                Dept. of {user.faculty.department_code}
-              </span>
-            )}
-            {uniqueCoordinations.map((c) => (
-              <span
-                key={c.domain}
-                className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-900 dark:text-indigo-200 border border-indigo-200 dark:border-indigo-900 text-xs font-semibold"
-              >
-                {c.domain === "SUMMER_INTERNSHIP"
-                  ? `Summer Internship Coordinator`
-                  : c.domain === "CSSI"
-                  ? `CSSI Coordinator`
-                  : c.domain === "OPEN_ELECTIVE"
-                  ? `Open Electives Coordinator`
-                  : c.domain === "CORE_ELECTIVE"
-                  ? `Core Electives Coordinator`
-                  : c.domain === "MINOR"
-                  ? `Minor Coordinator`
-                  : c.domain === "MOOC"
-                  ? `NPTEL / MOOC Coordinator`
-                  : `${c.domain} Coordinator`}
-              </span>
-            ))}
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-surface-muted text-ink-muted border border-line text-xs font-medium">
-              School of Technology
-            </span>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-surface-muted text-ink-subtle border border-line text-xs">
-              Academic Year 2025–26
-            </span>
-            {user?.faculty?.cabin && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-surface-muted text-ink-subtle border border-line text-xs font-mono">
-                Cabin {user.faculty.cabin}
-              </span>
+            {data.portfolios.length > 0 && (
+              <ul className="mt-4 flex flex-wrap gap-2" aria-label="Your coordination roles">
+                {data.portfolios.map((p) => {
+                  const meta = DOMAIN_META[p.domain] ?? FALLBACK_META;
+                  return (
+                    <li key={`${p.domain}-${p.program_id ?? p.department_id ?? "all"}`}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-xs font-medium text-white/90">
+                      <meta.icon className="h-3.5 w-3.5 text-white/70" aria-hidden />
+                      {meta.label} coordinator
+                      <span className="text-white/50">· {scopeLabel(p)}</span>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
           </div>
-        </div>
 
-        {/* Quick Top Actions */}
-        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-          <LinkButton
-            to="/announcements"
-            variant="secondary"
-            size="sm"
-            icon={<PlusCircle className="h-4 w-4 text-primary" />}
-          >
-            Create Announcement
-          </LinkButton>
-          <LinkButton
-            to="/mentorship/mentees"
-            variant="primary"
-            size="sm"
-            icon={<Users className="h-4 w-4" />}
-          >
-            My Mentees
-          </LinkButton>
-        </div>
-      </div>
-
-      {/* 2. APPOINTED RESPONSIBILITIES & PORTFOLIOS (If holding any coordination role) */}
-      {uniqueCoordinations.length > 0 && (
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="font-heading text-sm sm:text-base font-bold text-ink flex items-center gap-2">
-                <span>Appointed Responsibilities & Portfolios</span>
-                <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                  {uniqueCoordinations.length} Active{" "}
-                  {uniqueCoordinations.length === 1 ? "Portfolio" : "Portfolios"}
-                </span>
-              </h2>
-              <p className="text-2xs text-ink-subtle">
-                Administrative and academic portfolios entrusted to your coordination
-              </p>
+          {/* Today, at a glance — two real counts and the two most used doors. */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch lg:flex-col">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-sm">
+                <p className="text-2xs font-semibold uppercase tracking-wide text-white/60">To review</p>
+                <p className="mt-1 font-heading text-2xl font-semibold tabular-nums"><CountUp value={reviewCount} /></p>
+              </div>
+              <div className="rounded-xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-sm">
+                <p className="text-2xs font-semibold uppercase tracking-wide text-white/60">Meeting requests</p>
+                <p className="mt-1 font-heading text-2xl font-semibold tabular-nums"><CountUp value={openMeetings} /></p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                to="/announcements"
+                className="inline-flex h-9 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white px-3.5 text-sm font-semibold text-navy shadow-sm transition-all hover:-translate-y-px hover:shadow-md active:translate-y-0"
+              >
+                <Megaphone className="h-4 w-4" aria-hidden /> Announcements
+              </Link>
+              {(faculty?.is_mentor || (stat("mentees")?.value ?? 0) > 0) && (
+                <Link
+                  to="/mentorship/mentees"
+                  className="inline-flex h-9 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-white/25 bg-white/10 px-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/20"
+                >
+                  <Users className="h-4 w-4" aria-hidden /> My mentees
+                </Link>
+              )}
             </div>
           </div>
+        </div>
+      </motion.section>
 
-          <div
-            className={`grid gap-4 ${
-              uniqueCoordinations.length === 1
-                ? "grid-cols-1"
-                : "grid-cols-1 md:grid-cols-2"
-            }`}
-          >
-            {uniqueCoordinations.map((coord) => (
-              <PortfolioCard key={coord.domain} coord={coord} />
-            ))}
+      {/* ── Coordination portfolios ──────────────────────────────────────── */}
+      {data.portfolios.length > 0 && (
+        <section aria-labelledby="portfolios-heading" className="space-y-3">
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <h2 id="portfolios-heading" className="font-heading text-md font-semibold text-ink">
+                Your coordination portfolios
+              </h2>
+              <p className="text-sm text-ink-muted">
+                Live figures for the modules you were appointed to run.
+              </p>
+            </div>
+            <Badge tone="accent">{pluralise(data.portfolios.length, "portfolio")}</Badge>
           </div>
+          <motion.div
+            variants={listContainer} initial="hidden" animate="shown"
+            className={cn("grid gap-4", data.portfolios.length > 1 && "md:grid-cols-2")}
+          >
+            {data.portfolios.map((p) => (
+              <PortfolioCard key={`${p.domain}-${p.program_id ?? p.department_id ?? "all"}`} portfolio={p} />
+            ))}
+          </motion.div>
         </section>
       )}
 
-      {/* 3. EXECUTIVE STAT TILES (Universal for all Faculty) */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Tile 1: Assigned Mentees */}
-        <div className="bg-surface border border-line rounded-xl p-5 shadow-xs hover-lift transition-all">
-          <div className="flex items-center justify-between text-ink-muted mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              Assigned Mentees
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950 flex items-center justify-center text-primary">
-              <Users className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="font-heading text-2xl font-bold font-mono text-ink">
-              {menteesCount}
-            </span>
-            <span className="text-xs text-emerald-600 font-medium">Students</span>
-          </div>
-          <p className="text-2xs text-ink-subtle mt-1.5 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-            4 3rd Year, 8 2nd Year • All active
-          </p>
-        </div>
+      {/* ── Your numbers ─────────────────────────────────────────────────── */}
+      <StatGrid columns={4}>
+        {data.stats.map((s) => (
+          <StatTile
+            key={s.key} label={s.label} value={s.value} hint={s.hint}
+            to={s.link} icon={STAT_ICONS[s.key]?.icon} tone={s.value > 0 ? STAT_ICONS[s.key]?.tone ?? "neutral" : "neutral"}
+          />
+        ))}
+      </StatGrid>
 
-        {/* Tile 2: Pending Reviews */}
-        <div className="bg-surface border border-line rounded-xl p-5 shadow-xs hover-lift transition-all ring-1 ring-amber-500/20">
-          <div className="flex items-center justify-between text-ink-muted mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              Pending Reviews
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950 flex items-center justify-center text-amber-600">
-              <ClipboardCheck className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="font-heading text-2xl font-bold font-mono text-amber-600">
-              {pendingReviewsCount}
-            </span>
-            <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-semibold">
-              Action Required
-            </span>
-          </div>
-          <p className="text-2xs text-ink-subtle mt-1.5 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-            2 Stage-2 Reports, 2 NOC requests
-          </p>
-        </div>
-
-        {/* Tile 3: Active Announcements */}
-        <div className="bg-surface border border-line rounded-xl p-5 shadow-xs hover-lift transition-all">
-          <div className="flex items-center justify-between text-ink-muted mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              Active Circulars
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950 flex items-center justify-center text-purple-600">
-              <Megaphone className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="font-heading text-2xl font-bold font-mono text-ink">
-              {data.announcements.length || 3}
-            </span>
-            <span className="text-xs text-ink-muted font-medium">Notices</span>
-          </div>
-          <p className="text-2xs text-ink-subtle mt-1.5 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-            2 ICT Dept, 1 University-wide
-          </p>
-        </div>
-
-        {/* Tile 4: Upcoming Meetings */}
-        <div className="bg-surface border border-line rounded-xl p-5 shadow-xs hover-lift transition-all">
-          <div className="flex items-center justify-between text-ink-muted mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              Upcoming Meetings
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center text-emerald-600">
-              <Calendar className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="font-heading text-2xl font-bold font-mono text-ink">
-              {data.upcoming_meetings.length || 2}
-            </span>
-            <span className="text-xs text-emerald-600 font-medium">Scheduled</span>
-          </div>
-          <p className="text-2xs text-ink-subtle mt-1.5 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            Next: Mentee Review at 03:00 PM today
-          </p>
-        </div>
-      </section>
-
-      {/* 4. MAIN TWO-COLUMN DASHBOARD GRID */}
       <div className="grid gap-6 lg:grid-cols-12">
-        {/* LEFT COLUMN (8 cols / ~65%): Evaluation Queue & Mentees */}
-        <div className="space-y-6 lg:col-span-8">
-          {/* Card: Pending Reviews & Submissions */}
-          <Card className="card-luxe-shadow">
+        {/* ── Left: the work queue ───────────────────────────────────────── */}
+        <div className="min-w-0 space-y-6 lg:col-span-8">
+          <Card>
             <CardHeader
-              title={`Pending Submissions & Evaluations (${filteredReviews.length})`}
-              description="Student reports and milestones awaiting faculty evaluation."
-              icon={<ClipboardCheck className="h-4 w-4 text-amber-500" />}
+              title="Review queue"
+              description="Milestones and reports your students submitted, longest waiting first."
+              icon={<ClipboardCheck className="h-4 w-4 text-warning" aria-hidden />}
               action={
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => setReviewTab("all")}
-                    className={`px-2.5 py-1 text-2xs font-semibold rounded ${
-                      reviewTab === "all"
-                        ? "bg-primary text-white"
-                        : "text-ink-muted hover:bg-surface-muted"
-                    }`}
-                  >
-                    All ({data.pending_reviews.length})
-                  </button>
-                  <button
-                    onClick={() => setReviewTab("cssi")}
-                    className={`px-2.5 py-1 text-2xs font-semibold rounded ${
-                      reviewTab === "cssi"
-                        ? "bg-primary text-white"
-                        : "text-ink-muted hover:bg-surface-muted"
-                    }`}
-                  >
-                    CSSI Reports
-                  </button>
-                  <button
-                    onClick={() => setReviewTab("summer")}
-                    className={`px-2.5 py-1 text-2xs font-semibold rounded ${
-                      reviewTab === "summer"
-                        ? "bg-primary text-white"
-                        : "text-ink-muted hover:bg-surface-muted"
-                    }`}
-                  >
-                    Summer Training
-                  </button>
+                <div role="tablist" aria-label="Filter the review queue" className="inline-flex rounded-lg bg-surface-muted p-0.5">
+                  {([["all", "All"], ["stage", "Milestones"], ["report", "Reports"]] as const).map(([key, label]) => (
+                    <button
+                      key={key} type="button" role="tab" aria-selected={reviewFilter === key}
+                      onClick={() => setReviewFilter(key)}
+                      className={cn(
+                        "relative cursor-pointer whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition-colors",
+                        reviewFilter === key ? "text-ink" : "text-ink-subtle hover:text-ink",
+                      )}
+                    >
+                      {reviewFilter === key && (
+                        <motion.span layoutId="review-filter" className="absolute inset-0 rounded-md bg-surface shadow-xs" transition={transition} aria-hidden />
+                      )}
+                      <span className="relative">{label} <span className="tabular-nums text-ink-subtle">{counts[key]}</span></span>
+                    </button>
+                  ))}
                 </div>
               }
             />
-
-            {filteredReviews.length === 0 ? (
+            {shownReviews.length === 0 ? (
               <EmptyState
                 compact
-                title="No pending reviews"
-                description="Submissions from your assigned students will appear here."
+                icon={<ClipboardCheck className="h-5 w-5" aria-hidden />}
+                title={reviews.length === 0 ? "You're all caught up" : "Nothing in this view"}
+                description="Submissions from students you mentor appear here as they arrive."
               />
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead className="bg-surface-muted/60 text-2xs font-semibold uppercase tracking-wider text-ink-subtle border-b border-line">
-                    <tr>
-                      <th className="py-2.5 px-4">Student</th>
-                      <th className="py-2.5 px-3">Programme</th>
-                      <th className="py-2.5 px-3">Stage / Milestone</th>
-                      <th className="py-2.5 px-3">Submitted</th>
-                      <th className="py-2.5 px-4 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-line">
-                    {filteredReviews.map((review) => (
-                      <tr
-                        key={`${review.type}-${review.id}`}
-                        className="hover:bg-surface-muted/40 transition-colors"
+              <motion.ul variants={listContainer} initial="hidden" animate="shown" className="divide-y divide-line">
+                {shownReviews.map((review) => {
+                  const age = daysSince(review.submitted_at);
+                  const overdue = age !== null && age >= 7;
+                  const TypeIcon = review.type === "stage" ? Milestone : FileText;
+                  return (
+                    <motion.li key={`${review.type}-${review.id}`} variants={listItem}>
+                      <Link
+                        to={review.link}
+                        className="group flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-surface-soft/60 focus-visible:bg-surface-soft/60"
                       >
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2.5">
-                            <Avatar name={review.student} size="sm" />
-                            <div>
-                              <p className="font-semibold text-ink leading-tight">
-                                {review.student}
-                              </p>
-                              <p className="font-mono text-2xs text-secondary mt-0.5">
-                                {review.roll_number}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-3 px-3 text-ink-muted">B.Tech ICT</td>
-                        <td className="py-3 px-3">
-                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 dark:bg-blue-950 dark:text-blue-200 font-medium text-2xs">
-                            <FileText className="h-3 w-3 text-blue-600" />
+                        <span className={cn(
+                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+                          review.type === "stage" ? "bg-iris-soft text-iris" : "bg-accent-soft text-accent",
+                        )}>
+                          <TypeIcon className="h-4 w-4" aria-hidden />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold text-ink" title={review.label}>
                             {review.label}
                           </span>
-                        </td>
-                        <td className="py-3 px-3 text-ink-subtle text-2xs">
-                          {relativeTime(review.submitted_at)}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <Link
-                            to={review.link}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-primary text-white text-2xs font-semibold hover:bg-primary/90 transition-all shadow-xs"
-                          >
-                            <span>Evaluate</span>
-                            <ChevronRight className="h-3 w-3" />
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                          <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 text-xs text-ink-muted">
+                            <span className="truncate" title={review.student}>{review.student}</span>
+                            <span className="font-mono text-2xs text-ink-subtle">{review.roll_number}</span>
+                          </span>
+                        </span>
+                        <span className="hidden shrink-0 flex-col items-end gap-1 sm:flex">
+                          <span className={cn("inline-flex items-center gap-1 text-xs", overdue ? "font-semibold text-warning" : "text-ink-subtle")}>
+                            <Clock className="h-3 w-3" aria-hidden />
+                            {relativeTime(review.submitted_at)}
+                          </span>
+                          {overdue && <Badge tone="warning">Waiting {age} days</Badge>}
+                        </span>
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-accent px-2.5 py-1.5 text-xs font-semibold text-accent-fg shadow-xs transition-all group-hover:bg-accent-hover group-hover:shadow-glow-accent">
+                          Review <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" aria-hidden />
+                        </span>
+                      </Link>
+                    </motion.li>
+                  );
+                })}
+              </motion.ul>
             )}
           </Card>
 
-          {/* Card: My Direct Mentees Preview */}
-          <Card className="card-luxe-shadow">
+          <Card>
             <CardHeader
-              title={`My Direct Mentees (${data.mentees_preview.length})`}
-              description="Assigned mentee roster with progress tracking."
-              icon={<Users2 className="h-4 w-4 text-primary" />}
-              action={
-                <LinkButton
-                  to="/mentorship/mentees"
-                  variant="secondary"
-                  size="sm"
-                  iconRight={<ArrowRight className="h-3.5 w-3.5" />}
-                >
-                  View All Mentees
-                </LinkButton>
-              }
+              title="Your mentees"
+              description="Students assigned to you for academic mentoring."
+              icon={<Users2 className="h-4 w-4 text-accent" aria-hidden />}
+              action={data.mentees_preview.length > 0 && (
+                <CardAction to="/mentorship/mentees" label="View all mentees">View all</CardAction>
+              )}
             />
             {data.mentees_preview.length === 0 ? (
-              <EmptyState
-                compact
-                title="No mentees assigned"
-                description="Assigned mentees will appear here once allocated."
-              />
+              <EmptyState compact title="No mentees assigned" description="Mentees appear here once your HoD's office allocates them." />
             ) : (
-              <CardBody className="grid gap-3 sm:grid-cols-2">
+              <motion.ul variants={listContainer} initial="hidden" animate="shown" className="grid gap-3 p-5 sm:grid-cols-2">
                 {data.mentees_preview.map((mentee) => (
-                  <div
-                    key={mentee.student_id}
-                    className="flex flex-col justify-between p-3.5 rounded-lg border border-line bg-surface hover:border-line-strong hover-lift transition-all"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <Avatar
-                          name={mentee.name}
-                          src={mentee.avatar_url}
-                          size="sm"
-                        />
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-ink leading-tight">
-                            {mentee.name}
-                          </p>
-                          <p className="truncate text-2xs text-ink-subtle mt-0.5">
-                            <span className="font-mono text-secondary font-semibold">
-                              {mentee.roll_number}
-                            </span>
-                            {" · "}Sem {roman(mentee.semester)}
-                          </p>
-                        </div>
-                      </div>
-                      {mentee.cpi !== null && (
-                        <span className="px-1.5 py-0.5 rounded bg-surface-muted text-xs font-mono font-bold text-ink">
-                          {mentee.cpi.toFixed(2)} CPI
+                  <motion.li key={mentee.student_id} variants={listItem} className="min-w-0">
+                    <Link
+                      to={`/people/students/${mentee.student_id}`}
+                      className="flex items-center gap-3 rounded-lg border border-line bg-surface p-3 transition-all hover:-translate-y-px hover:border-accent/40 hover:shadow-card-hover"
+                    >
+                      <Avatar name={mentee.name} src={mentee.avatar_url} size="md" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-ink" title={mentee.name}>{mentee.name}</span>
+                        <span className="block truncate text-xs text-ink-subtle">
+                          <span className="font-mono">{mentee.roll_number}</span> · Sem {roman(mentee.semester)}
                         </span>
-                      )}
-                    </div>
-
-                    <div className="mt-3 pt-2 border-t border-line/40 flex items-center justify-between text-2xs text-ink-subtle">
-                      <span>Status: Active Mentee</span>
-                      <Link
-                        to={`/mentorship/mentees/${mentee.student_id}`}
-                        className="text-primary font-semibold hover:underline flex items-center gap-0.5"
-                      >
-                        Profile →
-                      </Link>
-                    </div>
-                  </div>
+                      </span>
+                      <ArrowUpRight className="h-4 w-4 shrink-0 text-ink-subtle" aria-hidden />
+                    </Link>
+                  </motion.li>
                 ))}
-              </CardBody>
+              </motion.ul>
             )}
           </Card>
+
+          {data.internship_groups.length > 0 && (
+            <Card>
+              <CardHeader
+                title="Internship groups you lead"
+                icon={<Users className="h-4 w-4 text-success" aria-hidden />}
+              />
+              <ul className="divide-y divide-line">
+                {data.internship_groups.map((g) => {
+                  const pct = g.capacity > 0 ? Math.min(100, Math.round((g.member_count / g.capacity) * 100)) : 0;
+                  return (
+                    <li key={g.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-ink" title={g.name}>{g.name}</span>
+                        {g.program && <span className="block truncate text-xs text-ink-subtle">{g.program}</span>}
+                      </span>
+                      {g.capacity > 0 && (
+                        <span className="flex w-40 items-center gap-2">
+                          <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-muted">
+                            <span className="block h-full rounded-full bg-success-solid" style={{ width: `${pct}%` }} />
+                          </span>
+                          <span className="text-xs tabular-nums text-ink-muted">{g.member_count}/{g.capacity}</span>
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </Card>
+          )}
         </div>
 
-        {/* RIGHT COLUMN (4 cols / ~35%): Schedule, Announcements, Shortcuts */}
-        <div className="space-y-6 lg:col-span-4">
-          {/* Today's Schedule & Meeting Requests */}
-          <Card className="card-luxe-shadow">
+        {/* ── Right: schedule and notices ────────────────────────────────── */}
+        <div className="min-w-0 space-y-6 lg:col-span-4">
+          <Card>
             <CardHeader
-              title="Today's Schedule & Reviews"
-              icon={<CalendarClock className="h-4 w-4 text-primary" />}
-              action={<CardAction to="/mentorship" label="Manage">Manage</CardAction>}
+              title="Meetings"
+              description="Requested and confirmed mentee meetings."
+              icon={<CalendarClock className="h-4 w-4 text-iris" aria-hidden />}
+              action={<CardAction to="/mentorship" label="Manage meetings">Manage</CardAction>}
             />
             {data.upcoming_meetings.length === 0 ? (
-              <EmptyState compact title="No meetings scheduled for today" />
+              <EmptyState compact title="No open meeting requests" />
             ) : (
               <ul className="divide-y divide-line">
-                {data.upcoming_meetings.map((meeting) => (
-                  <li
-                    key={meeting.id}
-                    className="p-3.5 hover:bg-surface-muted/30 transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-xs font-semibold text-ink leading-snug">
-                        {meeting.title}
+                {data.upcoming_meetings.map((m) => (
+                  <li key={m.id} className="flex gap-3 px-5 py-3.5">
+                    <Avatar name={m.student} size="sm" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="min-w-0 text-sm font-semibold leading-snug text-ink break-anywhere">{m.title}</p>
+                        <StatusBadge status={m.status} className="shrink-0" />
+                      </div>
+                      <p className="mt-0.5 truncate text-xs text-ink-muted" title={m.student}>{m.student}</p>
+                      <p className="mt-1 inline-flex items-center gap-1 text-xs text-ink-subtle">
+                        <Clock className="h-3 w-3" aria-hidden />
+                        {formatDateTime(m.scheduled_at ?? m.proposed_slot)}
                       </p>
-                      <StatusBadge status={meeting.status} />
                     </div>
-                    <p className="mt-1 text-2xs text-ink-muted flex items-center gap-1.5">
-                      <Avatar name={meeting.student} size="xs" />
-                      <span>{meeting.student}</span>
-                    </p>
-                    <p className="mt-1 text-2xs font-mono text-secondary flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {formatDateTime(meeting.scheduled_at ?? meeting.proposed_slot)}
-                    </p>
                   </li>
                 ))}
               </ul>
             )}
           </Card>
 
-          {/* Quick Shortcuts & Portals */}
-          <div className="bg-surface rounded-xl p-4 border border-line card-luxe-shadow space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
-              Quick Coordination & Portals
-            </h3>
-            <div className="space-y-2 text-xs">
-              {uniqueCoordinations.some(
-                (c) => c.domain === "SUMMER_INTERNSHIP"
-              ) && (
-                <Link
-                  to="/internships/mentor-assignment?program_id=2"
-                  className="flex items-center justify-between p-2.5 rounded-lg border border-line bg-surface-muted/40 hover:bg-surface-muted transition-colors font-medium text-ink"
-                >
-                  <div className="flex items-center gap-2">
-                    <UserCheck className="h-4 w-4 text-blue-600" />
-                    <span>Summer Internship Mentor Allocation</span>
-                  </div>
-                  <ArrowRight className="h-3.5 w-3.5 text-ink-subtle" />
-                </Link>
-              )}
-              {uniqueCoordinations.some((c) => c.domain === "CSSI") && (
-                <Link
-                  to="/internships/mentor-assignment?program_id=1"
-                  className="flex items-center justify-between p-2.5 rounded-lg border border-line bg-surface-muted/40 hover:bg-surface-muted transition-colors font-medium text-ink"
-                >
-                  <div className="flex items-center gap-2">
-                    <UserCheck className="h-4 w-4 text-emerald-600" />
-                    <span>CSSI Mentor Allocation</span>
-                  </div>
-                  <ArrowRight className="h-3.5 w-3.5 text-ink-subtle" />
-                </Link>
-              )}
-              {uniqueCoordinations.some((c) => c.domain === "MINOR") && (
-                <Link
-                  to="/admin/minors"
-                  className="flex items-center justify-between p-2.5 rounded-lg border border-line bg-surface-muted/40 hover:bg-surface-muted transition-colors font-medium text-ink"
-                >
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-purple-600" />
-                    <span>Minor Applications Desk</span>
-                  </div>
-                  <ArrowRight className="h-3.5 w-3.5 text-ink-subtle" />
-                </Link>
-              )}
-              {uniqueCoordinations.some(
-                (c) =>
-                  c.domain === "OPEN_ELECTIVE" || c.domain === "CORE_ELECTIVE"
-              ) && (
-                <Link
-                  to="/admin/elective-rounds"
-                  className="flex items-center justify-between p-2.5 rounded-lg border border-line bg-surface-muted/40 hover:bg-surface-muted transition-colors font-medium text-ink"
-                >
-                  <div className="flex items-center gap-2">
-                    <CalendarClock className="h-4 w-4 text-amber-600" />
-                    <span>Elective Registration Rounds</span>
-                  </div>
-                  <ArrowRight className="h-3.5 w-3.5 text-ink-subtle" />
-                </Link>
-              )}
-              {uniqueCoordinations.some((c) => c.domain === "MOOC") && (
-                <Link
-                  to="/admin/nptel"
-                  className="flex items-center justify-between p-2.5 rounded-lg border border-line bg-surface-muted/40 hover:bg-surface-muted transition-colors font-medium text-ink"
-                >
-                  <div className="flex items-center gap-2">
-                    <BadgeCheck className="h-4 w-4 text-cyan-600" />
-                    <span>NPTEL Certificate Verification</span>
-                  </div>
-                  <ArrowRight className="h-3.5 w-3.5 text-ink-subtle" />
-                </Link>
-              )}
-              <Link
-                to="/mentorship"
-                className="flex items-center justify-between p-2.5 rounded-lg border border-line bg-surface-muted/40 hover:bg-surface-muted transition-colors font-medium text-ink"
-              >
-                <div className="flex items-center gap-2">
-                  <UserSquare2 className="h-4 w-4 text-primary" />
-                  <span>Mentor–Mentee Management Desk</span>
-                </div>
-                <ArrowRight className="h-3.5 w-3.5 text-ink-subtle" />
-              </Link>
-              <Link
-                to="/faculty"
-                className="flex items-center justify-between p-2.5 rounded-lg border border-line bg-surface-muted/40 hover:bg-surface-muted transition-colors font-medium text-ink"
-              >
-                <div className="flex items-center gap-2">
-                  <GraduationCap className="h-4 w-4 text-purple-600" />
-                  <span>Faculty Directory & Roster</span>
-                </div>
-                <ArrowRight className="h-3.5 w-3.5 text-ink-subtle" />
-              </Link>
-            </div>
-          </div>
-
-          {/* Department Announcements & Circulars */}
-          <Card className="card-luxe-shadow">
+          <Card>
             <CardHeader
-              title="Recent Announcements"
-              icon={<Megaphone className="h-4 w-4 text-purple-600" />}
-              action={<CardAction to="/announcements" label="All">View All</CardAction>}
+              title="Announcements"
+              icon={<Megaphone className="h-4 w-4 text-violet" aria-hidden />}
+              action={<CardAction to="/announcements" label="All announcements">View all</CardAction>}
             />
             {data.announcements.length === 0 ? (
-              <EmptyState compact title="No announcements posted" />
+              <EmptyState compact title="No announcements yet" />
             ) : (
-              <ul className="divide-y divide-line text-xs">
-                {data.announcements.map((item) => (
-                  <li
-                    key={item.id}
-                    className="p-3.5 hover:bg-surface-muted/30 transition-colors"
-                  >
-                    <p className="font-semibold text-ink leading-snug">
-                      {item.title}
-                    </p>
-                    <p className="mt-1 line-clamp-2 text-2xs text-ink-muted">
-                      {item.excerpt}
-                    </p>
+              <ul className="divide-y divide-line">
+                {data.announcements.map((a) => (
+                  <li key={a.id} className="px-5 py-3.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {a.priority && a.priority !== "NORMAL" && <StatusBadge status={a.priority} />}
+                      {a.category && <Badge tone="neutral">{a.category.replace(/_/g, " ").toLowerCase()}</Badge>}
+                      <span className="ml-auto text-2xs text-ink-subtle">{relativeTime(a.published_at)}</span>
+                    </div>
+                    <p className="mt-1.5 text-sm font-semibold leading-snug text-ink break-anywhere">{a.title}</p>
+                    {a.excerpt && <p className="mt-1 line-clamp-2 text-xs text-ink-muted" title={a.excerpt}>{a.excerpt}</p>}
                   </li>
                 ))}
               </ul>
@@ -937,4 +584,3 @@ export function FacultyDashboard() {
     </div>
   );
 }
-

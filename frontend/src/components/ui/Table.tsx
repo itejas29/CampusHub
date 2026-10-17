@@ -58,8 +58,9 @@ export function TR({
       onKeyDown={onClick ? (e) => {
         if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); }
       } : undefined}
+      // Stays a row: `role="button"` here erased the table's row/cell structure
+      // for screen readers. Focusable, with Enter/Space, is enough to operate it.
       tabIndex={onClick ? 0 : undefined}
-      role={onClick ? "button" : undefined}
       className={cn(
         "transition-colors duration-150",
         onClick && "cursor-pointer hover:bg-surface-muted/70 focus-visible:bg-surface-muted",

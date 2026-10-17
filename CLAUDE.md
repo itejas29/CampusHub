@@ -20,6 +20,9 @@ make revision    # autogenerate a migration
 
 cd frontend && npm run dev     # vite dev server
 cd frontend && npm run build   # tsc -b && vite build
+cd frontend && npm run test:e2e  # browser tests: sign in → allocate → review
+                                 # (own seeded SQLite API on :8100, Vite on :5180,
+                                 #  installed Chrome; needs the repo-root .venv)
 ```
 
 Demo password for every seeded account: `Campus@123`.
@@ -40,17 +43,23 @@ Error: Loading PostCSS Plugin failed: ETIMEDOUT: connection timed out, read
 That error is not a PostCSS problem. It means `node_modules` was evicted.
 
 **`frontend/node_modules` is therefore a symlink** to
-`~/.campushub-modules/frontend`, outside the synced tree, where iCloud cannot
-touch it. Run `npm ci` normally — it installs through the symlink. If the
-symlink is ever lost, recreate it before installing:
+`~/.campushub-modules/frontend/node_modules`, outside the synced tree, where
+iCloud cannot touch it. Run `npm ci` normally — it installs through the symlink.
+If the symlink is ever lost, recreate it before installing:
 
 ```bash
 cd frontend
 rm -rf node_modules
-mkdir -p ~/.campushub-modules/frontend
-ln -s ~/.campushub-modules/frontend node_modules
+mkdir -p ~/.campushub-modules/frontend/node_modules
+ln -s ~/.campushub-modules/frontend/node_modules node_modules
 npm ci
 ```
+
+The target **must itself be named `node_modules`.** TypeScript and Node resolve
+a package's own imports from its *real* path, walking up looking for a
+`node_modules` folder. Point the link at `~/.campushub-modules/frontend` and that
+walk finds none until `~/node_modules` — any stray packages in your home folder —
+and `tsc` fails with "no exported member" errors from the wrong React types.
 
 `backend/.venv` has the same disease and has not been moved — it is why Python
 commands here take minutes. The same treatment fixes it, or recreate the venv

@@ -15,7 +15,7 @@ import uuid
 from pathlib import Path
 
 from slugify import slugify
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -61,6 +61,7 @@ from app.services import sections
 from app.seed import data as D
 from app.services import registration as registration_service
 from app.services import scope as scope_service
+from app.services import internships as internship_engine
 from app.seed import curriculum_import
 from app.services import curriculum as curriculum_engine
 
@@ -573,15 +574,23 @@ def seed(db: Session) -> None:
 
     log("Faculty accounts…")
     faculty_by_code: dict[str, Faculty] = {}
+    roster_codes = {row[2] for row in D.ICT_FACULTY_ROSTER}
     for name, email, emp_code, dept, designation, cabin, spec, extra in D.FACULTY:
         roles = [Role.FACULTY] + [Role(r) for r in extra]
-        user = make_user(db, name=name, email=email, roles=roles,
-                         phone=f"+91 98{rng.randint(10000000, 99999999)}")
+        if emp_code in roster_codes:
+            # Fixed numbers, so the roster never draws from `rng` and cannot shift
+            # the generated students — whose emails the sign-in shortcuts name.
+            serial = int(emp_code.rsplit("-", 1)[1])
+            mobile, office = f"+91 98{25000000 + serial:08d}", f"+91 79 232{40000 + serial}"
+        else:
+            mobile = f"+91 98{rng.randint(10000000, 99999999)}"
+            office = f"+91 79 232{rng.randint(10000, 99999)}"
+        user = make_user(db, name=name, email=email, roles=roles, phone=mobile)
         faculty = Faculty(
             user_id=user.id, employee_code=emp_code,
             department_id=departments[dept].id, designation=designation, cabin=cabin,
             specialization=spec, qualification="Ph.D.", public_email=email,
-            public_phone=f"+91 79 232{rng.randint(10000, 99999)}", is_mentor=True,
+            public_phone=office, is_mentor=True,
             bio=f"{designation}, {departments[dept].name}. Research interests: {spec}.",
         )
         db.add(faculty)
@@ -983,8 +992,14 @@ def seed(db: Session) -> None:
         group = InternshipGroup(
             program_id=cssi.id, name=f"Group {index}",
             faculty_id=faculty_by_code[emp_code].id, capacity=cssi.default_group_size,
-            meeting_schedule=rng.choice(["Friday 15:00, faculty cabin",
-                                         "Wednesday 16:00, Seminar Room 2"]),
+            # Rostered mentors take a fixed slot rather than an `rng` draw, so
+            # adding them leaves every later random value — names included — alone.
+            meeting_schedule=(
+                ["Friday 15:00, faculty cabin", "Wednesday 16:00, Seminar Room 2"][index % 2]
+                if emp_code in {row[2] for row in D.ICT_FACULTY_ROSTER}
+                else rng.choice(["Friday 15:00, faculty cabin",
+                                 "Wednesday 16:00, Seminar Room 2"])
+            ),
         )
         db.add(group)
         db.flush()
@@ -1019,6 +1034,20 @@ def seed(db: Session) -> None:
     # The dataset must obey the rule it demonstrates: no HoD ends up with a
     # mentee, an internship student, a group or a scoped role.
     db.flush()
+    # ...and no internship mentor carries more students than their programme allows.
+    for program in db.scalars(select(InternshipProgram)):
+        cap = internship_engine.mentor_capacity(program)
+        for faculty_id, count in db.execute(
+            select(InternshipEnrollment.mentor_faculty_id, func.count())
+            .where(InternshipEnrollment.program_id == program.id,
+                   InternshipEnrollment.mentor_faculty_id.is_not(None))
+            .group_by(InternshipEnrollment.mentor_faculty_id)
+        ):
+            if count > cap:
+                raise RuntimeError(
+                    f"Seed gave one {program.code} mentor {count} students; "
+                    f"the programme allows {cap}."
+                )
     for dept_code, emp_code in D.HEADS_OF_DEPARTMENT.items():
         load = scope_service.mentoring_load(db, faculty_by_code[emp_code])
         if load:
@@ -1158,8 +1187,19 @@ def seed_internship_records(db, cssi, summer, cssi_groups, students, ngos, compa
     # mentor screen rather than something every coordinator inherits.
     mentors = [faculty_by_code[c]
                for c in D.mentors_for("SUMMER_INTERNSHIP", "ICT")]
+    # Consecutive roll numbers share a mentor, in blocks no larger than the
+    # programme's cap — exactly what the coordinator's roll-number run produces.
+    summer_students = sorted(summer_students, key=lambda s: s.roll_number)
+    sizes = internship_engine.split_by_roll(
+        len(summer_students), len(mentors), internship_engine.mentor_capacity(summer))
+    mentor_by_position = [m for m, n in zip(mentors, sizes) for _ in range(n)]
+    if len(mentor_by_position) < len(summer_students):
+        raise RuntimeError(
+            f"{len(summer_students)} Summer interns need more than the "
+            f"{len(mentors)} ICT mentors in seed/data.py can carry."
+        )
     for index, student in enumerate(summer_students):
-        mentor = mentors[index % len(mentors)]
+        mentor = mentor_by_position[index]
         company = companies[index % len(companies)]
         reached = min(3 + (index % 6), len(summer_stages))
         completed = index == 0  # one fully-evaluated record so the UI shows a finished flow

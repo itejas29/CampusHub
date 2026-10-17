@@ -39,7 +39,7 @@ export function InternshipCertificateModal({ enrollment, open, onClose }: Props)
               size="sm"
               variant="secondary"
               onClick={handlePrint}
-              icon={<Printer className="h-4 w-4 text-secondary" aria-hidden />}
+              icon={<Printer className="h-4 w-4 text-ink-muted" aria-hidden />}
             >
               Print / Save PDF
             </Button>

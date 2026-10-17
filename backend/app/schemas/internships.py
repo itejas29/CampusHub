@@ -114,6 +114,10 @@ class InternshipProgramOut(ORMModel):
     coordinator_name: str | None = None
     stages: list[StageOut] = Field(default_factory=list)
     criteria: list[EvaluationCriteriaOut] = Field(default_factory=list)
+    #: Students one mentor may carry, and whether a coordinator has confirmed it
+    #: (False = the portal's default of 10, not a confirmed PDEU rule).
+    mentor_capacity: int = 10
+    mentor_capacity_confirmed: bool = False
     # Aggregates
     enrolled_count: int = 0
     completed_count: int = 0
@@ -158,6 +162,8 @@ class InternshipProgramUpdate(BaseModel):
     start_date: dt.date | None = None
     end_date: dt.date | None = None
     coordinator_faculty_id: int | None = None
+    #: Setting the cap is how a coordinator confirms it. Stored in `config`.
+    mentor_capacity: int | None = Field(default=None, ge=1, le=60)
 
 
 class GroupOut(ORMModel):
@@ -421,6 +427,8 @@ class MentorCapacityOut(BaseModel):
     avatar_url: str | None = None
     assigned_count: int
     max_capacity: int = 10
+    #: False while `max_capacity` is the unconfirmed portal default.
+    capacity_confirmed: bool = False
     remaining_capacity: int
     is_full: bool
 

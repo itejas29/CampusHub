@@ -164,6 +164,8 @@ def _program_out(db, program: InternshipProgram,
             can_enroll = True
 
     return InternshipProgramOut(
+        mentor_capacity=engine.mentor_capacity(program),
+        mentor_capacity_confirmed=engine.mentor_capacity_confirmed(program),
         id=program.id, code=program.code, name=program.name, type=program.type,
         description=program.description, department_id=program.department_id,
         target_semester=program.target_semester,
@@ -537,10 +539,18 @@ def update_program(
     if program is None:
         raise NotFoundError("Internship programme not found.")
     _assert_can_manage_program(db, user, program)
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    changes = payload.model_dump(exclude_unset=True)
+    capacity = changes.pop("mentor_capacity", None)
+    for field, value in changes.items():
         setattr(program, field, value)
+    description = "Updated programme settings"
+    if capacity is not None:
+        before = engine.mentor_capacity(program)
+        # Reassigned, not mutated, so the JSON column is seen as changed.
+        program.config = {**(program.config or {}), "mentor_capacity": capacity}
+        description += f"; mentor cap confirmed at {capacity} (was {before})"
     audit.record(db, action=AuditAction.UPDATE, entity_type="internship_program",
-                 entity_id=program.id, actor=user, description="Updated programme settings")
+                 entity_id=program.id, actor=user, description=description)
     db.commit()
     db.refresh(program)
     return _program_out(db, program)
@@ -1150,32 +1160,34 @@ def get_mentors_capacity(
     program_id: int, db: DbSession,
     user: CurrentUser,
 ) -> list[MentorCapacityOut]:
+    """Each eligible mentor's load in this programme — for its coordinator only.
+
+    Lists the programme's own department (minus the HoD), plus anyone already
+    carrying students here, so an existing assignment never disappears from the
+    screen that manages it.
+    """
     program = db.get(InternshipProgram, program_id)
     if program is None:
         raise NotFoundError("Program not found.")
+    _assert_can_manage_program(db, user, program)
 
-    # All faculty, sorted by name
-    faculties = list(db.scalars(
-        select(Faculty).join(Faculty.user).order_by(User.full_name)
-    ))
-
-    # Calculate assigned counts for this program
+    capacity = engine.mentor_capacity(program)
+    confirmed = engine.mentor_capacity_confirmed(program)
     assigned_counts = dict(
         db.execute(
-            select(
-                InternshipEnrollment.mentor_faculty_id,
-                func.count(InternshipEnrollment.id)
-            )
-            .where(
-                InternshipEnrollment.program_id == program_id,
-                InternshipEnrollment.mentor_faculty_id.is_not(None)
-            )
+            select(InternshipEnrollment.mentor_faculty_id, func.count(InternshipEnrollment.id))
+            .where(InternshipEnrollment.program_id == program_id,
+                   InternshipEnrollment.mentor_faculty_id.is_not(None))
             .group_by(InternshipEnrollment.mentor_faculty_id)
         ).all()
     )
+    pool = engine.eligible_mentors(db, program)
+    pool_ids = {f.id for f in pool}
+    already = [f for f in (db.get(Faculty, fid) for fid in assigned_counts)
+               if f is not None and f.id not in pool_ids]
 
     out = []
-    for f in faculties:
+    for f in sorted(pool + already, key=lambda f: f.user.full_name):
         count = assigned_counts.get(f.id, 0)
         out.append(MentorCapacityOut(
             faculty_id=f.id,
@@ -1185,9 +1197,10 @@ def get_mentors_capacity(
             designation=f.designation,
             avatar_url=f.user.avatar_url,
             assigned_count=count,
-            max_capacity=10,
-            remaining_capacity=max(0, 10 - count),
-            is_full=count >= 10,
+            max_capacity=capacity,
+            capacity_confirmed=confirmed,
+            remaining_capacity=max(0, capacity - count),
+            is_full=count >= capacity,
         ))
     return out
 
@@ -1203,229 +1216,117 @@ def batch_assign_mentors(
         raise NotFoundError("Program not found.")
     _assert_can_manage_program(db, user, program)
 
-    MAX_CAPACITY = 10
-    MIN_CAPACITY = 2
-    total_assigned = 0
+    capacity = engine.mentor_capacity(program)
+    pool = engine.eligible_mentors(db, program)
+    if payload.faculty_ids:
+        by_id = {f.id: f for f in pool}
+        outside = [fid for fid in payload.faculty_ids if fid not in by_id]
+        if outside:
+            raise ValidationError(
+                "Some selected faculty cannot mentor this programme — they are "
+                "outside its department or head a department."
+            )
+        # Keep the pool's name order whatever order the ids arrived in.
+        wanted = set(payload.faculty_ids)
+        pool = [f for f in pool if f.id in wanted]
+
+    def _assign(enrollment, faculty_id, reason):
+        engine.override_mentor(db, enrollment=enrollment, new_faculty_id=faculty_id,
+                               reason=reason, actor=user, enforce_capacity=False)
 
     if payload.clear_all:
-        enrollments = list(db.scalars(
-            select(InternshipEnrollment)
-            .where(InternshipEnrollment.program_id == program_id)
-        ))
-        cleared_count = 0
-        for enrollment in enrollments:
+        cleared = 0
+        for enrollment in db.scalars(select(InternshipEnrollment)
+                                     .where(InternshipEnrollment.program_id == program_id)):
             if enrollment.mentor_faculty_id is not None:
-                engine.override_mentor(
-                    db, enrollment=enrollment, new_faculty_id=None,
-                    reason=payload.reason or "Coordinator cleared all mentor assignments",
-                    actor=user, enforce_capacity=False
-                )
-                cleared_count += 1
+                _assign(enrollment, None,
+                        payload.reason or "Coordinator cleared all mentor assignments")
+                cleared += 1
         db.commit()
         return BatchMentorAssignResponse(
             assigned_count=0,
-            message=f"Cleared mentor assignments for all {cleared_count} students successfully. Mentors are now unassigned."
+            message=f"Cleared the mentor for {cleared} students.",
         )
 
-    elif payload.allocate_by_roll_no:
-        # Roll number wise sequential allocation to selected mentors
+    if payload.allocate_by_roll_no or payload.rebalance:
+        # Roll-number blocks: consecutive roll numbers share a mentor, which is
+        # how the department reads a mentor list. Rebalance is the same run
+        # over the whole eligible pool.
         enrollments = list(db.scalars(
             select(InternshipEnrollment)
             .join(Student, InternshipEnrollment.student_id == Student.id)
             .where(InternshipEnrollment.program_id == program_id)
             .order_by(Student.roll_number.asc())
         ))
-
         if not enrollments:
-            return BatchMentorAssignResponse(assigned_count=0, message="No students enrolled in this programme.")
+            return BatchMentorAssignResponse(assigned_count=0,
+                                             message="No students enrolled in this programme.")
+        if not pool:
+            raise ValidationError("No eligible faculty mentors for this programme.")
 
-        # Determine target faculty list
-        if payload.faculty_ids and len(payload.faculty_ids) > 0:
-            faculties = list(db.scalars(
-                select(Faculty).join(Faculty.user)
-                .where(Faculty.id.in_(payload.faculty_ids))
-                .order_by(User.full_name)
-            ))
-        else:
-            faculties = list(db.scalars(
-                select(Faculty).join(Faculty.user)
-                .order_by(Faculty.department_id, User.full_name)
-            ))
-
-        if not faculties:
-            raise ValidationError("Please select at least one faculty mentor.")
-
-        total_students = len(enrollments)
-        needed_mentors = min(len(faculties), (total_students + 9) // MAX_CAPACITY)
-
-        # Compute chunk sizes: each between 2 and 10 students
-        chunk_sizes = []
-        rem = total_students
-        for i in range(needed_mentors):
-            if i == needed_mentors - 1:
-                chunk_sizes.append(rem)
-            elif rem - MAX_CAPACITY >= MIN_CAPACITY:
-                chunk_sizes.append(MAX_CAPACITY)
-                rem -= MAX_CAPACITY
-            elif rem >= 4:
-                take = rem // 2
-                chunk_sizes.append(take)
-                rem -= take
-            else:
-                chunk_sizes.append(rem)
-                rem = 0
-                break
-
-        curr_idx = 0
-        allocated_mentors_info = []
-
-        for m_idx, count in enumerate(chunk_sizes):
-            faculty = faculties[m_idx]
-            batch = enrollments[curr_idx : curr_idx + count]
-            curr_idx += count
-
-            for enrollment in batch:
-                engine.override_mentor(
-                    db, enrollment=enrollment, new_faculty_id=faculty.id,
-                    reason=f"Roll number allocation: {faculty.user.full_name}",
-                    actor=user, enforce_capacity=False
-                )
-                total_assigned += 1
-
-            first_roll = batch[0].student.roll_number if batch else ""
-            last_roll = batch[-1].student.roll_number if batch else ""
-            allocated_mentors_info.append(f"{faculty.user.full_name} ({count} students: {first_roll} - {last_roll})")
-
-        # Any remaining students beyond selected mentors capacity become unassigned
-        while curr_idx < len(enrollments):
-            engine.override_mentor(
-                db, enrollment=enrollments[curr_idx], new_faculty_id=None,
-                reason="Unassigned: selected mentors reached capacity",
-                actor=user, enforce_capacity=False
-            )
-            curr_idx += 1
-
+        sizes = engine.split_by_roll(len(enrollments), len(pool), capacity)
+        cursor, blocks = 0, []
+        for faculty, size in zip(pool, sizes):
+            block = enrollments[cursor:cursor + size]
+            cursor += size
+            for enrollment in block:
+                _assign(enrollment, faculty.id,
+                        f"Roll-number allocation: {faculty.user.full_name}")
+            blocks.append(f"{faculty.user.full_name} ({block[0].student.roll_number}–"
+                          f"{block[-1].student.roll_number})")
+        for enrollment in enrollments[cursor:]:
+            _assign(enrollment, None, "Unassigned: selected mentors are at capacity")
         db.commit()
-        unassigned_left = len(enrollments) - total_assigned
-        return BatchMentorAssignResponse(
-            assigned_count=total_assigned,
-            message=f"Allocated {total_assigned} students roll-number-wise across {len(chunk_sizes)} mentors ({MIN_CAPACITY} to {MAX_CAPACITY} students per mentor). {unassigned_left} unassigned."
-        )
 
-    elif payload.rebalance:
-        # Full rebalancing: strictly enforce 10 students max per mentor
-        all_enrollments = list(db.scalars(
+        left = len(enrollments) - cursor
+        message = (f"Allocated {cursor} students across {len(sizes)} mentors "
+                   f"(at most {capacity} each).")
+        if left:
+            message += f" {left} still need a mentor — select more faculty."
+        return BatchMentorAssignResponse(assigned_count=cursor, message=message)
+
+    if payload.auto_distribute:
+        unassigned = list(db.scalars(
             select(InternshipEnrollment)
-            .where(InternshipEnrollment.program_id == program_id)
+            .where(InternshipEnrollment.program_id == program_id,
+                   InternshipEnrollment.mentor_faculty_id.is_(None))
             .order_by(InternshipEnrollment.id)
         ))
-
-        faculties = list(db.scalars(
-            select(Faculty).join(Faculty.user).order_by(Faculty.department_id, User.full_name)
-        ))
-
-        mentor_idx = 0
-        mentor_student_counts = {f.id: 0 for f in faculties}
-
-        for enrollment in all_enrollments:
-            # Find next faculty with space (< 10)
-            while mentor_idx < len(faculties) and mentor_student_counts[faculties[mentor_idx].id] >= MAX_CAPACITY:
-                mentor_idx += 1
-
-            if mentor_idx < len(faculties):
-                chosen_f = faculties[mentor_idx]
-                engine.override_mentor(
-                    db, enrollment=enrollment, new_faculty_id=chosen_f.id,
-                    reason="Coordinated rebalance: strictly enforced max 10 students per mentor",
-                    actor=user, enforce_capacity=False
-                )
-                mentor_student_counts[chosen_f.id] += 1
-                total_assigned += 1
-            else:
-                # All mentors are full at 10/10! Leave remaining unassigned
-                engine.override_mentor(
-                    db, enrollment=enrollment, new_faculty_id=None,
-                    reason="Unassigned: all faculty mentors reached maximum 10-student capacity",
-                    actor=user, enforce_capacity=False
-                )
-
-        db.commit()
-        unassigned_count = len(all_enrollments) - total_assigned
-        return BatchMentorAssignResponse(
-            assigned_count=total_assigned,
-            message=f"Rebalanced {total_assigned} students across {len(faculties)} faculty mentors (max {MAX_CAPACITY} per mentor). {unassigned_count} students remaining unassigned."
-        )
-
-    elif payload.auto_distribute:
-        # Fetch unassigned enrollments
-        unassigned_enrollments = list(db.scalars(
-            select(InternshipEnrollment)
-            .where(
-                InternshipEnrollment.program_id == program_id,
-                InternshipEnrollment.mentor_faculty_id.is_(None)
-            )
-            .order_by(InternshipEnrollment.id)
-        ))
-
-        # Eligible faculty
-        f_query = select(Faculty)
-        if payload.faculty_ids:
-            f_query = f_query.where(Faculty.id.in_(payload.faculty_ids))
-        faculties = list(db.scalars(f_query))
-
-        # Current counts
-        current_counts = dict(
-            db.execute(
-                select(
-                    InternshipEnrollment.mentor_faculty_id,
-                    func.count(InternshipEnrollment.id)
-                )
-                .where(
-                    InternshipEnrollment.program_id == program_id,
-                    InternshipEnrollment.mentor_faculty_id.is_not(None)
-                )
-                .group_by(InternshipEnrollment.mentor_faculty_id)
-            ).all()
-        )
-
-        for enrollment in unassigned_enrollments:
-            # Find faculty with available capacity (< 10) and lowest load
-            available_faculty = [
-                f for f in faculties
-                if current_counts.get(f.id, 0) < MAX_CAPACITY
-            ]
-            if not available_faculty:
+        counts = dict(db.execute(
+            select(InternshipEnrollment.mentor_faculty_id, func.count(InternshipEnrollment.id))
+            .where(InternshipEnrollment.program_id == program_id,
+                   InternshipEnrollment.mentor_faculty_id.is_not(None))
+            .group_by(InternshipEnrollment.mentor_faculty_id)
+        ).all())
+        assigned = 0
+        for enrollment in unassigned:
+            open_ = [f for f in pool if counts.get(f.id, 0) < capacity]
+            if not open_:
                 break
-            available_faculty.sort(key=lambda f: current_counts.get(f.id, 0))
-            chosen = available_faculty[0]
-
-            engine.override_mentor(
-                db, enrollment=enrollment, new_faculty_id=chosen.id,
-                reason=payload.reason, actor=user, enforce_capacity=False
-            )
-            current_counts[chosen.id] = current_counts.get(chosen.id, 0) + 1
-            total_assigned += 1
-
+            chosen = min(open_, key=lambda f: counts.get(f.id, 0))
+            _assign(enrollment, chosen.id, payload.reason)
+            counts[chosen.id] = counts.get(chosen.id, 0) + 1
+            assigned += 1
         db.commit()
-        return BatchMentorAssignResponse(
-            assigned_count=total_assigned,
-            message=f"Allocated {total_assigned} students across {len(faculties)} faculty mentors (max {MAX_CAPACITY} students per mentor)."
-        )
+        left = len(unassigned) - assigned
+        message = f"Allocated {assigned} students (at most {capacity} per mentor)."
+        if left:
+            message += f" {left} still need a mentor."
+        return BatchMentorAssignResponse(assigned_count=assigned, message=message)
 
-    elif payload.assignments:
+    if payload.assignments:
+        changed = 0
         for item in payload.assignments:
             enrollment = db.get(InternshipEnrollment, item.enrollment_id)
             if enrollment and enrollment.program_id == program_id:
                 engine.override_mentor(
                     db, enrollment=enrollment, new_faculty_id=item.mentor_faculty_id,
-                    reason=payload.reason, actor=user, enforce_capacity=True
+                    reason=payload.reason, actor=user, enforce_capacity=True,
                 )
-                total_assigned += 1
+                changed += 1
         db.commit()
-        return BatchMentorAssignResponse(
-            assigned_count=total_assigned,
-            message=f"Updated {total_assigned} mentor assignments."
-        )
+        return BatchMentorAssignResponse(assigned_count=changed,
+                                         message=f"Updated {changed} mentor assignments.")
 
     return BatchMentorAssignResponse(assigned_count=0, message="No changes performed.")
 

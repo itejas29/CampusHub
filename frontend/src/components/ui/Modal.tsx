@@ -28,6 +28,13 @@ function releaseScroll() {
   if (scrollLocks === 0) document.body.style.overflow = "";
 }
 
+/**
+ * Open dialogs, innermost last. Every dialog listens on `document`, so without
+ * this a single Escape inside a ConfirmDialog closed it *and* the Modal that
+ * opened it. Only the top of the stack answers the keyboard.
+ */
+const dialogStack: symbol[] = [];
+
 export function Modal({
   open, onClose, title, description, children, footer, size = "md", className,
 }: {
@@ -52,10 +59,13 @@ export function Modal({
   useEffect(() => {
     if (!open) return;
     const previouslyFocused = document.activeElement as HTMLElement | null;
+    const token = Symbol("dialog");
+    dialogStack.push(token);
     lockScroll();
 
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") { onCloseRef.current(); return; }
+      if (dialogStack[dialogStack.length - 1] !== token) return;
+      if (event.key === "Escape") { event.stopPropagation(); onCloseRef.current(); return; }
       if (event.key !== "Tab" || !panelRef.current) return;
       // Keep focus inside the dialog.
       const focusable = Array.from(
@@ -75,13 +85,26 @@ export function Modal({
     }
 
     document.addEventListener("keydown", onKeyDown);
+    // `[data-autofocus]` wins; otherwise the first field in the body. A single
+    // selector list returns the first match in *document* order, which was
+    // always the header's close button — so `data-autofocus` never took effect
+    // and Enter in a fresh form dismissed it.
     const timer = window.setTimeout(() => {
-      panelRef.current
-        ?.querySelector<HTMLElement>('[data-autofocus], button, input, select, textarea')
-        ?.focus();
+      const panel = panelRef.current;
+      if (!panel) return;
+      const target =
+        panel.querySelector<HTMLElement>("[data-autofocus]") ??
+        panel.querySelector<HTMLElement>(
+          "[data-dialog-body] input:not([disabled]), [data-dialog-body] select:not([disabled]), " +
+          "[data-dialog-body] textarea:not([disabled])",
+        ) ??
+        panel;
+      target.focus();
     }, 20);
 
     return () => {
+      const index = dialogStack.indexOf(token);
+      if (index !== -1) dialogStack.splice(index, 1);
       document.removeEventListener("keydown", onKeyDown);
       releaseScroll();
       window.clearTimeout(timer);
@@ -108,19 +131,20 @@ export function Modal({
             aria-modal="true"
             aria-labelledby={titleId}
             aria-describedby={description ? descriptionId : undefined}
+            tabIndex={-1}
             variants={dialogPanel}
             initial="hidden"
             animate="shown"
             exit="exit"
             className={cn(
-              "relative flex max-h-[92vh] w-full flex-col rounded-t-xl border border-line " +
+              "relative flex max-h-[92dvh] w-full flex-col rounded-t-xl border border-line outline-none " +
               "bg-surface shadow-lg sm:rounded-xl",
               SIZES[size], className,
             )}
           >
             <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-3.5">
               <div className="min-w-0">
-                <h2 id={titleId} className="text-md font-semibold text-ink">{title}</h2>
+                <h2 id={titleId} className="text-md font-semibold text-ink break-anywhere">{title}</h2>
                 {description && (
                   <p id={descriptionId} className="mt-0.5 text-sm text-ink-muted">{description}</p>
                 )}
@@ -132,7 +156,7 @@ export function Modal({
                 <X className="h-4 w-4" aria-hidden />
               </Button>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
+            <div data-dialog-body className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
             {footer && (
               <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line bg-surface-muted/40 px-5 py-3">
                 {footer}
@@ -159,12 +183,16 @@ export function ConfirmDialog({
       open={open} onClose={onClose} title={title} size="sm"
       footer={
         <>
-          <Button variant="secondary" size="sm" onClick={onClose} disabled={loading}>
+          {/* A destructive dialog opens on Cancel, so a reflexive Enter is safe. */}
+          <Button
+            variant="secondary" size="sm" onClick={onClose} disabled={loading}
+            data-autofocus={destructive || undefined}
+          >
             {cancelLabel}
           </Button>
           <Button
             variant={destructive ? "danger" : "primary"} size="sm"
-            onClick={onConfirm} loading={loading} data-autofocus
+            onClick={onConfirm} loading={loading} data-autofocus={!destructive || undefined}
           >
             {confirmLabel}
           </Button>

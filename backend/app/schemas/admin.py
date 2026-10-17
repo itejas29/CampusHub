@@ -74,6 +74,9 @@ class FacultyDashboard(BaseModel):
     internship_groups: list[dict] = Field(default_factory=list)
     upcoming_meetings: list[dict] = Field(default_factory=list)
     announcements: list[dict] = Field(default_factory=list)
+    #: One entry per module this faculty member coordinates, each carrying
+    #: counts queried for that exact scope — never figures typed into the UI.
+    portfolios: list[dict] = Field(default_factory=list)
 
 
 class HodDashboard(BaseModel):

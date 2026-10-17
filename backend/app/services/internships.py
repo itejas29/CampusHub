@@ -343,18 +343,97 @@ def finalise_enrollment(
     )
 
 
+#: Students one faculty mentor carries in one programme when the programme's
+#: `config["mentor_capacity"]` does not say. 10 is the figure the portal has
+#: used since mentor allocation was built; it is NOT from a written PDEU rule
+#: and REQUIRES_FACULTY_CONFIRMATION. Set it per programme rather than here.
+DEFAULT_MENTOR_CAPACITY = 10
+
+
+def mentor_capacity(program: InternshipProgram) -> int:
+    """How many students one mentor may carry in this programme."""
+    value = (program.config or {}).get("mentor_capacity")
+    try:
+        return max(1, int(value)) if value is not None else DEFAULT_MENTOR_CAPACITY
+    except (TypeError, ValueError):
+        return DEFAULT_MENTOR_CAPACITY
+
+
+def mentor_capacity_confirmed(program: InternshipProgram) -> bool:
+    """Has someone set this programme's cap, or is it still the portal default?
+
+    The default is not a PDEU rule, so screens must say so until a coordinator
+    records the figure their department actually uses.
+    """
+    return (program.config or {}).get("mentor_capacity") is not None
+
+
+def eligible_mentors(db: Session, program: InternshipProgram) -> list[Faculty]:
+    """Faculty who may mentor this programme's students, in name order.
+
+    A programme belongs to one department, so its mentors come from that
+    department. A Head of Department takes no mentees, so they are never in the
+    pool — leaving them in made a bulk run fail part-way when it reached them.
+    """
+    from app.models.identity import Department
+
+    hods = select(Department.hod_faculty_id).where(Department.hod_faculty_id.is_not(None))
+    stmt = (
+        select(Faculty).join(Faculty.user)
+        .where(Faculty.is_active.is_(True), Faculty.id.not_in(hods))
+        .order_by(User.full_name)
+    )
+    if program.department_id is not None:
+        stmt = stmt.where(Faculty.department_id == program.department_id)
+    return list(db.scalars(stmt))
+
+
+def assert_eligible_mentor(db: Session, program: InternshipProgram | None,
+                           faculty: Faculty) -> None:
+    from app.services import scope
+
+    scope.assert_can_mentor(db, faculty)
+    if (program is not None and program.department_id is not None
+            and faculty.department_id != program.department_id):
+        raise BusinessRuleError(
+            f"{faculty.user.full_name} is not in this programme's department, "
+            "so cannot mentor its students."
+        )
+
+
+def split_by_roll(total: int, mentors: int, capacity: int) -> list[int]:
+    """Contiguous roll-number blocks, as even as possible, none above capacity.
+
+    Uses only as many mentors as the cohort needs. Students beyond
+    `mentors × capacity` are left for the coordinator, never piled onto the
+    last mentor.
+    """
+    if total <= 0 or mentors <= 0:
+        return []
+    used = min(mentors, -(-total // capacity))
+    seated = min(total, used * capacity)
+    base, extra = divmod(seated, used)
+    return [base + (1 if i < extra else 0) for i in range(used)]
+
+
 def override_mentor(
     db: Session, *, enrollment: InternshipEnrollment, new_faculty_id: int | None,
     reason: str | None, actor: User | None = None, enforce_capacity: bool = True,
 ) -> InternshipEnrollment:
     """Coordinator override — always audited, per the Phase 1 requirement."""
+    if new_faculty_id == enrollment.mentor_faculty_id:
+        # Nothing changes, so nothing is audited and nobody is notified. A bulk
+        # rebalance used to re-send "mentor updated" to every unchanged student.
+        return enrollment
     if new_faculty_id is not None:
-        from app.services import scope
-
         mentor = db.get(Faculty, new_faculty_id)
-        if mentor is not None:
-            scope.assert_can_mentor(db, mentor)
+        if mentor is None:
+            raise NotFoundError("Faculty member not found.")
+        program = getattr(enrollment, "program", None)
+        assert_eligible_mentor(db, program, mentor)
     if new_faculty_id is not None and enforce_capacity:
+        program = getattr(enrollment, "program", None)
+        capacity = mentor_capacity(program) if program else DEFAULT_MENTOR_CAPACITY
         current_count = db.scalar(
             select(func.count(InternshipEnrollment.id)).where(
                 InternshipEnrollment.program_id == enrollment.program_id,
@@ -362,11 +441,10 @@ def override_mentor(
                 InternshipEnrollment.id != enrollment.id,
             )
         ) or 0
-        if current_count >= 10:
-            mentor_obj = db.get(Faculty, new_faculty_id)
-            mentor_name = mentor_obj.user.full_name if mentor_obj and mentor_obj.user else f"Faculty #{new_faculty_id}"
+        if current_count >= capacity:
             raise BusinessRuleError(
-                f"{mentor_name} already has {current_count} students assigned (maximum capacity is 10 students per mentor)."
+                f"{mentor.user.full_name} already has {current_count} students "
+                f"(this programme allows {capacity} per mentor)."
             )
 
     previous = enrollment.mentor_faculty_id

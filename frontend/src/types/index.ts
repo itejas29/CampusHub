@@ -373,6 +373,8 @@ export interface InternshipProgram {
   id: number; code: string; name: string; type: string; description: string | null;
   department_id: number | null; target_semester: number | null; credits: number;
   requires_group: boolean; default_group_size: number; requires_organization: boolean;
+  /** Students per mentor; `confirmed` is false while it is the portal default. */
+  mentor_capacity: number; mentor_capacity_confirmed: boolean;
   allowed_organization_types: string[]; report_frequency: string;
   expected_report_count: number; requires_industry_mentor: boolean;
   registration_opens_at: string | null; registration_closes_at: string | null;
@@ -438,6 +440,8 @@ export interface MentorCapacity {
   avatar_url: string | null;
   assigned_count: number;
   max_capacity: number;
+  /** False while max_capacity is the portal default, not a confirmed figure. */
+  capacity_confirmed: boolean;
   remaining_capacity: number;
   is_full: boolean;
 }
@@ -675,6 +679,22 @@ export interface FacultyDashboard {
   upcoming_meetings: { id: number; title: string; student: string; status: string;
     scheduled_at: string | null; proposed_slot: string | null }[];
   announcements: DashboardAnnouncement[];
+  /** One per coordinated module (one per programme for internships). */
+  portfolios: FacultyPortfolio[];
+}
+
+export interface PortfolioStat {
+  label: string; value: number; hint: string | null;
+  tone: "default" | "warning" | "success";
+}
+
+export interface FacultyPortfolio {
+  domain: CoordinationDomain;
+  department_id: number | null; department_code: string | null;
+  department_name: string | null; is_institution_wide: boolean;
+  /** Set for CSSI / Summer Internship: the programme this entry describes. */
+  program_id: number | null; program_name: string | null;
+  stats: PortfolioStat[];
 }
 
 export interface HodDashboard {
