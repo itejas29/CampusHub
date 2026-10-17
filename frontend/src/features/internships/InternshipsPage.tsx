@@ -15,12 +15,19 @@ import { PageHeader } from "@/components/ui/Misc";
 import { ProgressBar } from "@/components/ui/Stepper";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
 import { ApiError, api } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 import { humanise, roman } from "@/lib/utils";
 import type { EnrollmentSummary, InternshipProgram, Organization } from "@/types";
 
 export function InternshipsPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  // A student's page is their own work: the records they upload to and
+  // submit. Programme details (stages, windows, rubric — and other
+  // departments' programmes) are the coordinator's; a student sees a programme
+  // card only while it is one they can still register for.
+  const isStudent = Boolean(user?.student);
   const [enrollIn, setEnrollIn] = useState<InternshipProgram | null>(null);
   const [organizationId, setOrganizationId] = useState<string>("");
   // A student may register an organisation that is not on the approved list
@@ -84,11 +91,130 @@ export function InternshipsPage() {
     (org) => allowedTypes.length === 0 || allowedTypes.includes(org.type),
   );
 
+  const shownPrograms = isStudent
+    ? (programs.data ?? []).filter((p) => p.can_enroll && !p.my_enrollment_id)
+    : programs.data ?? [];
+
+      {/* Available programmes — for a student, only one they can register for */}
+  const programmesSection = !(isStudent && !programs.isLoading && !programs.error && shownPrograms.length === 0) && (
+      <section className={isStudent ? "mb-6" : undefined}>
+        <h2 className="mb-3 text-md font-semibold text-ink">{isStudent ? "Registration is open — fill in your details" : "Programmes"}</h2>
+        {programs.isLoading ? (
+          <LoadingState rows={2} />
+        ) : programs.error ? (
+          <ErrorState onRetry={() => programs.refetch()} compact />
+        ) : !shownPrograms.length ? (
+          <Card>
+            <EmptyState
+              title="No internship runs at your semester"
+              description="CSSI runs in Semester III and the Summer Internship from Semester VI. A programme appears here once it concerns you, and your own record stays available afterwards."
+              icon={<Route className="h-5 w-5" aria-hidden />}
+            />
+          </Card>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {shownPrograms.map((program) => (
+              <Card key={program.id} className={isStudent ? "border-accent/50 ring-1 ring-accent/20" : undefined}>
+                <CardHeader
+                  title={program.name}
+                  description={isStudent
+                    ? `Register with the NGO you will work with and your NGO supervisor's name and phone number.`
+                    : program.description ?? undefined}
+                  // A window-run programme's state lives in its windows (below);
+                  // the older programme status would contradict them.
+                  action={program.window_kinds.length ? undefined : <StatusBadge status={program.status} />}
+                />
+                <CardBody>
+                  <div className="flex flex-wrap gap-1.5">
+                    <Badge tone="brand" className="font-mono">{program.code}</Badge>
+                    <Badge tone="neutral">{humanise(program.type)}</Badge>
+                    <Badge tone="neutral">{program.credits} credits</Badge>
+                    {program.target_semester && (
+                      <Badge tone="neutral">From semester {roman(program.target_semester)}</Badge>
+                    )}
+                  </div>
+
+                  {!isStudent && (
+                  <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
+                    <div>
+                      <dt className="flex items-center gap-1 text-ink-subtle">
+                        <Route className="h-3 w-3" aria-hidden /> Stages
+                      </dt>
+                      <dd className="mt-0.5 text-ink">{program.stages.length}</dd>
+                    </div>
+                    <div>
+                      <dt className="flex items-center gap-1 text-ink-subtle">
+                        <FileText className="h-3 w-3" aria-hidden /> Reporting
+                      </dt>
+                      <dd className="mt-0.5 text-ink">
+                        {program.report_frequency === "NONE"
+                          ? "No periodic reports"
+                          : `${humanise(program.report_frequency)} × ${program.expected_report_count}`}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="flex items-center gap-1 text-ink-subtle">
+                        <Users className="h-3 w-3" aria-hidden /> Structure
+                      </dt>
+                      <dd className="mt-0.5 text-ink">
+                        {program.requires_group
+                          ? `Groups of ~${program.default_group_size}`
+                          : "Individual"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="flex items-center gap-1 text-ink-subtle">
+                        <CalendarDays className="h-3 w-3" aria-hidden /> Period
+                      </dt>
+                      <dd className="mt-0.5 text-ink">
+                        {formatDate(program.start_date)} – {formatDate(program.end_date)}
+                      </dd>
+                    </div>
+                  </dl>
+                  )}
+
+                  {program.window_kinds.length > 0 && <ProgramWindowStrip programId={program.id} />}
+
+                  {!isStudent && program.criteria.length > 0 && (
+                    <p className="mt-3 text-xs text-ink-subtle">
+                      Evaluated on {program.criteria.length} criteria ·{" "}
+                      {program.criteria.reduce((sum, c) => sum + c.max_marks, 0)} marks total
+                    </p>
+                  )}
+
+                  <div className="mt-4">
+                    {program.my_enrollment_id ? (
+                      <Link
+                        to={`/internships/record/${program.my_enrollment_id}`}
+                        className="inline-flex items-center gap-1 text-sm font-medium text-accent"
+                      >
+                        Open my record <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                      </Link>
+                    ) : program.can_enroll ? (
+                      <Button size="sm" variant={isStudent ? "accent" : "primary"} onClick={() => setEnrollIn(program)}>
+                        {isStudent ? "Fill in my details" : "Enrol"}
+                      </Button>
+                    ) : (
+                      <p className="text-xs text-ink-subtle">
+                        {program.enroll_blocked_reason ?? "Not open for enrolment."}
+                      </p>
+                    )}
+                  </div>
+                </CardBody>
+              </Card>
+            ))}
+          </div>
+        )}
+      </section>
+  );
+
   return (
     <div>
       <PageHeader
-        title="Internships"
-        description="CSSI and Summer Internship run on the same engine — the stages, group structure, reporting cadence and evaluation rubric are configured per programme."
+        title={isStudent ? "My internship" : "Internships"}
+        description={isStudent
+          ? "Open your internship to upload and submit each stage of the work."
+          : "CSSI and Summer Internship run on the same engine — the stages, group structure, reporting cadence and evaluation rubric are configured per programme."}
         breadcrumbs={[{ label: "Internships" }]}
       />
 
@@ -98,6 +224,10 @@ export function InternshipsPage() {
           {banner.text}
         </Alert>
       )}
+
+      {/* A student who can register sees it first: this is where the NGO and
+          supervisor details are filled in once the coordinator opens it. */}
+      {isStudent && programmesSection}
 
       {/* Active enrolments */}
       <section className="mb-6">
@@ -111,8 +241,8 @@ export function InternshipsPage() {
             <EmptyState
               title="Not enrolled in an internship yet"
               description={
-                (programs.data ?? []).length > 0
-                  ? "Enrol in an open programme below to start the workflow."
+                shownPrograms.length > 0
+                  ? "Register for the programme above to start the workflow."
                   // Pointing at a programme list that is empty for this
                   // semester just sends the student looking for something that
                   // is not there.
@@ -124,8 +254,7 @@ export function InternshipsPage() {
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
             {mine.data.map((enrollment) => (
-              <Link key={enrollment.id} to={`/internships/record/${enrollment.id}`}>
-                <Card className="h-full transition-colors hover:border-line-strong">
+              <Card key={enrollment.id} className="h-full">
                   <CardBody>
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
@@ -165,123 +294,25 @@ export function InternshipsPage() {
                       )}
                     </dl>
 
-                    <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-accent">
+                    {/* The deadlines that concern this student — registration,
+                        posters, presentation days — and, once announced, their
+                        mentor list. Not the programme's configuration. */}
+                    {(programs.data ?? []).find((p) => p.id === enrollment.program_id)?.window_kinds.length
+                      ? <ProgramWindowStrip programId={enrollment.program_id} />
+                      : null}
+
+                    <Link to={`/internships/record/${enrollment.id}`}
+                          className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline">
                       Open workflow <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-                    </span>
+                    </Link>
                   </CardBody>
                 </Card>
-              </Link>
             ))}
           </div>
         )}
       </section>
 
-      {/* Available programmes */}
-      <section>
-        <h2 className="mb-3 text-md font-semibold text-ink">Programmes</h2>
-        {programs.isLoading ? (
-          <LoadingState rows={2} />
-        ) : programs.error ? (
-          <ErrorState onRetry={() => programs.refetch()} compact />
-        ) : !(programs.data ?? []).length ? (
-          <Card>
-            <EmptyState
-              title="No internship runs at your semester"
-              description="CSSI runs in Semester III and the Summer Internship from Semester VI. A programme appears here once it concerns you, and your own record stays available afterwards."
-              icon={<Route className="h-5 w-5" aria-hidden />}
-            />
-          </Card>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            {(programs.data ?? []).map((program) => (
-              <Card key={program.id}>
-                <CardHeader
-                  title={program.name}
-                  description={program.description ?? undefined}
-                  // A window-run programme's state lives in its windows (below);
-                  // the older programme status would contradict them.
-                  action={program.window_kinds.length ? undefined : <StatusBadge status={program.status} />}
-                />
-                <CardBody>
-                  <div className="flex flex-wrap gap-1.5">
-                    <Badge tone="brand" className="font-mono">{program.code}</Badge>
-                    <Badge tone="neutral">{humanise(program.type)}</Badge>
-                    <Badge tone="neutral">{program.credits} credits</Badge>
-                    {program.target_semester && (
-                      <Badge tone="neutral">From semester {roman(program.target_semester)}</Badge>
-                    )}
-                  </div>
-
-                  <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
-                    <div>
-                      <dt className="flex items-center gap-1 text-ink-subtle">
-                        <Route className="h-3 w-3" aria-hidden /> Stages
-                      </dt>
-                      <dd className="mt-0.5 text-ink">{program.stages.length}</dd>
-                    </div>
-                    <div>
-                      <dt className="flex items-center gap-1 text-ink-subtle">
-                        <FileText className="h-3 w-3" aria-hidden /> Reporting
-                      </dt>
-                      <dd className="mt-0.5 text-ink">
-                        {program.report_frequency === "NONE"
-                          ? "No periodic reports"
-                          : `${humanise(program.report_frequency)} × ${program.expected_report_count}`}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="flex items-center gap-1 text-ink-subtle">
-                        <Users className="h-3 w-3" aria-hidden /> Structure
-                      </dt>
-                      <dd className="mt-0.5 text-ink">
-                        {program.requires_group
-                          ? `Groups of ~${program.default_group_size}`
-                          : "Individual"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="flex items-center gap-1 text-ink-subtle">
-                        <CalendarDays className="h-3 w-3" aria-hidden /> Period
-                      </dt>
-                      <dd className="mt-0.5 text-ink">
-                        {formatDate(program.start_date)} – {formatDate(program.end_date)}
-                      </dd>
-                    </div>
-                  </dl>
-
-                  {program.window_kinds.length > 0 && <ProgramWindowStrip programId={program.id} />}
-
-                  {program.criteria.length > 0 && (
-                    <p className="mt-3 text-xs text-ink-subtle">
-                      Evaluated on {program.criteria.length} criteria ·{" "}
-                      {program.criteria.reduce((sum, c) => sum + c.max_marks, 0)} marks total
-                    </p>
-                  )}
-
-                  <div className="mt-4">
-                    {program.my_enrollment_id ? (
-                      <Link
-                        to={`/internships/record/${program.my_enrollment_id}`}
-                        className="inline-flex items-center gap-1 text-sm font-medium text-accent"
-                      >
-                        Open my record <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-                      </Link>
-                    ) : program.can_enroll ? (
-                      <Button size="sm" onClick={() => setEnrollIn(program)}>
-                        Enrol
-                      </Button>
-                    ) : (
-                      <p className="text-xs text-ink-subtle">
-                        {program.enroll_blocked_reason ?? "Not open for enrolment."}
-                      </p>
-                    )}
-                  </div>
-                </CardBody>
-              </Card>
-            ))}
-          </div>
-        )}
-      </section>
+      {!isStudent && programmesSection}
 
       <Modal
         open={Boolean(enrollIn)}
