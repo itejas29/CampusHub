@@ -373,6 +373,8 @@ export interface InternshipProgram {
   id: number; code: string; name: string; type: string; description: string | null;
   department_id: number | null; target_semester: number | null; credits: number;
   requires_group: boolean; default_group_size: number; requires_organization: boolean;
+  /** Students per mentor; `confirmed` is false while it is the portal default. */
+  mentor_capacity: number; mentor_capacity_confirmed: boolean;
   allowed_organization_types: string[]; report_frequency: string;
   expected_report_count: number; requires_industry_mentor: boolean;
   registration_opens_at: string | null; registration_closes_at: string | null;
@@ -381,6 +383,32 @@ export interface InternshipProgram {
   enrolled_count: number; completed_count: number; group_count: number;
   my_enrollment_id: number | null; can_enroll: boolean;
   enroll_blocked_reason: string | null;
+  /** Coordinator-run windows this programme uses; empty = semester rules only. */
+  window_kinds: InternshipWindowKind[];
+}
+
+export type InternshipWindowKind = "REGISTRATION" | "PRESENTATION";
+export type InternshipWindowState = "SCHEDULED" | "OPEN" | "CLOSED";
+
+export interface InternshipWindow {
+  id: number; program_id: number; kind: InternshipWindowKind; title: string;
+  message: string; opens_at: string; closes_at: string;
+  cohort_semester: number | null; submission_due_at: string | null;
+  presentation_from: string | null; presentation_to: string | null;
+  closed_early_at: string | null;
+  /** Computed by the server at request time. */
+  state: InternshipWindowState;
+}
+
+export interface ProgramWindows {
+  kinds: InternshipWindowKind[]; windows: InternshipWindow[]; can_manage: boolean;
+  registered_count: number; unassigned_count: number;
+}
+
+export interface MentorRosterGroup {
+  faculty_id: number; name: string; designation: string | null; email: string | null;
+  cabin: string | null; roll_range: string;
+  students: { roll_number: string; name: string }[];
 }
 
 export interface InternshipGroup {
@@ -438,6 +466,8 @@ export interface MentorCapacity {
   avatar_url: string | null;
   assigned_count: number;
   max_capacity: number;
+  /** False while max_capacity is the portal default, not a confirmed figure. */
+  capacity_confirmed: boolean;
   remaining_capacity: number;
   is_full: boolean;
 }
@@ -553,6 +583,10 @@ export interface FacultyRow {
   specialization: string | null; qualification: string | null;
   avatar_url: string | null; bio: string | null; is_mentor: boolean;
   is_active: boolean; mentee_count: number;
+  /** A fictional demo persona, not a real PDEU faculty member. */
+  is_demo: boolean;
+  /** Where the published details came from. */
+  profile_url: string | null;
 }
 
 export interface DepartmentRow {
@@ -675,6 +709,25 @@ export interface FacultyDashboard {
   upcoming_meetings: { id: number; title: string; student: string; status: string;
     scheduled_at: string | null; proposed_slot: string | null }[];
   announcements: DashboardAnnouncement[];
+  /** One per coordinated module (one per programme for internships). */
+  portfolios: FacultyPortfolio[];
+}
+
+export interface PortfolioStat {
+  label: string; value: number; hint: string | null;
+  tone: "default" | "warning" | "success";
+}
+
+export interface FacultyPortfolio {
+  domain: CoordinationDomain;
+  department_id: number | null; department_code: string | null;
+  department_name: string | null; is_institution_wide: boolean;
+  /** Set for CSSI / Summer Internship: the programme this entry describes. */
+  program_id: number | null; program_name: string | null;
+  stats: PortfolioStat[];
+  /** For a window-run programme (CSSI): each step's state, in order. */
+  windows?: { kind: InternshipWindowKind; state: InternshipWindowState | "NOT_STARTED";
+    closes_at: string | null }[];
 }
 
 export interface HodDashboard {

@@ -11,6 +11,8 @@ export default {
         surface: "rgb(var(--c-surface) / <alpha-value>)",
         "surface-muted": "rgb(var(--c-surface-muted) / <alpha-value>)",
         "surface-raised": "rgb(var(--c-surface-raised) / <alpha-value>)",
+        "surface-soft": "rgb(var(--c-surface-soft) / <alpha-value>)",
+        "surface-sunken": "rgb(var(--c-surface-sunken) / <alpha-value>)",
         line: "rgb(var(--c-line) / <alpha-value>)",
         "line-strong": "rgb(var(--c-line-strong) / <alpha-value>)",
         ink: "rgb(var(--c-ink) / <alpha-value>)",
@@ -18,28 +20,61 @@ export default {
         "ink-subtle": "rgb(var(--c-ink-subtle) / <alpha-value>)",
         brand: {
           DEFAULT: "rgb(var(--c-brand) / <alpha-value>)",
+          hover: "rgb(var(--c-brand-hover) / <alpha-value>)",
           soft: "rgb(var(--c-brand-soft) / <alpha-value>)",
           fg: "rgb(var(--c-brand-fg) / <alpha-value>)",
         },
         // Fixed institutional navy — identical in light and dark, for brand
-        // surfaces (the sign-in hero) that should never invert.
+        // surfaces (the sign-in hero, dashboard heroes) that should never invert.
         navy: {
-          DEFAULT: "#1E3A5F",
-          deep: "#162C48",
-          light: "#2A4F7C",
+          DEFAULT: "#0B2545",
+          deep: "#071A33",
+          light: "#0F3B6C",
+        },
+        // `primary` is the interactive blue — the same token as `accent`.
+        // Several screens were written against this name before it existed,
+        // which left their buttons with no background at all.
+        primary: {
+          DEFAULT: "rgb(var(--c-accent) / <alpha-value>)",
+          hover: "rgb(var(--c-accent-hover) / <alpha-value>)",
+          soft: "rgb(var(--c-accent-soft) / <alpha-value>)",
+          fg: "rgb(var(--c-accent-fg) / <alpha-value>)",
+        },
+        electric: "rgb(var(--c-electric) / <alpha-value>)",
+        iris: {
+          DEFAULT: "rgb(var(--c-iris) / <alpha-value>)",
+          soft: "rgb(var(--c-iris-soft) / <alpha-value>)",
+        },
+        violet: {
+          DEFAULT: "rgb(var(--c-violet) / <alpha-value>)",
+          soft: "rgb(var(--c-violet-soft) / <alpha-value>)",
+        },
+        sidebar: {
+          DEFAULT: "rgb(var(--c-sidebar-bg) / <alpha-value>)",
+          ink: "rgb(var(--c-sidebar-ink) / <alpha-value>)",
+          text: "rgb(var(--c-sidebar-item-text) / <alpha-value>)",
+          icon: "rgb(var(--c-sidebar-item-icon) / <alpha-value>)",
+          section: "rgb(var(--c-sidebar-section-text) / <alpha-value>)",
+          active: "rgb(var(--c-sidebar-item-active-bg) / <alpha-value>)",
+          "active-fg": "rgb(var(--c-sidebar-item-active-text) / <alpha-value>)",
+          indicator: "rgb(var(--c-sidebar-indicator) / <alpha-value>)",
+          logo: "rgb(var(--c-sidebar-logo-bg) / <alpha-value>)",
         },
         accent: {
           DEFAULT: "rgb(var(--c-accent) / <alpha-value>)",
+          hover: "rgb(var(--c-accent-hover) / <alpha-value>)",
           soft: "rgb(var(--c-accent-soft) / <alpha-value>)",
           fg: "rgb(var(--c-accent-fg) / <alpha-value>)",
         },
         success: {
           DEFAULT: "rgb(var(--c-success) / <alpha-value>)",
+          solid: "rgb(var(--c-success-solid) / <alpha-value>)",
           soft: "rgb(var(--c-success-soft) / <alpha-value>)",
           fg: "rgb(var(--c-success-fg) / <alpha-value>)",
         },
         warning: {
           DEFAULT: "rgb(var(--c-warning) / <alpha-value>)",
+          solid: "rgb(var(--c-warning-solid) / <alpha-value>)",
           soft: "rgb(var(--c-warning-soft) / <alpha-value>)",
         },
         danger: {
@@ -59,10 +94,12 @@ export default {
         // font-family declaration (falling back to Times).
         sans: ['"Source Sans 3"', "ui-sans-serif", "system-ui", "sans-serif"],
         heading: ["Lexend", '"Source Sans 3"', "ui-sans-serif", "sans-serif"],
+        display: ["Lexend", '"Source Sans 3"', "ui-sans-serif", "sans-serif"],
         mono: ['"JetBrains Mono"', "ui-monospace", "SFMono-Regular", "monospace"],
       },
       fontSize: {
         // Dense dashboard scale — nothing below 12px.
+        "3xs": ["0.625rem", { lineHeight: "0.875rem", letterSpacing: "0.05em" }],
         "2xs": ["0.6875rem", { lineHeight: "1rem", letterSpacing: "0.04em" }],
         xs: ["0.75rem", { lineHeight: "1.125rem" }],
         sm: ["0.8125rem", { lineHeight: "1.25rem" }],
@@ -83,6 +120,7 @@ export default {
       },
       boxShadow: {
         // Refined multi-layer shadows for premium card depth.
+        "2xs": "0 1px 1px 0 rgb(15 23 42 / 0.04)",
         xs: "0 1px 2px 0 rgb(15 23 42 / 0.04)",
         sm:
           "0 1px 3px 0 rgb(15 23 42 / 0.06), " +
@@ -99,15 +137,25 @@ export default {
         // Focused input ring
         "focus-ring": "0 0 0 3px rgb(var(--c-accent) / 0.15)",
         // Card hover lift
+        "glow-accent": "0 6px 20px -6px rgb(var(--c-accent) / 0.55)",
         "card-hover":
           "0 6px 20px -4px rgb(15 23 42 / 0.10), " +
           "0 2px 6px -2px rgb(15 23 42 / 0.05)",
       },
+      backgroundImage: {
+        "brand-gradient":
+          "linear-gradient(135deg, #0B2545 0%, #0F3B6C 45%, #2563EB 100%)",
+        "accent-gradient":
+          "linear-gradient(135deg, rgb(var(--c-accent)) 0%, rgb(var(--c-iris)) 60%, rgb(var(--c-violet)) 100%)",
+      },
+      backdropBlur: { xs: "2px" },
       transitionDuration: { DEFAULT: "180ms" },
       transitionTimingFunction: {
         smooth: "cubic-bezier(0.16, 1, 0.3, 1)",
       },
       spacing: {
+        4.5: "1.125rem",
+        8.5: "2.125rem",
         18: "4.5rem",
         72: "18rem",
         80: "20rem",

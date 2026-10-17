@@ -10,12 +10,13 @@ import argparse
 import datetime as dt
 import hashlib
 import random
+import secrets
 import sys
 import uuid
 from pathlib import Path
 
 from slugify import slugify
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -37,7 +38,8 @@ from app.models.enums import (
     SourceConfidence, AnnouncementCategory, AudienceType, AuditAction, ClubCategory,
     ClubMemberRole, ComponentType, CoordinationDomain, DocumentType, EnrollmentStatus,
     EvaluationStatus, FileCategory,
-    EvaluatorRole, EventMode, EventStatus, EventType, InternshipType, MeetingMode,
+    EvaluatorRole, EventMode, EventStatus, EventType, InternshipType, InternshipWindowKind,
+    MeetingMode,
     AssignedRole, MeetingStatus, MinorApplicationStatus, MinorEnrollmentStatus, MoocPlatform,
     MoocStatus, NotificationType, OfferingStatus, OrganizationType, PreferenceStatus,
     Priority, ProgramStatus, RegistrationStatus, ReportFrequency, ReportType, Role,
@@ -50,7 +52,7 @@ from app.models.identity import (
 from app.models.internships import (
     EnrollmentStageProgress, EvaluationCriteria, EvaluationScore, InternshipDocument,
     InternshipEnrollment, InternshipEvaluation, InternshipGroup, InternshipProgram,
-    InternshipProject, InternshipReport, InternshipStage, Organization,
+    InternshipProject, InternshipReport, InternshipStage, InternshipWindow, Organization,
 )
 from app.models.minors import (
     MinorApplication, MinorCourse, MinorEnrollment, MinorProgram,
@@ -61,6 +63,7 @@ from app.services import sections
 from app.seed import data as D
 from app.services import registration as registration_service
 from app.services import scope as scope_service
+from app.services import internships as internship_engine
 from app.seed import curriculum_import
 from app.services import curriculum as curriculum_engine
 
@@ -573,17 +576,43 @@ def seed(db: Session) -> None:
 
     log("Faculty accounts…")
     faculty_by_code: dict[str, Faculty] = {}
+    source_url = D.ICT_FACULTY_SOURCE["source"]["url"]
     for name, email, emp_code, dept, designation, cabin, spec, extra in D.FACULTY:
         roles = [Role.FACULTY] + [Role(r) for r in extra]
-        user = make_user(db, name=name, email=email, roles=roles,
-                         phone=f"+91 98{rng.randint(10000000, 99999999)}")
-        faculty = Faculty(
-            user_id=user.id, employee_code=emp_code,
-            department_id=departments[dept].id, designation=designation, cabin=cabin,
-            specialization=spec, qualification="Ph.D.", public_email=email,
-            public_phone=f"+91 79 232{rng.randint(10000, 99999)}", is_mentor=True,
-            bio=f"{designation}, {departments[dept].name}. Research interests: {spec}.",
-        )
+        real = D.ICT_FACULTY_DETAILS.get(emp_code)
+        if real:
+            # A real PDEU faculty member: published details only, no invented
+            # phone, and no `rng` draw — so generated students do not shift.
+            user = make_user(db, name=name, email=email, roles=roles, phone=None)
+            # Nobody knows this password; a demo cannot sign in as a real person.
+            user.hashed_password = hash_password(secrets.token_urlsafe(32))
+            degree = real.get("highest_degree") or {}
+            faculty = Faculty(
+                user_id=user.id, employee_code=emp_code,
+                department_id=departments[dept].id, designation=designation, cabin=None,
+                specialization=spec,
+                qualification=", ".join(filter(None, [degree.get("degree"),
+                                                      degree.get("institution")]))[:150] or None,
+                public_email=real["official_email"], public_phone=None,
+                profile_url=source_url, is_mentor=True, is_demo=False,
+                bio=(f"{designation}, {departments[dept].name}, School of Technology. "
+                     f"Research areas: {'; '.join(real['research_areas']) or 'not published'}. "
+                     f"Source: PDEU faculty list, retrieved "
+                     f"{D.ICT_FACULTY_SOURCE['source']['retrieved_at']}."),
+            )
+        else:
+            mobile = f"+91 98{rng.randint(10000000, 99999999)}"
+            office = f"+91 79 232{rng.randint(10000, 99999)}"
+            user = make_user(db, name=name, email=email, roles=roles, phone=mobile)
+            faculty = Faculty(
+                user_id=user.id, employee_code=emp_code,
+                department_id=departments[dept].id, designation=designation, cabin=cabin,
+                specialization=spec, qualification="Ph.D.", public_email=email,
+                public_phone=office, is_mentor=True, is_demo=True,
+                bio=(f"Demo account — a fictional {designation.lower()} used to "
+                     f"demonstrate the portal, not a PDEU faculty member. "
+                     f"Research interests: {spec}."),
+            )
         db.add(faculty)
         db.flush()
         faculty_by_code[emp_code] = faculty
@@ -593,7 +622,7 @@ def seed(db: Session) -> None:
         db.add(Faculty(
             user_id=office_user.id, employee_code=emp_code,
             department_id=departments[dept].id, designation="Department Office",
-            public_email=email, is_mentor=False,
+            public_email=email, is_mentor=False, is_demo=True,
             bio=f"Administrative office of {departments[dept].name}.",
         ))
     db.flush()
@@ -922,13 +951,17 @@ def seed(db: Session) -> None:
         credits=2,
         requires_group=True, default_group_size=10, requires_organization=True,
         allowed_organization_types=["NGO"], report_frequency=ReportFrequency.NONE,
-        expected_report_count=0, requires_industry_mentor=False,
+        # CSSI asks each student for their NGO supervisor's name and number.
+        expected_report_count=0, requires_industry_mentor=True,
         registration_opens_at=NOW - dt.timedelta(days=45),
         registration_closes_at=NOW + dt.timedelta(days=15),
         start_date=TODAY - dt.timedelta(days=40), end_date=TODAY + dt.timedelta(days=25),
         status=ProgramStatus.REGISTRATION_OPEN,
         coordinator_faculty_id=faculty_by_code["ICT-F-104"].id,
-        config={"group_size_configurable": True},
+        # Run in coordinator-opened windows: registration in Semester II, then
+        # posters, presentations and marks in Semester III.
+        config={"group_size_configurable": True,
+                "windows": ["REGISTRATION", "PRESENTATION"]},
     )
     summer = InternshipProgram(
         code="SI-2025", name="Summer Internship",
@@ -983,8 +1016,14 @@ def seed(db: Session) -> None:
         group = InternshipGroup(
             program_id=cssi.id, name=f"Group {index}",
             faculty_id=faculty_by_code[emp_code].id, capacity=cssi.default_group_size,
-            meeting_schedule=rng.choice(["Friday 15:00, faculty cabin",
-                                         "Wednesday 16:00, Seminar Room 2"]),
+            # Rostered mentors take a fixed slot rather than an `rng` draw, so
+            # adding them leaves every later random value — names included — alone.
+            meeting_schedule=(
+                ["Friday 15:00, faculty cabin", "Wednesday 16:00, Seminar Room 2"][index % 2]
+                if emp_code in {row[2] for row in D.ICT_FACULTY_ROSTER}
+                else rng.choice(["Friday 15:00, faculty cabin",
+                                 "Wednesday 16:00, Seminar Room 2"])
+            ),
         )
         db.add(group)
         db.flush()
@@ -1019,6 +1058,20 @@ def seed(db: Session) -> None:
     # The dataset must obey the rule it demonstrates: no HoD ends up with a
     # mentee, an internship student, a group or a scoped role.
     db.flush()
+    # ...and no internship mentor carries more students than their programme allows.
+    for program in db.scalars(select(InternshipProgram)):
+        cap = internship_engine.mentor_capacity(program)
+        for faculty_id, count in db.execute(
+            select(InternshipEnrollment.mentor_faculty_id, func.count())
+            .where(InternshipEnrollment.program_id == program.id,
+                   InternshipEnrollment.mentor_faculty_id.is_not(None))
+            .group_by(InternshipEnrollment.mentor_faculty_id)
+        ):
+            if count > cap:
+                raise RuntimeError(
+                    f"Seed gave one {program.code} mentor {count} students; "
+                    f"the programme allows {cap}."
+                )
     for dept_code, emp_code in D.HEADS_OF_DEPARTMENT.items():
         load = scope_service.mentoring_load(db, faculty_by_code[emp_code])
         if load:
@@ -1031,6 +1084,20 @@ def seed(db: Session) -> None:
 
 def seed_internship_records(db, cssi, summer, cssi_groups, students, ngos, companies,
                             faculty_by_code, admin_user) -> None:
+    # The cohort registered in Semester II through the coordinator's window,
+    # which has since closed. The presentation window is left for the
+    # coordinator to open in the demo — that is the step that tells every
+    # student their mentor and starts the marks clock.
+    db.add(InternshipWindow(
+        program_id=cssi.id, kind=InternshipWindowKind.REGISTRATION,
+        title="CSSI registration — Semester II",
+        message=("CSSI (Community and Social Service Internship) is a compulsory "
+                 "2-credit internship with an approved NGO, carried out over the break "
+                 "and presented in Semester III. Register your NGO and your NGO "
+                 "supervisor's name and phone number before the deadline."),
+        opens_at=NOW - dt.timedelta(days=60), closes_at=NOW - dt.timedelta(days=30),
+        cohort_semester=2, opened_by_user_id=faculty_by_code["ICT-F-104"].user_id,
+    ))
     log("CSSI enrolments with live stage progress…")
     cssi_stages = list(db.scalars(
         select(InternshipStage).where(InternshipStage.program_id == cssi.id)
@@ -1047,6 +1114,10 @@ def seed_internship_records(db, cssi, summer, cssi_groups, students, ngos, compa
             program_id=cssi.id, student_id=student.id, group_id=group.id,
             mentor_faculty_id=group.faculty_id,
             organization_id=ngos[index % len(ngos)].id,
+            # The NGO's own contact supervises — taken from the NGO row, not
+            # drawn from `rng`, so later generated values do not shift.
+            industry_mentor_name=ngos[index % len(ngos)].contact_person,
+            industry_mentor_phone=ngos[index % len(ngos)].phone,
             status=EnrollmentStatus.IN_PROGRESS,
             registered_at=NOW - dt.timedelta(days=38),
             start_date=cssi.start_date, end_date=cssi.end_date,
@@ -1158,16 +1229,27 @@ def seed_internship_records(db, cssi, summer, cssi_groups, students, ngos, compa
     # mentor screen rather than something every coordinator inherits.
     mentors = [faculty_by_code[c]
                for c in D.mentors_for("SUMMER_INTERNSHIP", "ICT")]
+    # Consecutive roll numbers share a mentor, in blocks no larger than the
+    # programme's cap — exactly what the coordinator's roll-number run produces.
+    summer_students = sorted(summer_students, key=lambda s: s.roll_number)
+    sizes = internship_engine.split_by_roll(
+        len(summer_students), len(mentors), internship_engine.mentor_capacity(summer))
+    mentor_by_position = [m for m, n in zip(mentors, sizes) for _ in range(n)]
+    # With PDEU's real ICT roster, the unconfirmed 10-per-mentor cap cannot seat
+    # two generated cohorts. The rest are left registered and *awaiting a
+    # mentor* — the coordinator's screen then shows the shortfall honestly
+    # instead of the seed inventing faculty to hide it.
     for index, student in enumerate(summer_students):
-        mentor = mentors[index % len(mentors)]
+        mentor = mentor_by_position[index] if index < len(mentor_by_position) else None
         company = companies[index % len(companies)]
         reached = min(3 + (index % 6), len(summer_stages))
         completed = index == 0  # one fully-evaluated record so the UI shows a finished flow
 
         enrollment = InternshipEnrollment(
             program_id=summer.id, student_id=student.id,
-            mentor_faculty_id=mentor.id, organization_id=company.id,
-            status=(EnrollmentStatus.COMPLETED if completed
+            mentor_faculty_id=mentor.id if mentor else None, organization_id=company.id,
+            status=(EnrollmentStatus.REGISTERED if mentor is None
+                    else EnrollmentStatus.COMPLETED if completed
                     else EnrollmentStatus.IN_PROGRESS),
             registered_at=NOW - dt.timedelta(days=50),
             start_date=summer.start_date, end_date=summer.end_date,
@@ -1185,6 +1267,10 @@ def seed_internship_records(db, cssi, summer, cssi_groups, students, ngos, compa
         )
         db.add(enrollment)
         db.flush()
+        if mentor is None:
+            # Registered, nothing else: no mentor has reviewed or marked anything.
+            internship_engine.initialise_stage_progress(db, enrollment=enrollment, program=summer)
+            continue
 
         for position, stage in enumerate(summer_stages):
             if completed or position < reached - 1:
@@ -1724,8 +1810,6 @@ def print_credentials(db: Session) -> None:
     print("=" * 74)
     rows = [
         ("SUPER_ADMIN", "admin@campushub.example.com", "Full system administration"),
-        ("HOD (ICT)", "rakesh.bhatt@campushub.example.com",
-         "Appoints ICT coordinators · no mentees"),
         ("DEPARTMENT_ADMIN (ICT office)", "ict.office@campushub.example.com",
          "ICT data administration · cannot appoint"),
         ("COORDINATOR — Open Electives", "vikram.joshi@campushub.example.com",

@@ -143,6 +143,10 @@ class Faculty(PKMixin, TimestampMixin, Base):
     bio: Mapped[str | None] = mapped_column(Text)
     is_mentor: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    #: A fictional persona for demonstrations — never a real PDEU faculty member.
+    #: Screens label these so a demo cannot be mistaken for the real roster.
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False,
+                                          server_default="false")
 
     user: Mapped["User"] = relationship(back_populates="faculty")
     department: Mapped["Department"] = relationship(foreign_keys=[department_id])

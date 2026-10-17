@@ -7,107 +7,133 @@
    value is a space-separated RGB triple so Tailwind's <alpha-value> works. */
 @layer base {
   :root {
-    /* Surfaces */
-    --c-canvas: 248 250 252;
+    /* Surfaces — a blue-tinted canvas under crisp white cards */
+    --c-canvas: 245 247 252;          /* #F5F7FC */
     --c-surface: 255 255 255;
-    --c-surface-muted: 241 245 249;
+    --c-surface-muted: 241 245 251;
     --c-surface-raised: 255 255 255;
+    --c-surface-soft: 237 244 255;    /* #EDF4FF — highlighted panels */
+    --c-surface-sunken: 246 248 252;
 
     /* Borders */
-    --c-line: 226 232 240;
+    --c-line: 226 232 240;            /* #E2E8F0 */
     --c-line-strong: 203 213 225;
 
     /* Text */
-    --c-ink: 15 23 42;
+    --c-ink: 17 24 39;                /* #111827 */
     --c-ink-muted: 71 85 105;
-    --c-ink-subtle: 100 116 139;
+    --c-ink-subtle: 100 116 139;      /* #64748B */
 
     /* Brand — PDEU institutional navy */
-    --c-brand: 30 58 95;
-    --c-brand-soft: 232 238 245;
+    --c-brand: 11 37 69;              /* #0B2545 */
+    --c-brand-hover: 15 59 108;       /* #0F3B6C */
+    --c-brand-soft: 231 238 248;
     --c-brand-fg: 255 255 255;
 
-    /* Accent — interactive blue */
-    --c-accent: 37 99 235;
-    --c-accent-soft: 219 234 254;
+    /* Accent — the interactive blue every action uses */
+    --c-accent: 37 99 235;            /* #2563EB */
+    --c-accent-hover: 29 78 216;
+    --c-accent-soft: 224 234 255;
     --c-accent-fg: 255 255 255;
+    --c-electric: 79 124 255;         /* #4F7CFF */
 
-    /* Semantic */
+    /* Expressive accents — gradients and highlights only, never body text */
+    --c-iris: 99 102 241;             /* #6366F1 */
+    --c-iris-soft: 236 237 254;
+    --c-violet: 139 92 246;           /* #8B5CF6 */
+    --c-violet-soft: 243 238 255;
+
+    /* Semantic. Success and warning text sit one step darker than the brief's
+       #16A34A / #D97706 so small labels on white still pass WCAG AA. */
     --c-success: 21 128 61;
+    --c-success-solid: 22 163 74;     /* #16A34A — dots, bars, fills */
     --c-success-soft: 220 252 231;
     --c-success-fg: 255 255 255;
-    --c-warning: 161 98 7;
+    --c-warning: 180 83 9;
+    --c-warning-solid: 217 119 6;     /* #D97706 */
     --c-warning-soft: 254 243 199;
-    --c-danger: 185 28 28;
+    --c-danger: 220 38 38;            /* #DC2626 */
     --c-danger-soft: 254 226 226;
     --c-danger-fg: 255 255 255;
     --c-info: 7 89 133;
     --c-info-soft: 224 242 254;
     --c-info-fg: 255 255 255;
 
-    /* Sidebar-specific tokens (light) */
-    --c-sidebar-bg: 255 255 255;
-    --c-sidebar-border: 226 232 240;
-    --c-sidebar-item-active-bg: 232 238 245;
-    --c-sidebar-item-active-text: 30 58 95;
-    --c-sidebar-item-hover-bg: 241 245 249;
-    --c-sidebar-logo-bg: 30 58 95;
+    /* Sidebar — institutional navy in both themes, so the shell has one
+       unmistakable identity. */
+    --c-sidebar-bg: 11 37 69;
+    --c-sidebar-border: 255 255 255 / 0.08;
+    --c-sidebar-ink: 255 255 255;
+    --c-sidebar-item-active-bg: 255 255 255;
+    --c-sidebar-item-active-text: 11 37 69;
+    --c-sidebar-item-hover-bg: 255 255 255;
+    --c-sidebar-logo-bg: 79 124 255;
     --c-sidebar-logo-fg: 255 255 255;
-    --c-sidebar-section-text: 100 116 139;
-    --c-sidebar-item-text: 71 85 105;
-    --c-sidebar-item-icon: 100 116 139;
+    --c-sidebar-section-text: 148 170 204;
+    --c-sidebar-item-text: 196 211 235;
+    --c-sidebar-item-icon: 138 162 199;
+    --c-sidebar-indicator: 79 124 255;
   }
 
   .dark {
     /* Surfaces */
-    --c-canvas: 9 14 24;
-    --c-surface: 15 22 36;
-    --c-surface-muted: 22 32 50;
-    --c-surface-raised: 22 32 50;
+    --c-canvas: 8 13 24;
+    --c-surface: 14 21 36;
+    --c-surface-muted: 21 31 50;
+    --c-surface-raised: 21 31 50;
+    --c-surface-soft: 18 32 60;
+    --c-surface-sunken: 10 16 29;
 
     /* Borders */
-    --c-line: 36 50 74;
+    --c-line: 34 48 72;
     --c-line-strong: 52 70 100;
 
     /* Text */
     --c-ink: 241 245 249;
-    --c-ink-muted: 160 178 200;
+    --c-ink-muted: 166 182 204;
     --c-ink-subtle: 134 153 178;
 
     /* Brand */
-    --c-brand: 147 180 224;
-    --c-brand-soft: 24 38 62;
-    --c-brand-fg: 9 14 24;
+    --c-brand: 160 190 235;
+    --c-brand-hover: 190 212 245;
+    --c-brand-soft: 24 38 64;
+    --c-brand-fg: 8 13 24;
 
     /* Accent */
-    --c-accent: 96 165 250;
-    --c-accent-soft: 22 42 78;
-    --c-accent-fg: 8 14 26;
+    --c-accent: 108 152 255;
+    --c-accent-hover: 140 176 255;
+    --c-accent-soft: 24 40 78;
+    --c-accent-fg: 8 13 24;
+    --c-electric: 120 156 255;
+
+    --c-iris: 129 140 248;
+    --c-iris-soft: 30 30 70;
+    --c-violet: 167 139 250;
+    --c-violet-soft: 40 28 72;
 
     /* Semantic */
     --c-success: 74 222 128;
+    --c-success-solid: 34 197 94;
     --c-success-soft: 18 50 34;
-    --c-success-fg: 9 14 24;
+    --c-success-fg: 8 13 24;
     --c-warning: 251 191 36;
+    --c-warning-solid: 245 158 11;
     --c-warning-soft: 52 40 10;
     --c-danger: 248 113 113;
     --c-danger-soft: 58 22 22;
-    --c-danger-fg: 9 14 24;
+    --c-danger-fg: 8 13 24;
     --c-info: 56 189 248;
     --c-info-soft: 10 42 62;
-    --c-info-fg: 9 14 24;
+    --c-info-fg: 8 13 24;
 
-    /* Sidebar-specific tokens (dark — deeper, slightly richer than canvas) */
-    --c-sidebar-bg: 12 18 30;
-    --c-sidebar-border: 30 42 62;
-    --c-sidebar-item-active-bg: 24 38 62;
-    --c-sidebar-item-active-text: 147 180 224;
-    --c-sidebar-item-hover-bg: 20 30 48;
-    --c-sidebar-logo-bg: 147 180 224;
-    --c-sidebar-logo-fg: 12 18 30;
-    --c-sidebar-section-text: 90 110 140;
-    --c-sidebar-item-text: 130 150 175;
-    --c-sidebar-item-icon: 90 110 140;
+    /* Sidebar — a deeper navy than the canvas */
+    --c-sidebar-bg: 7 18 36;
+    --c-sidebar-ink: 241 245 249;
+    --c-sidebar-item-active-bg: 108 152 255;
+    --c-sidebar-item-active-text: 8 13 24;
+    --c-sidebar-section-text: 110 130 165;
+    --c-sidebar-item-text: 170 188 215;
+    --c-sidebar-item-icon: 120 142 178;
   }
 
   * {
@@ -133,7 +159,7 @@
 
   /* Visible focus ring — accessible but refined */
   :focus-visible {
-    @apply outline-none ring-2 ring-accent/70 ring-offset-2 ring-offset-canvas rounded-sm;
+    @apply outline-none ring-2 ring-accent/70 ring-offset-2 ring-offset-canvas;
   }
 
   ::selection {
@@ -187,28 +213,6 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .skeleton::after { animation: none; }
-  }
-
-  /* ── Sidebar nav items ───────────────────────────────────────────────── */
-  .sidebar-item {
-    @apply flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm
-           font-medium transition-all duration-150 cursor-pointer select-none;
-    color: rgb(var(--c-sidebar-item-text));
-  }
-  .sidebar-item:hover {
-    background: rgb(var(--c-sidebar-item-hover-bg));
-    color: rgb(var(--c-ink));
-  }
-  .sidebar-item-icon {
-    color: rgb(var(--c-sidebar-item-icon));
-  }
-  .sidebar-item.active {
-    background: rgb(var(--c-sidebar-item-active-bg));
-    color: rgb(var(--c-sidebar-item-active-text));
-    font-weight: 600;
-  }
-  .sidebar-item.active .sidebar-item-icon {
-    color: rgb(var(--c-sidebar-item-active-text));
   }
 
   /* ── Page header separator ───────────────────────────────────────────── */
@@ -267,17 +271,27 @@
     background: rgba(15, 22, 36, 0.82);
   }
 
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(229, 238, 255, 0.3);
-  }
+  .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #94a3b8;
+    background: rgb(var(--c-line-strong));
     border-radius: 9999px;
   }
+
+  /* Navy sidebar: a scrollbar that belongs to the dark surface. */
+  .sidebar-scroll { scrollbar-width: thin; scrollbar-color: rgb(255 255 255 / 0.16) transparent; }
+  .sidebar-scroll::-webkit-scrollbar { width: 5px; }
+  .sidebar-scroll::-webkit-scrollbar-thumb { background: rgb(255 255 255 / 0.16); border-radius: 9999px; }
+
+  /* Dot-grid texture for hero panels — static, a few bytes, no image. */
+  .hero-grid {
+    background-image: radial-gradient(rgb(255 255 255 / 0.12) 1px, transparent 1px);
+    background-size: 18px 18px;
+  }
+
+  /* Long unbroken strings (emails, roll ranges, URLs) wrap instead of
+     pushing their card wider. Applied where such strings appear, not globally. */
+  .break-anywhere { overflow-wrap: anywhere; }
 }
 
 @layer utilities {

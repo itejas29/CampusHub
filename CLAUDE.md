@@ -20,6 +20,9 @@ make revision    # autogenerate a migration
 
 cd frontend && npm run dev     # vite dev server
 cd frontend && npm run build   # tsc -b && vite build
+cd frontend && npm run test:e2e  # browser tests: sign in → allocate → review
+                                 # (own seeded SQLite API on :8100, Vite on :5180,
+                                 #  installed Chrome; needs the repo-root .venv)
 ```
 
 Demo password for every seeded account: `Campus@123`.
@@ -40,17 +43,23 @@ Error: Loading PostCSS Plugin failed: ETIMEDOUT: connection timed out, read
 That error is not a PostCSS problem. It means `node_modules` was evicted.
 
 **`frontend/node_modules` is therefore a symlink** to
-`~/.campushub-modules/frontend`, outside the synced tree, where iCloud cannot
-touch it. Run `npm ci` normally — it installs through the symlink. If the
-symlink is ever lost, recreate it before installing:
+`~/.campushub-modules/frontend/node_modules`, outside the synced tree, where
+iCloud cannot touch it. Run `npm ci` normally — it installs through the symlink.
+If the symlink is ever lost, recreate it before installing:
 
 ```bash
 cd frontend
 rm -rf node_modules
-mkdir -p ~/.campushub-modules/frontend
-ln -s ~/.campushub-modules/frontend node_modules
+mkdir -p ~/.campushub-modules/frontend/node_modules
+ln -s ~/.campushub-modules/frontend/node_modules node_modules
 npm ci
 ```
+
+The target **must itself be named `node_modules`.** TypeScript and Node resolve
+a package's own imports from its *real* path, walking up looking for a
+`node_modules` folder. Point the link at `~/.campushub-modules/frontend` and that
+walk finds none until `~/node_modules` — any stray packages in your home folder —
+and `tsc` fails with "no exported member" errors from the wrong React types.
 
 `backend/.venv` has the same disease and has not been moved — it is why Python
 commands here take minutes. The same treatment fixes it, or recreate the venv
@@ -111,7 +120,7 @@ changes university policy.
 | Open Elective 90 / 150 / 151 | `[75,15]` / `[75,75]` / `[75,75,1]` | `test_sections.py` |
 | Core Elective minimum | **40 combined across divisions**, never per division | `services/sections.py` |
 | Core Elective ceiling | **none** — one combined class however large | `services/sections.py` |
-| CSSI window | Sem I hidden · II announced · III active · IV+ concluded | `services/internships.py` |
+| CSSI window | Sem I hidden · II announced · III active · IV+ concluded — **except** that the coordinator's registration window lets the Sem II cohort register early (below) | `services/internships.py`, `services/internship_windows.py` |
 | Summer Internship rubric | 25 + 25 + 25 + 25 = 100 | seeded `EvaluationCriteria` |
 | Minor eligibility | CPI ≥ 7.5, 0 backlogs, 75 seats, from Sem III | `MinorProgram` rows |
 
@@ -211,6 +220,31 @@ described its practice to the project team; it is not from a written rule.)
 
 ---
 
+## CSSI runs in coordinator-opened windows
+
+How the ICT department runs CSSI, as described to the project team (not from a
+written rule). It is configuration on the one internship engine —
+`internship_programs.config["windows"] = ["REGISTRATION", "PRESENTATION"]` — and
+a programme that lists no windows keeps the semester-only rules. Enforced in
+`services/internship_windows.py`.
+
+1. The HoD appoints the CSSI coordinator.
+2. The coordinator opens **registration** with a message, an opening date and a
+   deadline, aimed at the Semester II cohort. Opening it notifies those
+   students. While it is open they record the NGO and their **NGO supervisor's
+   name and phone number** (required). **No window, no early access** — the
+   Sem II "announced" phase is still view-only otherwise.
+3. **Mentor allocation needs registration to have started** (`assert_can_allocate_mentors`).
+4. In Semester III the coordinator opens **presentations** with the poster
+   deadline, presentation day(s) and the process deadline. It needs
+   registration closed and every registered student to have a mentor; opening
+   it tells each student their mentor (with the full roll-range list) and each
+   mentor their students.
+5. Posters are accepted until the poster deadline; **marks lock when the window
+   closes** — for the coordinator too.
+6. The coordinator may extend, reschedule or reopen a window (audited, notifies);
+   nobody else can.
+
 ## Security invariants
 
 Phase 4 closed two real vulnerabilities. Do not undo them.
@@ -252,6 +286,13 @@ docs/            phase reports, curriculum research, deployment
 ```
 
 ## Demo data
+
+**ICT faculty are real** — PDEU's published list (`backend/app/seed/sources/pdeu_ict_faculty.json`,
+source URL and retrieval date inside). Only published fields are used; real
+faculty cannot sign in (unusable password, non-routable login address) and hold
+no coordinator/HoD role until the department confirms who does. Sign-in uses the
+**demo personas** (`faculty.is_demo`, labelled "Demo account"). Students are
+still generated.
 
 The seed is the demo. After pulling a change to `seed/`, reseed — the database
 keeps its old rows otherwise, and new demo logins will not exist:

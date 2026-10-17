@@ -253,7 +253,7 @@ export function InternshipRecordPage() {
             <Button
               variant="secondary"
               onClick={() => setCertOpen(true)}
-              icon={<Award className="h-4 w-4 text-amber-500" aria-hidden />}
+              icon={<Award className="h-4 w-4 text-warning" aria-hidden />}
             >
               Completion Certificate
             </Button>

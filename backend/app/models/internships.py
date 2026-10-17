@@ -16,6 +16,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, PKMixin, TimestampMixin
 from app.models.enums import (
+    InternshipWindowKind,
     DocumentType, EnrollmentStatus, EvaluationStatus, EvaluatorRole, InternshipType,
     OrganizationType, ProgramStatus, ReportFrequency, ReportType, StageStatus,
     SubmissionStatus,
@@ -150,6 +151,65 @@ class InternshipStage(PKMixin, TimestampMixin, Base):
     due_offset_days: Mapped[int | None] = mapped_column(Integer)
 
     program: Mapped["InternshipProgram"] = relationship(back_populates="stages")
+
+
+class InternshipWindow(PKMixin, TimestampMixin, Base):
+    """A dated window the programme's coordinator opens, with the message that
+    went to students when they did.
+
+    The window is the authority for what a student or mentor may do in that
+    step — not the semester alone, and never the browser: every write checks
+    it server-side, so a stale tab cannot submit after the deadline. One row per
+    kind per programme; extending or reopening moves its dates rather than
+    adding a second window.
+    """
+
+    __tablename__ = "internship_windows"
+    __table_args__ = (
+        UniqueConstraint("program_id", "kind", name="uq_internship_windows_program_id_kind"),
+    )
+
+    program_id: Mapped[int] = mapped_column(
+        ForeignKey("internship_programs.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    kind: Mapped[InternshipWindowKind] = mapped_column(
+        _enum(InternshipWindowKind, "internship_window_kind"), nullable=False
+    )
+    title: Mapped[str] = mapped_column(String(180), nullable=False)
+    #: What the coordinator told students: what the step is, what to do.
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    opens_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    closes_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    #: Semester of the students a REGISTRATION window admits — the semester
+    #: before the programme runs, or the semester it runs in.
+    cohort_semester: Mapped[int | None] = mapped_column(Integer)
+    #: PRESENTATION: posters are due to the mentor by this moment.
+    submission_due_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    #: PRESENTATION: the presentation day(s).
+    presentation_from: Mapped[dt.date | None] = mapped_column(Date)
+    presentation_to: Mapped[dt.date | None] = mapped_column(Date)
+    #: Set when the coordinator closes it before `closes_at`.
+    closed_early_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    opened_by_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+
+    def is_open_at(self, now: dt.datetime) -> bool:
+        return (self.closed_early_at is None
+                and _aware(self.opens_at) <= now < _aware(self.closes_at))
+
+    def state_at(self, now: dt.datetime) -> str:
+        """SCHEDULED, OPEN or CLOSED — derived, so it can never disagree with the clock."""
+        if self.is_open_at(now):
+            return "OPEN"
+        if self.closed_early_at is None and now < _aware(self.opens_at):
+            return "SCHEDULED"
+        return "CLOSED"
+
+
+def _aware(value: dt.datetime) -> dt.datetime:
+    """SQLite hands back naive datetimes; treat them as the UTC they were stored as."""
+    return value if value.tzinfo else value.replace(tzinfo=dt.timezone.utc)
 
 
 class InternshipGroup(PKMixin, TimestampMixin, Base):

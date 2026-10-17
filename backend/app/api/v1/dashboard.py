@@ -34,6 +34,7 @@ from app.schemas.admin import (
 )
 from app.services import announcements as announcement_audience
 from app.services import registration, scope
+from app.services import internship_windows as program_windows
 from app.services import documents as docs
 from app.services import serializers
 from app.services import internships as engine
@@ -523,7 +524,136 @@ def faculty_dashboard(db: DbSession, user: CurrentUser,
             for m in open_meetings
         ],
         announcements=_announcement_dicts(db, user),
+        portfolios=_coordination_portfolios(db, user),
     )
+
+
+def _stat(label: str, value: int, hint: str | None = None,
+          tone: str = "default") -> dict:
+    return {"label": label, "value": value, "hint": hint, "tone": tone}
+
+
+def _program_stats(db, program: InternshipProgram) -> list[dict]:
+    in_program = InternshipEnrollment.program_id == program.id
+    registered = _count(db, select(InternshipEnrollment).where(in_program))
+    unassigned = _count(db, select(InternshipEnrollment).where(
+        in_program, InternshipEnrollment.mentor_faculty_id.is_(None)))
+    mentors = int(db.scalar(
+        select(func.count(func.distinct(InternshipEnrollment.mentor_faculty_id)))
+        .where(in_program, InternshipEnrollment.mentor_faculty_id.is_not(None))
+    ) or 0)
+    enrollment_ids = select(InternshipEnrollment.id).where(in_program)
+    to_review = _count(db, select(EnrollmentStageProgress).where(
+        EnrollmentStageProgress.enrollment_id.in_(enrollment_ids),
+        EnrollmentStageProgress.status == StageStatus.SUBMITTED,
+    )) + _count(db, select(InternshipReport).where(
+        InternshipReport.enrollment_id.in_(enrollment_ids),
+        InternshipReport.status == SubmissionStatus.SUBMITTED,
+    ))
+    load = f"~{registered / mentors:.1f} per mentor" if mentors else None
+    return [
+        _stat("Registered", registered),
+        _stat("Mentors", mentors, load),
+        _stat("Awaiting mentor", unassigned, tone="warning" if unassigned else "success"),
+        _stat("Submissions to review", to_review, tone="warning" if to_review else "default"),
+    ]
+
+
+def _coordination_portfolios(db, user: User) -> list[dict]:
+    """What each coordinated module looks like right now, for that scope only.
+
+    An internship coordination expands to one entry per programme it governs,
+    so the dashboard can link to the real programme id rather than a guess.
+    """
+    from app.models.enums import AssignedRole, CoordinationDomain as D
+    from app.models.minors import MinorProgram
+
+    now = utcnow()
+    out: list[dict] = []
+    for c in scope.coordinations_for(db, user, AssignedRole.COORDINATOR):
+        base = {
+            "domain": c.domain.value, "department_id": c.department_id,
+            "department_code": c.department_code,
+            "department_name": c.department_name,
+            "is_institution_wide": c.is_institution_wide,
+            "program_id": None, "program_name": None, "stats": [],
+        }
+        in_dept = (lambda col: col == c.department_id) if c.department_id else None
+
+        if c.domain in (D.CSSI, D.SUMMER_INTERNSHIP):
+            programs = [
+                p for p in db.scalars(select(InternshipProgram).order_by(InternshipProgram.id))
+                if scope.domain_for_program(p) == c.domain
+                and (c.department_id is None or p.department_id == c.department_id)
+            ]
+            if not programs:
+                out.append(base)
+            for p in programs:
+                out.append({**base, "program_id": p.id, "program_name": p.name,
+                            "stats": _program_stats(db, p),
+                            # Where a window-run cycle stands, step by step.
+                            "windows": [
+                                {"kind": kind.value,
+                                 "state": (w.state_at(now) if (w := program_windows.get(
+                                     db, p.id, kind)) else "NOT_STARTED"),
+                                 "closes_at": w.closes_at.isoformat() if w else None}
+                                for kind in program_windows.kinds_for(p)
+                            ]})
+            continue
+
+        if c.domain in (D.OPEN_ELECTIVE, D.CORE_ELECTIVE):
+            ctype = (ComponentType.OPEN_ELECTIVE if c.domain == D.OPEN_ELECTIVE
+                     else ComponentType.PROGRAM_CORE_ELECTIVE)
+            stmt = select(ElectiveRegistrationWindow).where(
+                ElectiveRegistrationWindow.component_type == ctype)
+            if in_dept:
+                stmt = stmt.where(in_dept(ElectiveRegistrationWindow.department_id))
+            windows = list(db.scalars(stmt))
+            accepting = sum(1 for w in windows if w.is_open_at(now))
+            awaiting = sum(1 for w in windows if w.status.value in ("LOCKED", "ALLOCATED"))
+            base["stats"] = [
+                _stat("Rounds", len(windows)),
+                _stat("Accepting choices", accepting, tone="success" if accepting else "default"),
+                _stat("Awaiting allocation or publish", awaiting,
+                      tone="warning" if awaiting else "default"),
+            ]
+        elif c.domain == D.MINOR:
+            programs = select(MinorProgram.id)
+            if in_dept:
+                programs = programs.where(in_dept(MinorProgram.department_id))
+            pending = _count(db, select(MinorApplication).where(
+                MinorApplication.minor_program_id.in_(programs),
+                MinorApplication.status.in_([MinorApplicationStatus.SUBMITTED,
+                                             MinorApplicationStatus.UNDER_REVIEW]),
+            ))
+            base["stats"] = [
+                _stat("Tracks", _count(db, programs)),
+                _stat("Applications to review", pending,
+                      tone="warning" if pending else "default"),
+            ]
+        elif c.domain == D.MOOC:
+            stmt = select(MoocRegistration).where(
+                MoocRegistration.verification_status == VerificationStatus.PENDING,
+                MoocRegistration.certificate_file_id.is_not(None),
+            )
+            if in_dept:
+                stmt = stmt.join(Student, Student.id == MoocRegistration.student_id) \
+                           .where(in_dept(Student.department_id))
+            pending = _count(db, stmt)
+            base["stats"] = [_stat("Certificates to verify", pending,
+                                   tone="warning" if pending else "success")]
+        elif c.domain == D.MENTORSHIP:
+            stmt = select(MentorAssignment).where(MentorAssignment.is_active.is_(True))
+            if in_dept:
+                stmt = stmt.join(Student, Student.id == MentorAssignment.student_id) \
+                           .where(in_dept(Student.department_id))
+            pairs = list(db.scalars(stmt))
+            base["stats"] = [
+                _stat("Students with a mentor", len(pairs)),
+                _stat("Faculty mentors", len({a.faculty_id for a in pairs})),
+            ]
+        out.append(base)
+    return out
 
 
 # ── administration ────────────────────────────────────────────────────────

@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { MobileSidebar, Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { slideUp } from "@/lib/motion";
 import { FloatingChatbot } from "@/features/chatbot/FloatingChatbot";
+import { LoadingState } from "@/components/ui/States";
 
 export function AppShell() {
   const [navOpen, setNavOpen] = useState(false);
@@ -30,7 +31,10 @@ export function AppShell() {
   // Keyboard shortcut Ctrl+B or Cmd+B to toggle sidebar collapse
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") {
+      // Not while typing: Ctrl/Cmd+B is "bold" in every text field.
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === "b") {
         e.preventDefault();
         toggleSidebar();
       }
@@ -46,6 +50,12 @@ export function AppShell() {
 
   return (
     <div className="flex min-h-screen bg-canvas">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:text-ink focus:shadow-lg"
+      >
+        Skip to content
+      </a>
       <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar} />
       <MobileSidebar open={navOpen} onClose={() => setNavOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col transition-all duration-200">
@@ -54,7 +64,7 @@ export function AppShell() {
           collapsed={sidebarCollapsed}
           onToggleCollapse={toggleSidebar}
         />
-        <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-7">
+        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 px-4 py-6 outline-none sm:px-6 sm:py-7">
           <div className="mx-auto w-full max-w-[84rem]">
             {/*
               Enter-only, deliberately. Wrapping <Outlet/> in an AnimatePresence
@@ -73,15 +83,16 @@ export function AppShell() {
               initial="hidden"
               animate="shown"
             >
-              <Outlet />
+              {/* Routes load on first visit; the skeleton holds their place. */}
+              <Suspense fallback={<LoadingState rows={4} label="Loading page…" />}>
+                <Outlet />
+              </Suspense>
             </motion.div>
           </div>
         </main>
         <footer className="border-t border-line px-4 py-3 sm:px-6">
           <p className="text-xs text-ink-subtle">
-            CampusHub · Pandit Deendayal Energy University
-            <span className="mx-1.5 opacity-40">·</span>
-            <span className="opacity-60">Phase 2</span>
+            CampusHub · Pandit Deendayal Energy University, Gandhinagar
           </p>
         </footer>
       </div>

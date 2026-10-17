@@ -39,7 +39,7 @@ export function InternshipCertificateModal({ enrollment, open, onClose }: Props)
               size="sm"
               variant="secondary"
               onClick={handlePrint}
-              icon={<Printer className="h-4 w-4 text-secondary" aria-hidden />}
+              icon={<Printer className="h-4 w-4 text-ink-muted" aria-hidden />}
             >
               Print / Save PDF
             </Button>
@@ -186,16 +186,13 @@ export function InternshipCertificateModal({ enrollment, open, onClose }: Props)
 
             {/* Department Head */}
             <div className="space-y-1">
-              <div className="h-10 flex items-end justify-center pb-1">
-                <span className="font-serif italic text-sm text-stone-600 dark:text-stone-400">
-                  Dr. Rakesh Bhatt
-                </span>
-              </div>
+              {/* Signed by hand: the portal never prints a person's name as a signature. */}
+              <div className="h-10" />
               <div className="border-t border-stone-400 dark:border-stone-600 pt-1">
                 <p className="text-xs font-bold text-stone-800 dark:text-stone-200">
-                  Dr. Rakesh Bhatt
+                  Head of Department
                 </p>
-                <p className="text-2xs text-stone-500">Head of Department</p>
+                <p className="text-2xs text-stone-500">Information and Communication Technology</p>
               </div>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { lazy } from "react";
 import { MotionConfig } from "framer-motion";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useParams } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { NotFoundPage, RequireAccess, RequireAuth } from "@/components/layout/RouteGuards";
 import { AuthProvider } from "@/lib/auth";
@@ -8,45 +9,50 @@ import { ThemeProvider } from "@/lib/theme";
 
 import { LoginPage } from "@/features/auth/LoginPage";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
-import { AdminDashboard } from "@/features/dashboard/AdminDashboard";
 
-import { CourseCataloguePage } from "@/features/academics/CourseCataloguePage";
-import { CurriculumExplorerPage } from "@/features/academics/CurriculumExplorerPage";
-import { CurriculumPage } from "@/features/academics/CurriculumPage";
-import { ElectiveListPage } from "@/features/academics/ElectiveListPage";
-import { ElectiveWorkspacePage } from "@/features/academics/ElectiveWorkspacePage";
-import { MinorsPage } from "@/features/academics/MinorsPage";
-import { NptelPage } from "@/features/academics/NptelPage";
+// Every screen except sign-in and the dashboard loads on first visit, so the
+// initial bundle carries only what the first screen needs.
+const AdminDashboard = lazy(() => import("@/features/dashboard/AdminDashboard").then((m) => ({ default: m.AdminDashboard })));
+const CourseCataloguePage = lazy(() => import("@/features/academics/CourseCataloguePage").then((m) => ({ default: m.CourseCataloguePage })));
+const CurriculumExplorerPage = lazy(() => import("@/features/academics/CurriculumExplorerPage").then((m) => ({ default: m.CurriculumExplorerPage })));
+const CurriculumPage = lazy(() => import("@/features/academics/CurriculumPage").then((m) => ({ default: m.CurriculumPage })));
+const ElectiveListPage = lazy(() => import("@/features/academics/ElectiveListPage").then((m) => ({ default: m.ElectiveListPage })));
+const ElectiveWorkspacePage = lazy(() => import("@/features/academics/ElectiveWorkspacePage").then((m) => ({ default: m.ElectiveWorkspacePage })));
+const MinorsPage = lazy(() => import("@/features/academics/MinorsPage").then((m) => ({ default: m.MinorsPage })));
+const NptelPage = lazy(() => import("@/features/academics/NptelPage").then((m) => ({ default: m.NptelPage })));
+const InternshipRecordPage = lazy(() => import("@/features/internships/InternshipRecordPage").then((m) => ({ default: m.InternshipRecordPage })));
+const InternshipsPage = lazy(() => import("@/features/internships/InternshipsPage").then((m) => ({ default: m.InternshipsPage })));
+const ProgramWindowsPage = lazy(() => import("@/features/internships/ProgramWindowsPage").then((m) => ({ default: m.ProgramWindowsPage })));
+const MentorAssignmentPage = lazy(() => import("@/features/internships/MentorAssignmentPage").then((m) => ({ default: m.MentorAssignmentPage })));
+const MyStudentsPage = lazy(() => import("@/features/internships/MyStudentsPage").then((m) => ({ default: m.MyStudentsPage })));
+const ProgramsAdminPage = lazy(() => import("@/features/internships/ProgramsAdminPage").then((m) => ({ default: m.ProgramsAdminPage })));
+const CalendarPage = lazy(() => import("@/features/community/CalendarPage").then((m) => ({ default: m.CalendarPage })));
+const ClubDetailPage = lazy(() => import("@/features/community/ClubsPage").then((m) => ({ default: m.ClubDetailPage })));
+const ClubsPage = lazy(() => import("@/features/community/ClubsPage").then((m) => ({ default: m.ClubsPage })));
+const EventDetailRedirect = lazy(() => import("@/features/community/EventsPage").then((m) => ({ default: m.EventDetailRedirect })));
+const EventsPage = lazy(() => import("@/features/community/EventsPage").then((m) => ({ default: m.EventsPage })));
+const AnnouncementsPage = lazy(() => import("@/features/engagement/AnnouncementsPage").then((m) => ({ default: m.AnnouncementsPage })));
+const FacultyDirectoryPage = lazy(() => import("@/features/engagement/FacultyDirectoryPage").then((m) => ({ default: m.FacultyDirectoryPage })));
+const MenteesPage = lazy(() => import("@/features/engagement/MenteesPage").then((m) => ({ default: m.MenteesPage })));
+const MentorshipPage = lazy(() => import("@/features/engagement/MentorshipPage").then((m) => ({ default: m.MentorshipPage })));
+const AuditLogPage = lazy(() => import("@/features/admin/AuditLogPage").then((m) => ({ default: m.AuditLogPage })));
+const CurriculumAdminPage = lazy(() => import("@/features/admin/CurriculumAdminPage").then((m) => ({ default: m.CurriculumAdminPage })));
+const StudentProfilePage = lazy(() => import("@/features/people/StudentProfilePage").then((m) => ({ default: m.StudentProfilePage })));
+const DepartmentsPage = lazy(() => import("@/features/admin/DepartmentsPage").then((m) => ({ default: m.DepartmentsPage })));
+const ElectiveAdminPage = lazy(() => import("@/features/admin/ElectiveAdminPage").then((m) => ({ default: m.ElectiveAdminPage })));
+const EventsAdminPage = lazy(() => import("@/features/admin/EventsAdminPage").then((m) => ({ default: m.EventsAdminPage })));
+const FacultyAdminPage = lazy(() => import("@/features/admin/FacultyAdminPage").then((m) => ({ default: m.FacultyAdminPage })));
+const MinorAdminPage = lazy(() => import("@/features/admin/MinorAdminPage").then((m) => ({ default: m.MinorAdminPage })));
+const NptelAdminPage = lazy(() => import("@/features/admin/NptelAdminPage").then((m) => ({ default: m.NptelAdminPage })));
+const RegistrationRoundsPage = lazy(() => import("@/features/admin/RegistrationRoundsPage").then((m) => ({ default: m.RegistrationRoundsPage })));
+const RoleAssignmentsPage = lazy(() => import("@/features/admin/RoleAssignmentsPage").then((m) => ({ default: m.RoleAssignmentsPage })));
+const StudentsAdminPage = lazy(() => import("@/features/admin/StudentsAdminPage").then((m) => ({ default: m.StudentsAdminPage })));
+const ProfilePage = lazy(() => import("@/features/profile/ProfilePage").then((m) => ({ default: m.ProfilePage })));
 
-import { InternshipRecordPage } from "@/features/internships/InternshipRecordPage";
-import { InternshipsPage } from "@/features/internships/InternshipsPage";
-import { MentorAssignmentPage } from "@/features/internships/MentorAssignmentPage";
-import { MyStudentsPage } from "@/features/internships/MyStudentsPage";
-import { ProgramsAdminPage } from "@/features/internships/ProgramsAdminPage";
-
-import { CalendarPage } from "@/features/community/CalendarPage";
-import { ClubDetailPage, ClubsPage } from "@/features/community/ClubsPage";
-import { EventDetailRedirect, EventsPage } from "@/features/community/EventsPage";
-
-import { AnnouncementsPage } from "@/features/engagement/AnnouncementsPage";
-import { FacultyDirectoryPage } from "@/features/engagement/FacultyDirectoryPage";
-import { MenteesPage } from "@/features/engagement/MenteesPage";
-import { MentorshipPage } from "@/features/engagement/MentorshipPage";
-
-import { AuditLogPage } from "@/features/admin/AuditLogPage";
-import { CurriculumAdminPage } from "@/features/admin/CurriculumAdminPage";
-import { StudentProfilePage } from "@/features/people/StudentProfilePage";
-import { DepartmentsPage } from "@/features/admin/DepartmentsPage";
-import { ElectiveAdminPage } from "@/features/admin/ElectiveAdminPage";
-import { EventsAdminPage } from "@/features/admin/EventsAdminPage";
-import { FacultyAdminPage } from "@/features/admin/FacultyAdminPage";
-import { MinorAdminPage } from "@/features/admin/MinorAdminPage";
-import { NptelAdminPage } from "@/features/admin/NptelAdminPage";
-import { RegistrationRoundsPage } from "@/features/admin/RegistrationRoundsPage";
-import { RoleAssignmentsPage } from "@/features/admin/RoleAssignmentsPage";
-import { StudentsAdminPage } from "@/features/admin/StudentsAdminPage";
-
-import { ProfilePage } from "@/features/profile/ProfilePage";
+function EnrollmentLink() {
+  const { enrollmentId } = useParams();
+  return <Navigate to={`/internships/review?record=${enrollmentId ?? ""}`} replace />;
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -72,9 +78,7 @@ export default function App() {
             responsive. The CSS block in index.css cannot cover Framer Motion,
             which animates via inline style rather than CSS transitions. */}
         <MotionConfig reducedMotion="user">
-        <BrowserRouter
-          future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-        >
+        <BrowserRouter>
           <AuthProvider>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
@@ -200,6 +204,14 @@ export default function App() {
                   }
                 />
                 <Route
+                  path="internships/windows"
+                  element={
+                    <RequireAccess permission="internships:manage">
+                      <ProgramWindowsPage />
+                    </RequireAccess>
+                  }
+                />
+                <Route
                   path="internships/mentor-assignment"
                   element={
                     <RequireAccess permission="internships:manage">
@@ -216,8 +228,21 @@ export default function App() {
                   }
                 />
                 {/* Notification deep links land here. */}
-                <Route path="internships/students/:enrollmentId"
-                       element={<Navigate to="/internships/my-students" replace />} />
+                {/* Review links (dashboard queue, notifications) name one record.
+                    They used to redirect to the CSSI list and drop the student —
+                    even for a Summer intern. Now they open that record's drawer
+                    on the mentor's combined list. */}
+                <Route path="internships/students/:enrollmentId" element={<EnrollmentLink />} />
+                <Route
+                  path="internships/review"
+                  element={
+                    <MyStudentsPage
+                      scope="mine"
+                      title="My internship students"
+                      description="Every CSSI and Summer Internship student you mentor."
+                    />
+                  }
+                />
                 <Route path="internships/:programId"
                        element={<Navigate to="/internships" replace />} />
 

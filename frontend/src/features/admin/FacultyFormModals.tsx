@@ -366,8 +366,8 @@ export function DeleteFacultyModal({
     >
       <div className="space-y-4">
         {error && <Alert variant="danger">{error}</Alert>}
-        <div className="flex items-start gap-3 rounded-lg border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-900 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-200">
-          <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" />
+        <div className="flex items-start gap-3 rounded-lg border border-danger/25 bg-danger-soft p-3.5 text-xs text-danger">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-danger" />
           <p>
             Are you sure you want to deactivate <strong>{member.full_name}</strong> ({member.employee_code})?
             Their portal login will be disabled.

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { UserCheck, Users } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Form";
@@ -27,7 +27,17 @@ export function MyStudentsPage({ scope = "mine", programType, title, description
   const [programId, setProgramId] = useState<string>("");
   const [status, setStatus] = useState<string>("");
   const [search, setSearch] = useState("");
-  const [openId, setOpenId] = useState<number | null>(null);
+  // The open record lives in the URL (?record=), so a review link from the
+  // dashboard or a notification lands on that student's drawer, and Back closes it.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const openId = Number(searchParams.get("record")) || null;
+  const setOpenId = (id: number | null) =>
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (id) next.set("record", String(id));
+      else next.delete("record");
+      return next;
+    });
 
   const programs = useQuery({
     queryKey: ["internship-programs"],

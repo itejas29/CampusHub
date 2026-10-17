@@ -9,6 +9,8 @@ import { Badge, StatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
+import { FormField, Input } from "@/components/ui/Form";
+import { ProgramWindowStrip } from "./ProgramWindowStrip";
 import { PageHeader } from "@/components/ui/Misc";
 import { ProgressBar } from "@/components/ui/Stepper";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
@@ -21,6 +23,14 @@ export function InternshipsPage() {
   const queryClient = useQueryClient();
   const [enrollIn, setEnrollIn] = useState<InternshipProgram | null>(null);
   const [organizationId, setOrganizationId] = useState<string>("");
+  // A student may register an organisation that is not on the approved list
+  // yet, and must name its supervisor when the programme requires one (CSSI).
+  const [newOrg, setNewOrg] = useState({ name: "", city: "" });
+  const [supervisor, setSupervisor] = useState({ name: "", phone: "" });
+  const resetForm = () => {
+    setEnrollIn(null); setOrganizationId("");
+    setNewOrg({ name: "", city: "" }); setSupervisor({ name: "", phone: "" });
+  };
   const [banner, setBanner] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
 
   const programs = useQuery({
@@ -40,11 +50,16 @@ export function InternshipsPage() {
   const enroll = useMutation({
     mutationFn: (programId: number) =>
       api.post(`/internships/programs/${programId}/enroll`, {
-        organization_id: organizationId ? Number(organizationId) : null,
+        organization_id: organizationId && organizationId !== "new" ? Number(organizationId) : null,
+        new_organization: organizationId === "new"
+          ? { name: newOrg.name.trim(), city: newOrg.city.trim() || null,
+              type: enrollIn?.allowed_organization_types[0] ?? "NGO" }
+          : null,
+        industry_mentor_name: supervisor.name.trim() || null,
+        industry_mentor_phone: supervisor.phone.trim() || null,
       }),
     onSuccess: () => {
-      setEnrollIn(null);
-      setOrganizationId("");
+      resetForm();
       setBanner({ tone: "success", text: "You are enrolled. Work through each stage in order." });
       void queryClient.invalidateQueries({ queryKey: ["internship-programs"] });
       void queryClient.invalidateQueries({ queryKey: ["internship-enrollments"] });
@@ -57,6 +72,14 @@ export function InternshipsPage() {
   });
 
   const allowedTypes = enrollIn?.allowed_organization_types ?? [];
+  const needsSupervisor = Boolean(enrollIn?.requires_industry_mentor);
+  // Named after the organisation type the programme accepts — "NGO supervisor".
+  const supervisorLabel = allowedTypes.length === 1
+    ? `${allowedTypes[0] === "NGO" ? "NGO" : humanise(allowedTypes[0])} supervisor`
+    : "Supervisor at the organisation";
+  const formReady =
+    (organizationId !== "new" || newOrg.name.trim().length > 1)
+    && (!needsSupervisor || (organizationId !== "" && supervisor.name.trim() && supervisor.phone.trim()));
   const filteredOrgs = (organizations.data ?? []).filter(
     (org) => allowedTypes.length === 0 || allowedTypes.includes(org.type),
   );
@@ -175,7 +198,9 @@ export function InternshipsPage() {
                 <CardHeader
                   title={program.name}
                   description={program.description ?? undefined}
-                  action={<StatusBadge status={program.status} />}
+                  // A window-run programme's state lives in its windows (below);
+                  // the older programme status would contradict them.
+                  action={program.window_kinds.length ? undefined : <StatusBadge status={program.status} />}
                 />
                 <CardBody>
                   <div className="flex flex-wrap gap-1.5">
@@ -224,6 +249,8 @@ export function InternshipsPage() {
                     </div>
                   </dl>
 
+                  {program.window_kinds.length > 0 && <ProgramWindowStrip programId={program.id} />}
+
                   {program.criteria.length > 0 && (
                     <p className="mt-3 text-xs text-ink-subtle">
                       Evaluated on {program.criteria.length} criteria ·{" "}
@@ -258,18 +285,20 @@ export function InternshipsPage() {
 
       <Modal
         open={Boolean(enrollIn)}
-        onClose={() => { setEnrollIn(null); setOrganizationId(""); }}
-        title={`Enrol in ${enrollIn?.name ?? ""}`}
-        description="You can change the organisation later from your internship record."
+        onClose={resetForm}
+        title={`Register for ${enrollIn?.name ?? ""}`}
+        description={enrollIn?.window_kinds.length
+          ? "You can correct these details until the registration deadline."
+          : "You can change the organisation later from your internship record."}
         footer={
           <>
-            <Button variant="secondary" size="sm"
-                    onClick={() => { setEnrollIn(null); setOrganizationId(""); }}>
+            <Button variant="secondary" size="sm" onClick={resetForm}>
               Cancel
             </Button>
-            <Button size="sm" loading={enroll.isPending}
+            <Button size="sm" variant="accent" loading={enroll.isPending}
+                    disabled={!formReady}
                     onClick={() => enrollIn && enroll.mutate(enrollIn.id)}>
-              Confirm enrolment
+              Register
             </Button>
           </>
         }
@@ -293,19 +322,46 @@ export function InternshipsPage() {
                 onChange={(e) => setOrganizationId(e.target.value)}
                 className="h-9 w-full cursor-pointer rounded border border-line-strong bg-surface px-3 text-sm text-ink"
               >
-                <option value="">Select later</option>
+                <option value="">{needsSupervisor ? "Choose your organisation" : "Select later"}</option>
                 {filteredOrgs.map((org) => (
                   <option key={org.id} value={org.id}>
                     {org.name} — {org.city ?? org.state ?? org.country}
                   </option>
                 ))}
+                <option value="new">Not listed — add it</option>
               </select>
+              {organizationId === "new" && (
+                <div className="grid gap-3 pt-2 sm:grid-cols-2">
+                  <FormField label="Organisation name" htmlFor="org-name" required>
+                    <Input id="org-name" value={newOrg.name} maxLength={180}
+                           onChange={(e) => setNewOrg((o) => ({ ...o, name: e.target.value }))} />
+                  </FormField>
+                  <FormField label="City" htmlFor="org-city">
+                    <Input id="org-city" value={newOrg.city} maxLength={100}
+                           onChange={(e) => setNewOrg((o) => ({ ...o, city: e.target.value }))} />
+                  </FormField>
+                </div>
+              )}
               <p className="text-xs text-ink-subtle">
                 <Building2 className="mr-1 inline h-3 w-3" aria-hidden />
                 {allowedTypes.length
                   ? `Accepted: ${allowedTypes.map(humanise).join(", ")}`
                   : "Any approved organisation"}
               </p>
+            </div>
+          )}
+
+          {needsSupervisor && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <FormField label={`${supervisorLabel} — name`} htmlFor="sup-name" required>
+                <Input id="sup-name" value={supervisor.name} maxLength={150} autoComplete="off"
+                       onChange={(e) => setSupervisor((v) => ({ ...v, name: e.target.value }))} />
+              </FormField>
+              <FormField label={`${supervisorLabel} — phone`} htmlFor="sup-phone" required>
+                <Input id="sup-phone" type="tel" inputMode="tel" value={supervisor.phone} maxLength={20}
+                       autoComplete="off"
+                       onChange={(e) => setSupervisor((v) => ({ ...v, phone: e.target.value }))} />
+              </FormField>
             </div>
           )}
 

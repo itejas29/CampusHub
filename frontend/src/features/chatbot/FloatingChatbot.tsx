@@ -198,20 +198,20 @@ export function FloatingChatbot() {
             whileHover={{ scale: 1.06 }}
             whileTap={{ scale: 0.94 }}
             onClick={() => setIsOpen(true)}
-            className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-tr from-brand-600 via-indigo-600 to-violet-600 text-white shadow-xl shadow-brand-500/25 transition-all focus:outline-none focus:ring-4 focus:ring-brand-500/30"
+            className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-tr from-accent via-iris to-violet text-white shadow-xl shadow-accent/25 transition-all focus:outline-none focus:ring-4 focus:ring-accent/30"
             aria-label="Open CampusBot Assistant"
             title="CampusHub Academic & Coordination Assistant"
           >
-            {/* Pulsing ring indicator */}
-            <span className="absolute -inset-1 -z-10 rounded-full bg-gradient-to-r from-brand-500 to-violet-500 opacity-40 blur-sm group-hover:opacity-75 transition-opacity duration-300 animate-pulse" />
+            {/* Soft halo — brightens on hover, never loops */}
+            <span className="absolute -inset-1 -z-10 rounded-full bg-gradient-to-r from-accent to-violet opacity-30 blur-sm group-hover:opacity-60 transition-opacity duration-300" />
 
             <Bot className="h-6 w-6 transition-transform duration-300 group-hover:rotate-6" />
 
             {/* Unread badge dot */}
             {hasUnread && (
               <span className="absolute top-0 right-0 flex h-3.5 w-3.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
-                <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-amber-500 border-2 border-white" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-warning-solid opacity-75" />
+                <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-warning-solid border-2 border-white" />
               </span>
             )}
           </motion.button>
@@ -227,22 +227,22 @@ export function FloatingChatbot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.94 }}
             transition={{ type: "spring", stiffness: 350, damping: 28 }}
-            className="flex flex-col w-[92vw] sm:w-[420px] h-[580px] max-h-[85vh] rounded-3xl bg-surface/98 backdrop-blur-2xl border border-line shadow-2xl overflow-hidden text-ink"
+            className="flex flex-col w-[calc(100vw-2rem)] sm:w-[420px] h-[580px] max-h-[calc(100dvh-7rem)] rounded-3xl bg-surface/98 backdrop-blur-2xl border border-line shadow-2xl overflow-hidden text-ink"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3.5 border-b border-line bg-surface-muted/60">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-brand-600 to-violet-600 text-white shadow-sm">
+                <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-accent to-violet text-white shadow-sm">
                   <Bot className="h-5 w-5" />
-                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-surface" />
+                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-success-solid border-2 border-surface" />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="font-semibold text-sm tracking-tight text-ink truncate">CampusBot</span>
-                    <Sparkles className="h-3 w-3 text-amber-500 shrink-0" />
+                    <Sparkles className="h-3 w-3 text-warning shrink-0" />
                   </div>
                   <div className="flex items-center gap-1 text-[11px] text-ink-subtle truncate">
-                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md bg-brand-500/10 text-brand-700 dark:text-brand-300 font-medium">
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-px rounded-md bg-accent/10 text-accent dark:text-accent font-medium">
                       <Shield className="h-2.5 w-2.5 shrink-0" />
                       {roleContext}
                     </span>
@@ -271,7 +271,7 @@ export function FloatingChatbot() {
             </div>
 
             {/* Role Guard Security Strip */}
-            <div className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-500/10 border-b border-emerald-500/20 text-[11px] text-emerald-800 dark:text-emerald-300">
+            <div className="flex items-center gap-1.5 px-3.5 py-1.5 bg-success-solid/10 border-b border-success/60 text-[11px] text-success">
               <Shield className="h-3 w-3 shrink-0" />
               <span className="truncate">Role-Protected Access · Confidential Records Guard Active</span>
             </div>
@@ -286,15 +286,15 @@ export function FloatingChatbot() {
                   <div
                     className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 leading-relaxed shadow-sm ${
                       msg.role === "user"
-                        ? "bg-gradient-to-r from-brand-600 to-indigo-600 text-white rounded-tr-sm"
+                        ? "bg-gradient-to-r from-accent to-iris text-white rounded-tr-sm"
                         : msg.isConfidentialBlock
-                        ? "bg-rose-50 dark:bg-rose-950/30 border border-rose-300 dark:border-rose-800 text-rose-950 dark:text-rose-100 rounded-tl-sm"
+                        ? "bg-danger-soft border border-danger/25 text-danger rounded-tl-sm"
                         : "bg-surface-muted/80 text-ink border border-line/60 rounded-tl-sm"
                     }`}
                   >
                     {/* Confidential Block Alert Header */}
                     {msg.isConfidentialBlock && (
-                      <div className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-semibold mb-1 text-xs">
+                      <div className="flex items-center gap-1.5 text-danger font-semibold mb-1 text-xs">
                         <ShieldAlert className="h-4 w-4 shrink-0" />
                         <span>Confidentiality Restriction</span>
                       </div>
@@ -316,7 +316,7 @@ export function FloatingChatbot() {
                               navigate(link.path);
                               setIsOpen(false);
                             }}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-brand-500/10 hover:bg-brand-500/20 text-brand-700 dark:text-brand-300 border border-brand-500/30 transition-all active:scale-95"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-accent/10 hover:bg-accent/20 text-accent dark:text-accent border border-accent/30 transition-all active:scale-95"
                           >
                             <span>{link.title}</span>
                             <ChevronRight className="h-3 w-3" />
@@ -341,12 +341,12 @@ export function FloatingChatbot() {
               {isLoading && (
                 <div className="flex items-center gap-2 text-ink-subtle text-xs py-1">
                   <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-surface-muted border border-line">
-                    <Bot className="h-3.5 w-3.5 text-brand-500 animate-pulse" />
+                    <Bot className="h-3.5 w-3.5 text-accent animate-pulse" />
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-brand-500 animate-bounce" />
-                    <span className="h-1.5 w-1.5 rounded-full bg-brand-500 animate-bounce [animation-delay:0.2s]" />
-                    <span className="h-1.5 w-1.5 rounded-full bg-brand-500 animate-bounce [animation-delay:0.4s]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-accent animate-bounce" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-accent animate-bounce [animation-delay:0.2s]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-accent animate-bounce [animation-delay:0.4s]" />
                   </div>
                 </div>
               )}
@@ -358,7 +358,7 @@ export function FloatingChatbot() {
             {suggestions.length > 0 && !isLoading && (
               <div className="px-3.5 py-2 border-t border-line/40 bg-surface-muted/30">
                 <div className="flex items-center gap-1 text-[11px] font-medium text-ink-subtle mb-1.5">
-                  <Sparkles className="h-3 w-3 text-amber-500" />
+                  <Sparkles className="h-3 w-3 text-warning" />
                   <span>Suggested queries:</span>
                 </div>
                 <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
@@ -367,7 +367,7 @@ export function FloatingChatbot() {
                       key={idx}
                       type="button"
                       onClick={() => handleSendMessage(suggestion)}
-                      className="shrink-0 text-left px-2.5 py-1 rounded-full text-[11px] bg-surface border border-line hover:border-brand-500/60 hover:bg-brand-500/5 text-ink-subtle hover:text-ink transition-all active:scale-95"
+                      className="shrink-0 text-left px-2.5 py-1 rounded-full text-[11px] bg-surface border border-line hover:border-accent/60 hover:bg-accent/5 text-ink-subtle hover:text-ink transition-all active:scale-95"
                     >
                       {suggestion}
                     </button>
@@ -384,7 +384,7 @@ export function FloatingChatbot() {
               }}
               className="p-3 border-t border-line bg-surface"
             >
-              <div className="flex items-center gap-1.5 rounded-2xl border border-line bg-surface-muted/50 px-3 py-1.5 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 transition-all">
+              <div className="flex items-center gap-1.5 rounded-2xl border border-line bg-surface-muted/50 px-3 py-1.5 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20 transition-all">
                 <input
                   ref={inputRef}
                   type="text"
@@ -397,7 +397,7 @@ export function FloatingChatbot() {
                 <button
                   type="submit"
                   disabled={!input.trim() || isLoading}
-                  className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-600 text-white shadow-sm hover:bg-brand-700 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                  className="flex h-7 w-7 items-center justify-center rounded-xl bg-accent text-white shadow-sm hover:bg-accent disabled:opacity-30 disabled:pointer-events-none transition-all"
                   aria-label="Send message"
                 >
                   <Send className="h-3.5 w-3.5" />
@@ -494,7 +494,7 @@ function MarkdownMessage({ content }: { content: string }) {
     }
     if (line.startsWith("#### ")) {
       renderedElements.push(
-        <h5 key={i} className="font-medium text-ink text-xs mt-1 mb-0.5 text-brand-700 dark:text-brand-300">
+        <h5 key={i} className="font-medium text-ink text-xs mt-1 mb-0.5 text-accent dark:text-accent">
           <FormatInline text={line.slice(5)} />
         </h5>
       );
@@ -505,7 +505,7 @@ function MarkdownMessage({ content }: { content: string }) {
     if (line.trim().startsWith("- ") || line.trim().startsWith("* ")) {
       renderedElements.push(
         <div key={i} className="flex items-start gap-1.5 ml-1">
-          <span className="text-brand-500 font-bold mt-0.5">•</span>
+          <span className="text-accent font-bold mt-0.5">•</span>
           <span className="flex-1">
             <FormatInline text={line.trim().slice(2)} />
           </span>
@@ -519,7 +519,7 @@ function MarkdownMessage({ content }: { content: string }) {
       renderedElements.push(
         <div
           key={i}
-          className="my-1.5 pl-2.5 py-1 border-l-2 border-brand-500 bg-brand-500/5 text-xs text-ink-subtle rounded-r-md"
+          className="my-1.5 pl-2.5 py-1 border-l-2 border-accent bg-accent/5 text-xs text-ink-subtle rounded-r-md"
         >
           <FormatInline text={line.trim().slice(2)} />
         </div>
@@ -567,7 +567,7 @@ function FormatInline({ text }: { text: string }) {
           return (
             <code
               key={idx}
-              className="px-1 py-0.2 rounded bg-surface border border-line text-[11px] font-mono text-brand-600 dark:text-brand-300"
+              className="px-1 py-px rounded bg-surface border border-line text-[11px] font-mono text-accent dark:text-accent"
             >
               {token.slice(1, -1)}
             </code>

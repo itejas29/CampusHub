@@ -1,8 +1,8 @@
 import { GraduationCap, LogOut, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import { NavLink } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { drawerLeft, fade } from "@/lib/motion";
+import { drawerLeft, fade, spring } from "@/lib/motion";
 import { Avatar } from "@/components/ui/Misc";
 import { useAuth } from "@/lib/auth";
 import { PROFILE_ITEM, visibleSections } from "@/lib/navigation";
@@ -11,9 +11,7 @@ import { cn, humanise } from "@/lib/utils";
 function iconClass(isActive: boolean) {
   return cn(
     "h-4 w-4 shrink-0 transition-colors duration-150",
-    isActive
-      ? "text-[rgb(var(--c-sidebar-item-active-text))]"
-      : "text-[rgb(var(--c-sidebar-item-icon))] group-hover:text-ink-muted",
+    isActive ? "text-sidebar-active-fg" : "text-sidebar-icon group-hover:text-sidebar-ink",
   );
 }
 
@@ -29,49 +27,47 @@ export function SidebarContent({
   const { user, can, mentorsProgram, coordinates, signOut } = useAuth();
   const sections = visibleSections(user?.roles ?? [], can, mentorsProgram, coordinates,
                                    user?.student?.visible_sections ?? null);
+  // One shared layoutId per sidebar instance, so the desktop rail and the
+  // mobile drawer never try to animate one indicator between them.
+  const indicatorId = useId();
 
   return (
     <div
       className={cn(
-        "flex h-full flex-col transition-all duration-200",
+        "relative flex h-full flex-col overflow-hidden bg-sidebar text-sidebar-text transition-[width] duration-200",
         collapsed ? "w-16" : "w-60",
       )}
-      style={{ background: "rgb(var(--c-sidebar-bg))", borderRight: "1px solid rgb(var(--c-sidebar-border))" }}
     >
-      {/* Logo & Collapse Header */}
+      {/* A faint electric glow at the top — the shell's one decorative flourish. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-24 left-1/2 h-48 w-48 -translate-x-1/2 rounded-full bg-electric/25 blur-3xl"
+      />
+
+      {/* Logo & collapse header */}
       <div
         className={cn(
-          "flex h-14 shrink-0 items-center px-3 transition-all duration-200",
+          "relative flex h-14 shrink-0 items-center border-b border-sidebar-ink/[0.08]",
           collapsed ? "justify-center px-2" : "gap-3 px-4",
         )}
-        style={{ borderBottom: "1px solid rgb(var(--c-sidebar-border))" }}
       >
         <button
           type="button"
           onClick={onToggleCollapse}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md cursor-pointer transition-transform hover:scale-105"
-          style={{
-            background: "rgb(var(--c-sidebar-logo-bg))",
-          }}
+          aria-label={collapsed ? "Expand sidebar" : "CampusHub home"}
           title={collapsed ? "Expand sidebar (Ctrl+B)" : "CampusHub PDEU Portal"}
+          className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-accent-gradient text-white shadow-glow-accent transition-transform hover:scale-105"
         >
-          <GraduationCap
-            className="h-4.5 w-4.5"
-            style={{ color: "rgb(var(--c-sidebar-logo-fg))" }}
-            aria-hidden
-          />
+          <GraduationCap className="h-4.5 w-4.5" aria-hidden />
         </button>
 
         {!collapsed && (
           <>
             <span className="min-w-0 flex-1">
-              <span className="block font-heading text-md font-semibold leading-tight text-ink">
+              <span className="block font-heading text-md font-semibold leading-tight text-sidebar-ink">
                 CampusHub
               </span>
-              <span
-                className="block truncate text-2xs uppercase tracking-wider font-semibold"
-                style={{ color: "rgb(var(--c-sidebar-section-text))" }}
-              >
+              <span className="block truncate text-2xs font-semibold uppercase tracking-wider text-sidebar-section">
                 PDEU Portal
               </span>
             </span>
@@ -80,7 +76,7 @@ export function SidebarContent({
               <button
                 type="button"
                 onClick={onToggleCollapse}
-                className="flex h-7 w-7 items-center justify-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink transition-colors cursor-pointer"
+                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-sidebar-icon transition-colors hover:bg-sidebar-ink/[0.08] hover:text-sidebar-ink"
                 title="Collapse sidebar (Ctrl+B)"
                 aria-label="Collapse sidebar"
               >
@@ -94,7 +90,7 @@ export function SidebarContent({
       {/* Nav */}
       <nav
         className={cn(
-          "min-h-0 flex-1 overflow-y-auto py-3 custom-scrollbar transition-all duration-200",
+          "sidebar-scroll relative min-h-0 flex-1 overflow-y-auto py-3",
           collapsed ? "px-2" : "px-2.5",
         )}
         aria-label="Main"
@@ -102,13 +98,10 @@ export function SidebarContent({
         {sections.map((section, index) => (
           <div
             key={section.title ?? `section-${index}`}
-            className={index > 0 ? (collapsed ? "mt-3 pt-3 border-t border-line/40" : "mt-5") : ""}
+            className={index > 0 ? (collapsed ? "mt-3 border-t border-sidebar-ink/[0.08] pt-3" : "mt-5") : ""}
           >
             {!collapsed && section.title && (
-              <p
-                className="mb-1 px-2.5 text-2xs font-semibold uppercase tracking-wider"
-                style={{ color: "rgb(var(--c-sidebar-section-text))" }}
-              >
+              <p className="mb-1.5 px-2.5 text-2xs font-semibold uppercase tracking-wider text-sidebar-section">
                 {section.title}
               </p>
             )}
@@ -119,25 +112,40 @@ export function SidebarContent({
                     to={item.to}
                     end={item.end}
                     title={collapsed ? item.label : undefined}
+                    aria-label={collapsed ? item.label : undefined}
                     className={({ isActive }) =>
                       cn(
-                        "group flex items-center rounded-md text-sm font-medium transition-all duration-150 select-none",
-                        collapsed
-                          ? "justify-center h-9 w-9 mx-auto p-0"
-                          : "gap-2.5 px-2.5 py-[7px]",
+                        "group relative flex select-none items-center rounded-md text-sm font-medium transition-colors duration-150",
+                        collapsed ? "mx-auto h-9 w-9 justify-center p-0" : "gap-2.5 px-2.5 py-[7px]",
                         isActive
-                          ? "bg-[rgb(var(--c-sidebar-item-active-bg))] text-[rgb(var(--c-sidebar-item-active-text))] font-semibold"
-                          : "text-[rgb(var(--c-sidebar-item-text))] hover:bg-[rgb(var(--c-sidebar-item-hover-bg))] hover:text-ink",
+                          ? "font-semibold text-sidebar-active-fg"
+                          : "text-sidebar-text hover:bg-sidebar-ink/[0.07] hover:text-sidebar-ink",
                       )
                     }
                     onClick={onNavigate}
                   >
                     {({ isActive }) => (
                       <>
-                        {item.icon && (
-                          <item.icon className={iconClass(isActive)} aria-hidden />
+                        {isActive && (
+                          // The active pill glides between items rather than
+                          // blinking, so the eye follows where it went.
+                          <motion.span
+                            layoutId={`sidebar-active-${indicatorId}`}
+                            className="absolute inset-0 rounded-md bg-sidebar-active shadow-sm"
+                            transition={spring}
+                            aria-hidden
+                          />
                         )}
-                        {!collapsed && <span className="truncate">{item.label}</span>}
+                        {isActive && !collapsed && (
+                          <span
+                            aria-hidden
+                            className="absolute -left-2.5 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-sidebar-indicator"
+                          />
+                        )}
+                        {item.icon && (
+                          <item.icon className={cn(iconClass(isActive), "relative")} aria-hidden />
+                        )}
+                        {!collapsed && <span className="relative truncate">{item.label}</span>}
                       </>
                     )}
                   </NavLink>
@@ -151,22 +159,20 @@ export function SidebarContent({
       {/* User profile footer */}
       <div
         className={cn(
-          "shrink-0 p-2.5 transition-all duration-200",
-          collapsed && "flex flex-col items-center p-2 gap-1.5",
+          "relative shrink-0 border-t border-sidebar-ink/[0.08] p-2.5",
+          collapsed && "flex flex-col items-center gap-1.5 p-2",
         )}
-        style={{ borderTop: "1px solid rgb(var(--c-sidebar-border))" }}
       >
         {collapsed ? (
           <>
             <NavLink
               to={PROFILE_ITEM.to}
               title={`${user?.full_name ?? "Profile"} (${user?.roles.map((r) => humanise(r)).join(", ")})`}
+              aria-label="Your profile"
               className={({ isActive }) =>
                 cn(
-                  "flex h-9 w-9 items-center justify-center rounded-md transition-all duration-150",
-                  isActive
-                    ? "bg-[rgb(var(--c-sidebar-item-active-bg))]"
-                    : "hover:bg-[rgb(var(--c-sidebar-item-hover-bg))]",
+                  "flex h-9 w-9 items-center justify-center rounded-md transition-colors duration-150",
+                  isActive ? "bg-sidebar-ink/[0.12]" : "hover:bg-sidebar-ink/[0.07]",
                 )
               }
               onClick={onNavigate}
@@ -177,7 +183,8 @@ export function SidebarContent({
               type="button"
               onClick={signOut}
               title="Sign out"
-              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-ink-muted transition-all duration-150 hover:bg-danger-soft/50 hover:text-danger"
+              aria-label="Sign out"
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-sidebar-icon transition-colors duration-150 hover:bg-danger/20 hover:text-white"
             >
               <LogOut className="h-4 w-4 shrink-0" aria-hidden />
             </button>
@@ -186,7 +193,8 @@ export function SidebarContent({
                 type="button"
                 onClick={onToggleCollapse}
                 title="Expand sidebar (Ctrl+B)"
-                className="mt-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink"
+                aria-label="Expand sidebar"
+                className="mt-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-sidebar-icon transition-colors hover:bg-sidebar-ink/[0.08] hover:text-sidebar-ink"
               >
                 <PanelLeftOpen className="h-4 w-4 shrink-0" />
               </button>
@@ -198,23 +206,18 @@ export function SidebarContent({
               to={PROFILE_ITEM.to}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-2.5 rounded-md px-2.5 py-2 transition-all duration-150",
-                  isActive
-                    ? "bg-[rgb(var(--c-sidebar-item-active-bg))]"
-                    : "hover:bg-[rgb(var(--c-sidebar-item-hover-bg))]",
+                  "flex items-center gap-2.5 rounded-md px-2.5 py-2 transition-colors duration-150",
+                  isActive ? "bg-sidebar-ink/[0.12]" : "hover:bg-sidebar-ink/[0.07]",
                 )
               }
               onClick={onNavigate}
             >
               <Avatar name={user?.full_name} src={user?.avatar_url} size="sm" />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold text-ink">
+                <span className="block truncate text-sm font-semibold text-sidebar-ink" title={user?.full_name}>
                   {user?.full_name}
                 </span>
-                <span
-                  className="block truncate text-2xs"
-                  style={{ color: "rgb(var(--c-sidebar-section-text))" }}
-                >
+                <span className="block truncate text-2xs text-sidebar-section">
                   {user?.roles.map((role) => humanise(role)).join(" · ")}
                 </span>
               </span>
@@ -222,11 +225,10 @@ export function SidebarContent({
             <button
               type="button"
               onClick={signOut}
-              className="mt-0.5 flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-all duration-150 hover:bg-danger-soft/50 hover:text-danger"
-              style={{ color: "rgb(var(--c-sidebar-item-text))" }}
+              className="mt-0.5 flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-sidebar-text transition-colors duration-150 hover:bg-danger/20 hover:text-white"
             >
               <LogOut className="h-4 w-4 shrink-0" aria-hidden />
-              <span className="text-sm">Sign out</span>
+              <span>Sign out</span>
             </button>
           </>
         )}

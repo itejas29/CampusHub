@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { listContainer, listItem } from "@/lib/motion";
+import { CountUp } from "./CountUp";
 
 const TONE_STYLES = {
   neutral: {
@@ -57,9 +58,9 @@ export function StatTile({
         )}
       </div>
       <p className={cn("mt-2.5 font-heading text-[1.75rem] font-semibold leading-none tabular-nums", styles.value)}>
-        {value}
+        {typeof value === "number" ? <CountUp value={value} /> : value}
       </p>
-      {hint && <p className="mt-1.5 truncate text-xs text-ink-subtle">{hint}</p>}
+      {hint && <p className="mt-1.5 truncate text-xs text-ink-subtle" title={hint}>{hint}</p>}
     </>
   );
 

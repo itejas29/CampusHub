@@ -75,6 +75,38 @@ FACULTY = [
      "Assistant Professor", "10-014", "Bioprocess Engineering", []),
 ]
 
+# ── the real ICT faculty, from PDEU's published list ───────────────────────
+# Loaded from seed/sources/pdeu_ict_faculty.json, which records where and when
+# it was retrieved. These are real people, so:
+#   * only what PDEU publishes is used — name, designation, official email,
+#     research areas, highest degree. No cabin or phone is invented.
+#   * they cannot sign in to a demo: their accounts get an unusable password.
+#   * they hold no coordinator or HoD role — the source names none. Those stay
+#     on the demo personas above (marked `is_demo`) until the department
+#     confirms who holds them.
+import json as _json
+from pathlib import Path as _Path
+
+ICT_FACULTY_SOURCE = _json.loads(
+    (_Path(__file__).parent / "sources" / "pdeu_ict_faculty.json").read_text(encoding="utf-8"))
+
+#: employee code -> the published record, for the details FACULTY's tuple lacks.
+ICT_FACULTY_DETAILS: dict[str, dict] = {}
+ICT_FACULTY_ROSTER = []
+for _i, _f in enumerate(ICT_FACULTY_SOURCE["faculty"], 1):
+    _code = f"ICT-P-{_i:02d}"
+    _local = (_f["official_email"] or _f["name"].replace(" ", ".")).split("@")[0].lower()
+    ICT_FACULTY_DETAILS[_code] = _f
+    ICT_FACULTY_ROSTER.append((
+        f"{_f['title'] + ' ' if _f['title'] else ''}{_f['name']}",
+        # A login address that cannot reach the real person — notifications
+        # from a demo must never land in a PDEU inbox.
+        f"{_local}@faculty.campushub.example.com",
+        _code, "ICT", _f["designation"], None,
+        "; ".join(_f["research_areas"])[:255] or None, [],
+    ))
+FACULTY = FACULTY + ICT_FACULTY_ROSTER
+
 # Coordination is scoped: (employee code, domain, department code or None).
 # Deliberately split across faculty and departments so the scope rules are
 # visible in the demo — the ICT summer coordinator cannot touch CSE's programme,
@@ -88,7 +120,9 @@ FACULTY = [
 #: mentees — so the person named here appears nowhere in ROLE_ASSIGNMENTS and in
 #: no mentor pool. ICT only for now; other departments follow.
 HEADS_OF_DEPARTMENT = {
-    "ICT": "ICT-F-103",   # Dr. Rakesh Bhatt
+    # Dr. Mohendra Roy — confirmed by the department through the project owner
+    # on 2026-10-17 (PDEU's public faculty list does not name the HoD).
+    "ICT": "ICT-P-18",
 }
 
 #: Department office accounts: day-to-day data administration, separate from the
@@ -99,7 +133,8 @@ DEPARTMENT_OFFICES = [
 ]
 
 ROLE_ASSIGNMENTS = [
-    # ── ICT coordinators — appointed by the HoD, Dr. Rakesh Bhatt ──
+    # ── ICT coordinators — demo personas until the department confirms who ──
+    # ── holds each module. The HoD (Dr. Mohendra Roy) appoints them.        ──
     ("ICT-F-102", "COORDINATOR", "SUMMER_INTERNSHIP", "ICT"),  # Dr. Priya Nair
     ("ICT-F-104", "COORDINATOR", "CSSI",              "ICT"),  # Prof. Sneha Iyer
     ("ICT-F-105", "COORDINATOR", "MOOC",              "ICT"),  # Dr. Meera Krishnan
@@ -138,6 +173,23 @@ ROLE_ASSIGNMENTS = [
     # Biotechnology has no coordinator: its curriculum is still a draft, and the
     # admin matrix should show that honestly rather than inventing cover.
 ]
+
+# Every real ICT faculty member is in the internship mentor pools — a mentor
+# grant only makes them eligible; it is not a claim about any real allocation,
+# and the students they are given in the demo are generated.
+ROLE_ASSIGNMENTS += [
+    (code, "MENTOR", domain, "ICT")
+    for _n, _e, code, *_ in ICT_FACULTY_ROSTER
+    # The HoD takes no mentees, so is never in a mentor pool.
+    if code not in HEADS_OF_DEPARTMENT.values()
+    for domain in ("SUMMER_INTERNSHIP", "CSSI")
+]
+
+#: Roles held by real people, each with how it was confirmed. A real person may
+#: hold a role only if it is recorded here — see test_real_faculty_roster.
+CONFIRMED_REAL_ROLES = {
+    "ICT-P-18": ("HOD", "ICT", "Confirmed by the department via the project owner, 2026-10-17"),
+}
 
 #: Kept so older imports keep working; coordinators are a subset of the above.
 COORDINATOR_ASSIGNMENTS = [

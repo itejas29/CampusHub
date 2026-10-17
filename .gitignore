@@ -8,7 +8,8 @@ env/
 .mypy_cache/
 .ruff_cache/
 
-node_modules/
+# No trailing slash: frontend/node_modules is a symlink, which "node_modules/" misses.
+node_modules
 dist/
 build/
 .vite/
@@ -33,3 +34,15 @@ uploads/
 .vscode/
 *.log
 postgres-data/
+
+# Playwright output — regenerated on every run.
+playwright-report/
+test-results/
+
+# Local working files — kept on disk, not part of the app. The root index.html
+# was an old static sign-in mock-up that embedded the demo password; the real
+# app is built from frontend/.
+/index.html
+/pdeu_campus.jpg
+*.pptx
+.vercel

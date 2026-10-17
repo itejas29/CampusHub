@@ -141,6 +141,7 @@ def faculty_out(faculty: Faculty, *, mentee_count: int = 0) -> FacultyOut:
         public_phone=faculty.public_phone, specialization=faculty.specialization,
         qualification=faculty.qualification, avatar_url=user.avatar_url,
         bio=faculty.bio, is_mentor=faculty.is_mentor, is_active=faculty.is_active,
+        is_demo=faculty.is_demo, profile_url=faculty.profile_url,
         mentee_count=mentee_count,
     )
 
