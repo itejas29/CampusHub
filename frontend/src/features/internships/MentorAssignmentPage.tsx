@@ -107,9 +107,9 @@ export function MentorAssignmentPage() {
     return programs.filter((p) => {
       // Check if user has an active coordination matching this program's domain and department
       const matchesCoordination = myCoordinations.some((c) => {
-        const domainMatches =
-          (p.type === "CSSI" && c.domain === "CSSI") ||
-          (p.type === "SUMMER" && c.domain === "SUMMER_INTERNSHIP");
+        // The server names the role that runs each programme, so a new
+        // programme type needs no change here.
+        const domainMatches = c.domain === p.coordination_domain;
         const deptMatches = c.department_id == null || c.department_id === p.department_id;
         return domainMatches && deptMatches;
       });

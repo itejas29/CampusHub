@@ -142,6 +142,8 @@ ROLE_ASSIGNMENTS = [
     ("ICT-F-106", "COORDINATOR", "OPEN_ELECTIVE",     "ICT"),  # Dr. Vikram Joshi
     ("ICT-F-107", "COORDINATOR", "CORE_ELECTIVE",     "ICT"),  # Prof. Leena Nambiar
     ("ICT-F-101", "COORDINATOR", "MENTORSHIP",        "ICT"),  # Dr. Anand Mehta
+    ("ICT-F-103", "COORDINATOR", "PROJECT",           "ICT"),  # Dr. Rakesh Bhatt
+    ("ICT-F-103", "COORDINATOR", "MAJOR_PROJECT",     "ICT"),  # Dr. Rakesh Bhatt
     # ── ICT mentors — separate grants, different people ──
     ("ICT-F-101", "MENTOR",      "CSSI",              "ICT"),  # mentor, not CSSI lead
     ("ICT-F-106", "MENTOR",      "SUMMER_INTERNSHIP", "ICT"),
@@ -182,7 +184,13 @@ ROLE_ASSIGNMENTS += [
     for _n, _e, code, *_ in ICT_FACULTY_ROSTER
     # The HoD takes no mentees, so is never in a mentor pool.
     if code not in HEADS_OF_DEPARTMENT.values()
-    for domain in ("SUMMER_INTERNSHIP", "CSSI")
+    for domain in ("SUMMER_INTERNSHIP", "CSSI", "PROJECT", "MAJOR_PROJECT")
+]
+# Demo guides for the Semester VII and VIII projects, so a guide can sign in.
+ROLE_ASSIGNMENTS += [
+    (code, "MENTOR", domain, "ICT")
+    for code in ("ICT-F-101", "ICT-F-106", "ICT-F-107")
+    for domain in ("PROJECT", "MAJOR_PROJECT")
 ]
 
 #: Roles held by real people, each with how it was confirmed. A real person may
@@ -571,6 +579,112 @@ SUMMER_STAGES = [
      "Present the internship outcome to the panel.", True, "PRESENTATION", "STUDENT"),
     ("EVALUATION", "Evaluation",
      "Faculty and coordinator record the final evaluation.", False, None, "FACULTY"),
+]
+
+# ── Semester VII / VIII projects, on the same internship engine ──────────
+# What the official sources give: the 2024-28 ICT handbook has a 1-credit
+# Seminar in Semester VII and a 12-credit Major / Comprehensive Project in
+# Semester VIII; the earlier schemes had a Mini Project in Semester VII (3
+# credits in ECE 2020-24). The department asked for the Minor Project to run for
+# the current cohort and the Seminar for 2024 admissions on, and for Semester
+# VIII to offer an in-house project or an industry internship.
+#
+# Everything else below — the stages, the rubrics, the Minor Project's credits
+# for ICT, the progress-report cadence — is a STARTING POINT, not a PDEU rule,
+# and each programme lists it under `requires_faculty_confirmation`.
+MINOR_PROJECT_STAGES = [
+    ("SYNOPSIS", "Topic & Synopsis",
+     "Submit the title, problem statement, objectives and plan of work.", True,
+     "SYNOPSIS", "STUDENT"),
+    ("GUIDE_ALLOCATION", "Guide Allocation",
+     "The coordinator assigns your faculty guide.", False, None, "COORDINATOR"),
+    ("MID_REVIEW", "Mid-semester Review",
+     "Present progress to your guide and upload the review slides.", True,
+     "PRESENTATION", "STUDENT"),
+    ("FINAL_REPORT", "Project Report", "Submit the final project report.", True,
+     "REPORT", "STUDENT"),
+    ("FINAL_PRESENTATION", "Final Presentation & Viva",
+     "Demonstrate the work to the panel.", True, "PRESENTATION", "STUDENT"),
+    ("EVALUATION", "Evaluation",
+     "Your guide records marks against the rubric.", False, None, "FACULTY"),
+]
+
+SEMINAR_STAGES = [
+    ("TOPIC", "Topic & Abstract",
+     "Choose a topic and submit an abstract with key references.", True,
+     "SYNOPSIS", "STUDENT"),
+    ("GUIDE_ALLOCATION", "Guide Allocation",
+     "The coordinator assigns your faculty guide.", False, None, "COORDINATOR"),
+    ("SEMINAR_REPORT", "Seminar Report", "Submit the seminar report.", True,
+     "REPORT", "STUDENT"),
+    ("SEMINAR_PRESENTATION", "Seminar Presentation",
+     "Deliver the seminar and upload the slides.", True, "PRESENTATION", "STUDENT"),
+    ("EVALUATION", "Evaluation",
+     "Your guide records marks against the rubric.", False, None, "FACULTY"),
+]
+
+#: Shared by both Semester VIII tracks; each track lists the stages it runs.
+MAJOR_PROJECT_STAGES = [
+    ("GUIDE_ALLOCATION", "Guide Allocation",
+     "The coordinator assigns your faculty guide.", False, None, "COORDINATOR"),
+    ("OFFER_LETTER", "Offer Letter",
+     "Upload the internship offer or joining letter from the company.", True,
+     "OFFER_LETTER", "STUDENT"),
+    ("SYNOPSIS", "Synopsis",
+     "Submit the problem statement, objectives and plan of work.", True,
+     "SYNOPSIS", "STUDENT"),
+    ("MID_REVIEW", "Mid-semester Review",
+     "Present progress to your guide and upload the review slides.", True,
+     "PRESENTATION", "STUDENT"),
+    ("FINAL_REPORT", "Project Report", "Submit the final report.", True,
+     "REPORT", "STUDENT"),
+    ("CERTIFICATE", "Completion Certificate",
+     "Upload the internship completion certificate from the company.", True,
+     "CERTIFICATE", "STUDENT"),
+    ("FINAL_PRESENTATION", "Final Presentation & Viva",
+     "Defend the work before the panel.", True, "PRESENTATION", "STUDENT"),
+    ("EVALUATION", "Evaluation",
+     "Your guide records marks against the rubric.", False, None, "FACULTY"),
+]
+
+MAJOR_PROJECT_TRACKS = [
+    {"key": "PROJECT", "label": "Major Project (in-house)",
+     "description": "A project carried out in the department under a faculty guide.",
+     "requires_organization": False, "requires_industry_mentor": False,
+     "organization_types": [],
+     "stages": ["GUIDE_ALLOCATION", "SYNOPSIS", "MID_REVIEW", "FINAL_REPORT",
+                "FINAL_PRESENTATION", "EVALUATION"]},
+    {"key": "INDUSTRY", "label": "Industry Internship",
+     "description": "A full-semester internship at a company, research lab or "
+                    "startup, with a faculty guide and a supervisor at the host.",
+     "requires_organization": True, "requires_industry_mentor": True,
+     "organization_types": ["COMPANY", "STARTUP", "RESEARCH_LAB"],
+     "stages": ["GUIDE_ALLOCATION", "OFFER_LETTER", "SYNOPSIS", "MID_REVIEW",
+                "FINAL_REPORT", "CERTIFICATE", "FINAL_PRESENTATION", "EVALUATION"]},
+]
+
+# Placeholder rubrics, 100 marks each — REQUIRES_FACULTY_CONFIRMATION.
+MINOR_PROJECT_CRITERIA = [
+    ("SYNOPSIS", "Problem Definition & Synopsis", "Clarity and scope of the problem.", 15, 1),
+    ("MID_REVIEW", "Mid-semester Review", "Progress and direction at mid-semester.", 25, 1),
+    ("WORK", "Implementation & Results", "Quality and completeness of the work.", 30, 1),
+    ("REPORT", "Project Report", "Structure and rigour of the report.", 15, 1),
+    ("VIVA", "Final Presentation & Viva", "Demonstration and answers to the panel.", 15, 1),
+]
+
+SEMINAR_CRITERIA = [
+    ("TOPIC", "Topic & Literature", "Relevance of the topic and depth of reading.", 20, 1),
+    ("REPORT", "Seminar Report", "Organisation and clarity of the report.", 30, 1),
+    ("PRESENTATION", "Presentation", "Delivery and use of time.", 35, 1),
+    ("QUESTIONS", "Questions & Discussion", "Handling of questions.", 15, 1),
+]
+
+MAJOR_PROJECT_CRITERIA = [
+    ("SYNOPSIS", "Problem & Synopsis", "Problem framing and plan of work.", 10, 1),
+    ("MID_REVIEW", "Mid-semester Review", "Progress at mid-semester.", 20, 1),
+    ("WORK", "Work & Results", "Technical depth and results achieved.", 35, 1),
+    ("REPORT", "Report", "Quality of the final report.", 15, 1),
+    ("VIVA", "Final Presentation & Viva", "Defence of the work.", 20, 1),
 ]
 
 # Rubrics are data — the frontend renders whatever rows exist.

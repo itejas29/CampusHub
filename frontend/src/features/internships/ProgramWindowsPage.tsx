@@ -66,7 +66,7 @@ export function ProgramWindowsPage() {
     queryFn: () => api.get<InternshipProgram[]>("/internships/programs"),
   });
   const windowed = useMemo(
-    () => (programs.data ?? []).filter((p) => p.window_kinds.length > 0),
+    () => (programs.data ?? []).filter((p) => p.window_kinds.length > 0 && p.can_manage),
     [programs.data],
   );
   const requested = Number(searchParams.get("program_id"));

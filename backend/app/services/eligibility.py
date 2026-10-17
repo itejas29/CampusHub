@@ -178,9 +178,10 @@ def check_minor_eligibility(
         )
     if minor.seats_available <= 0:
         reasons.append("No seats remain in this minor.")
-    if minor.application_opens_at and now < minor.application_opens_at:
+    opens, closes = as_utc(minor.application_opens_at), as_utc(minor.application_closes_at)
+    if opens and as_utc(now) < opens:
         reasons.append("Applications have not opened yet.")
-    if minor.application_closes_at and now > minor.application_closes_at:
+    if closes and as_utc(now) > closes:
         reasons.append("The application window has closed.")
 
     return EligibilityResult(not reasons, reasons)

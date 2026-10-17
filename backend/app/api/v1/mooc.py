@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy import select
 
 from app.core.deps import CurrentStudent, CurrentUser, DbSession, require_permission
-from app.core.errors import BusinessRuleError, NotFoundError, PermissionDeniedError
+from app.core.errors import BusinessRuleError, NotFoundError, PermissionDeniedError, ValidationError
 from app.core.rbac import P, has_permission
 from app.models.academics import CourseOffering, CurriculumComponent, MoocRegistration
 from app.models.enums import (
@@ -186,6 +186,10 @@ async def upload_certificate(registration_id: int, db: DbSession,
         raise NotFoundError("Registration not found.")
     if reg.student_id != student.id:
         raise PermissionDeniedError("You can only upload to your own registration.")
+    # Replacing a verified certificate used to reset it to PENDING, reopening
+    # a completed registration (and its score) to edits.
+    if reg.verification_status == VerificationStatus.VERIFIED:
+        raise BusinessRuleError("This certificate has been verified and can no longer be replaced.")
 
     stored = await save_upload(db, file, category=FileCategory.CERTIFICATE,
                                uploaded_by=user)
@@ -216,17 +220,16 @@ def all_registrations(
         stmt = stmt.where(MoocRegistration.verification_status == verification_status)
 
     rows = list(db.scalars(stmt))
-    if not has_permission(user.roles, P["MOOC_VERIFY"]):
-        allowed = {
-            c.department_id
-            for c in scope.coordinations_for(db, user)
-            if c.domain == CoordinationDomain.MOOC
-        }
-        if None not in allowed:   # None = institution-wide
-            rows = [
-                r for r in rows
-                if scope.student_department_id(db, r.student_id) in allowed
-            ]
+    # Only institution-wide roles see every department. Department Admin holds
+    # `mooc:verify` too, and that used to skip the filter — the ICT office saw
+    # every department's NPTEL registrations. Each row is now held to the same
+    # test as verifying it.
+    if not user.has_role(*scope.UNSCOPED_ROLES):
+        rows = [
+            r for r in rows
+            if scope.coordinates(db, user, CoordinationDomain.MOOC,
+                                 scope.student_department_id(db, r.student_id))
+        ]
     return [_out(db, r) for r in rows]
 
 
@@ -245,6 +248,10 @@ def verify(
     )
     if reg.certificate_file_id is None:
         raise BusinessRuleError("No certificate has been uploaded for this registration.")
+    if payload.verification_status not in (VerificationStatus.VERIFIED, VerificationStatus.REJECTED):
+        raise ValidationError("Verify or reject the certificate.")
+    if payload.verification_status == VerificationStatus.REJECTED and not (payload.remarks or "").strip():
+        raise ValidationError("Say why the certificate is rejected, so the student can fix it.")
 
     reg.verification_status = payload.verification_status
     reg.verified_by_user_id = user.id

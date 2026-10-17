@@ -17,7 +17,7 @@ interface AuthValue {
   can: (permission: string) => boolean;
   hasRole: (...roles: Role[]) => boolean;
   /** True when this faculty actually mentors students on that internship type. */
-  mentorsProgram: (type: "CSSI" | "SUMMER") => boolean;
+  mentorsProgram: (type: string) => boolean;
   /** True when they coordinate the domain (any department). */
   coordinates: (domain: CoordinationDomain) => boolean;
   isStaff: boolean;

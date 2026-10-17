@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight, ArrowUpRight, Award, BadgeCheck, BookOpen, Briefcase, CalendarClock,
-  ClipboardCheck, Clock, FileText, Layers, Megaphone, Milestone, Sparkles, UserCheck,
+  ClipboardCheck, Clock, FileText, FolderKanban, GraduationCap, Layers, Megaphone, Milestone,
+  Sparkles, UserCheck,
   Users, Users2, UserSquare2,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -50,6 +51,12 @@ const internshipActions = {
   }),
 };
 
+// Projects call the faculty member a guide, not a mentor.
+const projectActions = {
+  ...internshipActions,
+  primary: (p: FacultyPortfolio) => ({ ...internshipActions.primary(p), label: "Allocate guides" }),
+};
+
 const DOMAIN_META: Record<CoordinationDomain, DomainMeta> = {
   CSSI: {
     label: "CSSI", icon: Users, chip: "bg-success-soft text-success",
@@ -58,6 +65,14 @@ const DOMAIN_META: Record<CoordinationDomain, DomainMeta> = {
   SUMMER_INTERNSHIP: {
     label: "Summer Internship", icon: Briefcase, chip: "bg-accent-soft text-accent",
     bar: "from-accent to-electric/50", ...internshipActions,
+  },
+  PROJECT: {
+    label: "Minor Project & Seminar", icon: FolderKanban, chip: "bg-brand-soft text-brand",
+    bar: "from-brand to-brand/40", ...projectActions,
+  },
+  MAJOR_PROJECT: {
+    label: "Major Project / Internship", icon: GraduationCap, chip: "bg-electric/10 text-electric",
+    bar: "from-electric to-electric/40", ...projectActions,
   },
   MINOR: {
     label: "Minor Specialisation", icon: Sparkles, chip: "bg-violet-soft text-violet",

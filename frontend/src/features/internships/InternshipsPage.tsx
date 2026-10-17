@@ -17,7 +17,7 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
 import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
-import { humanise, roman } from "@/lib/utils";
+import { cn, humanise, roman } from "@/lib/utils";
 import type { EnrollmentSummary, InternshipProgram, Organization } from "@/types";
 
 export function InternshipsPage() {
@@ -34,8 +34,11 @@ export function InternshipsPage() {
   // yet, and must name its supervisor when the programme requires one (CSSI).
   const [newOrg, setNewOrg] = useState({ name: "", city: "" });
   const [supervisor, setSupervisor] = useState({ name: "", phone: "" });
+  // A programme that offers tracks (Semester VIII: in-house project or
+  // industry) asks for the track first; it decides the rest of the form.
+  const [trackKey, setTrackKey] = useState("");
   const resetForm = () => {
-    setEnrollIn(null); setOrganizationId("");
+    setEnrollIn(null); setOrganizationId(""); setTrackKey("");
     setNewOrg({ name: "", city: "" }); setSupervisor({ name: "", phone: "" });
   };
   const [banner, setBanner] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
@@ -48,19 +51,23 @@ export function InternshipsPage() {
     queryKey: ["internship-enrollments", "me"],
     queryFn: () => api.get<EnrollmentSummary[]>("/internships/enrollments/me"),
   });
+  const tracks = enrollIn?.tracks ?? [];
+  const track = tracks.find((t) => t.key === trackKey) ?? null;
+  const needsOrg = tracks.length ? Boolean(track?.requires_organization) : Boolean(enrollIn?.requires_organization);
   const organizations = useQuery({
     queryKey: ["organizations", enrollIn?.id],
     queryFn: () => api.get<Organization[]>("/organizations"),
-    enabled: Boolean(enrollIn?.requires_organization),
+    enabled: needsOrg,
   });
 
   const enroll = useMutation({
     mutationFn: (programId: number) =>
       api.post(`/internships/programs/${programId}/enroll`, {
-        organization_id: organizationId && organizationId !== "new" ? Number(organizationId) : null,
-        new_organization: organizationId === "new"
+        track: trackKey || null,
+        organization_id: needsOrg && organizationId && organizationId !== "new" ? Number(organizationId) : null,
+        new_organization: needsOrg && organizationId === "new"
           ? { name: newOrg.name.trim(), city: newOrg.city.trim() || null,
-              type: enrollIn?.allowed_organization_types[0] ?? "NGO" }
+              type: allowedTypes[0] ?? "NGO" }
           : null,
         industry_mentor_name: supervisor.name.trim() || null,
         industry_mentor_phone: supervisor.phone.trim() || null,
@@ -78,15 +85,19 @@ export function InternshipsPage() {
       }),
   });
 
-  const allowedTypes = enrollIn?.allowed_organization_types ?? [];
-  const needsSupervisor = Boolean(enrollIn?.requires_industry_mentor);
+  const allowedTypes = tracks.length ? track?.organization_types ?? [] : enrollIn?.allowed_organization_types ?? [];
+  const needsSupervisor = tracks.length ? Boolean(track?.requires_supervisor) : Boolean(enrollIn?.requires_industry_mentor);
   // Named after the organisation type the programme accepts — "NGO supervisor".
   const supervisorLabel = allowedTypes.length === 1
     ? `${allowedTypes[0] === "NGO" ? "NGO" : humanise(allowedTypes[0])} supervisor`
     : "Supervisor at the organisation";
+  // The server requires a host whenever the programme (or track) does.
   const formReady =
-    (organizationId !== "new" || newOrg.name.trim().length > 1)
-    && (!needsSupervisor || (organizationId !== "" && supervisor.name.trim() && supervisor.phone.trim()));
+    (!tracks.length || Boolean(track))
+    && (!needsOrg || (organizationId !== "" && (organizationId !== "new" || newOrg.name.trim().length > 1)))
+    && (!needsSupervisor || Boolean(supervisor.name.trim() && supervisor.phone.trim()));
+  const trackStages = track?.stages;
+  const shownStages = (enrollIn?.stages ?? []).filter((st) => !trackStages || trackStages.includes(st.code));
   const filteredOrgs = (organizations.data ?? []).filter(
     (org) => allowedTypes.length === 0 || allowedTypes.includes(org.type),
   );
@@ -117,9 +128,7 @@ export function InternshipsPage() {
               <Card key={program.id} className={isStudent ? "border-accent/50 ring-1 ring-accent/20" : undefined}>
                 <CardHeader
                   title={program.name}
-                  description={isStudent
-                    ? `Register with the NGO you will work with and your NGO supervisor's name and phone number.`
-                    : program.description ?? undefined}
+                  description={isStudent ? registerHint(program) : program.description ?? undefined}
                   // A window-run programme's state lives in its windows (below);
                   // the older programme status would contradict them.
                   action={program.window_kinds.length ? undefined : <StatusBadge status={program.status} />}
@@ -260,7 +269,8 @@ export function InternshipsPage() {
                       <div className="min-w-0">
                         <p className="tabular text-ink-muted">{enrollment.program_code}</p>
                         <h3 className="mt-1 text-md font-semibold leading-snug text-ink">
-                          {enrollment.organization_name ?? "Organisation not set"}
+                          {/* A project has no host; name the programme instead. */}
+                          {enrollment.organization_name ?? enrollment.program_name ?? "Organisation not set"}
                         </h3>
                       </div>
                       <StatusBadge status={enrollment.status} />
@@ -278,6 +288,12 @@ export function InternshipsPage() {
                         <div>
                           <dt className="text-ink-subtle">Faculty mentor</dt>
                           <dd className="mt-0.5 text-ink">{enrollment.mentor_name}</dd>
+                        </div>
+                      )}
+                      {enrollment.track_label && (
+                        <div>
+                          <dt className="text-ink-subtle">Track</dt>
+                          <dd className="mt-0.5 text-ink">{enrollment.track_label}</dd>
                         </div>
                       )}
                       {enrollment.group_name && (
@@ -342,7 +358,26 @@ export function InternshipsPage() {
             </Alert>
           )}
 
-          {enrollIn?.requires_organization && (
+          {tracks.length > 0 && (
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium text-ink">How will you take it?</legend>
+              {tracks.map((t) => (
+                <label key={t.key}
+                       className={cn("flex cursor-pointer gap-3 rounded-lg border p-3 transition-colors",
+                         trackKey === t.key ? "border-accent bg-accent-soft/40" : "border-line hover:border-line-strong")}>
+                  <input type="radio" name="track" value={t.key} checked={trackKey === t.key}
+                         onChange={() => { setTrackKey(t.key); setOrganizationId(""); }}
+                         className="mt-0.5 accent-[rgb(var(--c-accent))]" />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-ink">{t.label}</span>
+                    {t.description && <span className="mt-0.5 block text-xs text-ink-muted">{t.description}</span>}
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+          )}
+
+          {needsOrg && (
             <div className="space-y-1.5">
               <label htmlFor="org-select" className="block text-sm font-medium text-ink">
                 Host organisation
@@ -353,7 +388,7 @@ export function InternshipsPage() {
                 onChange={(e) => setOrganizationId(e.target.value)}
                 className="h-9 w-full cursor-pointer rounded border border-line-strong bg-surface px-3 text-sm text-ink"
               >
-                <option value="">{needsSupervisor ? "Choose your organisation" : "Select later"}</option>
+                <option value="">Choose your organisation</option>
                 {filteredOrgs.map((org) => (
                   <option key={org.id} value={org.id}>
                     {org.name} — {org.city ?? org.state ?? org.country}
@@ -401,7 +436,7 @@ export function InternshipsPage() {
               Workflow stages
             </p>
             <ol className="mt-2 space-y-1">
-              {(enrollIn?.stages ?? []).map((stage, index) => (
+              {shownStages.map((stage, index) => (
                 <li key={stage.id} className="flex items-start gap-2 text-xs text-ink-muted">
                   <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-surface text-2xs font-semibold text-ink-subtle">
                     {index + 1}
@@ -416,3 +451,18 @@ export function InternshipsPage() {
     </div>
   );
 }
+
+/** What registering for this programme asks of the student, in a sentence. */
+function registerHint(program: InternshipProgram): string {
+  if (program.tracks?.length) {
+    return `Choose how you will take it — ${program.tracks.map((t) => t.label).join(" or ")} — and give the details it needs.`;
+  }
+  const kinds = program.allowed_organization_types ?? [];
+  const host = kinds.length === 1 && kinds[0] === "NGO" ? "NGO" : "organisation";
+  if (program.requires_organization && program.requires_industry_mentor) {
+    return `Register with the ${host} you will work with and your ${host} supervisor's name and phone number.`;
+  }
+  if (program.requires_organization) return `Register with the ${host} you will work with.`;
+  return "Register to start. The coordinator assigns your faculty guide.";
+}
+

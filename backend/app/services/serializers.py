@@ -4,7 +4,7 @@ from __future__ import annotations
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models.academics import Course, CourseOffering, CurriculumComponent
+from app.models.academics import Course, CourseOffering, CurriculumComponent, as_utc
 from app.models.community import Club, Event, EventInterest, EventRegistration
 from app.models.enums import EventStatus, RegistrationStatus
 from app.models.identity import Faculty, Student, User
@@ -172,7 +172,7 @@ def event_out(
     seats_available = (
         max(event.capacity - registration_count, 0) if event.capacity else None
     )
-    deadline = event.registration_deadline or event.start_at
+    deadline = as_utc(event.registration_deadline or event.start_at)
     registration_open = (
         event.status == EventStatus.PUBLISHED
         and event.registration_required

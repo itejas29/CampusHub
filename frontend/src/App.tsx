@@ -190,6 +190,19 @@ export default function App() {
                     </RequireAccess>
                   }
                 />
+                <Route
+                  path="internships/project-students"
+                  element={
+                    <RequireAccess permission="students:read">
+                      <MyStudentsPage
+                        scope="mine"
+                        programType={["MINOR_PROJECT", "SEMINAR", "MAJOR_PROJECT"]}
+                        title="Project students"
+                        description="Students you guide for the Semester VII Minor Project or Seminar and the Semester VIII Major Project. Open a student to review submissions and record evaluation."
+                      />
+                    </RequireAccess>
+                  }
+                />
                 {/* Old combined route kept so existing links still resolve. */}
                 <Route
                   path="internships/my-students"

@@ -251,6 +251,36 @@ a programme that lists no windows keeps the semester-only rules. Enforced in
 6. The coordinator may extend, reschedule or reopen a window (audited, notifies);
    nobody else can.
 
+## Semester VII and VIII projects
+
+Rows on the one internship engine (`seed/run.py` `PROJECT_PROGRAMS`), each
+programme type mapped to one coordinator role in `INTERNSHIP_DOMAIN_FOR_TYPE`
+(`models/enums.py`) — the only place that mapping is written. An unmapped type
+has no coordinator (only the registrar can manage it); it no longer falls back
+to the Summer Internship coordinator.
+
+| Programme | Type | Role | Batches | Source |
+|---|---|---|---|---|
+| Minor Project (Sem VII) | `MINOR_PROJECT` | `PROJECT` | admitted ≤ 2023 | department's request; credits unconfirmed |
+| Seminar (Sem VII), 1 cr | `SEMINAR` | `PROJECT` | admitted ≥ 2024 | 2024-28 handbook |
+| Major Project / Industry Internship (Sem VIII), 12 cr | `MAJOR_PROJECT` | `MAJOR_PROJECT` | all | 2024-28 handbook; tracks per the department |
+
+- **Batch scoping** is configuration: `config["admission_years"] = {"from"/"to"}`
+  (`internships.governs_batch`). Never branch on the batch in code.
+- **Tracks** are configuration: `config["tracks"]`, each with what registering
+  needs (host, its kinds, a supervisor) and the stage codes it runs. Stages
+  outside a student's track are SKIPPED and never count as missing.
+  `enrollment.track` records the choice (migration 0012).
+- **Stages, rubrics, report cadence and the Minor Project's credits are a
+  starting point**, listed per programme in
+  `config["requires_faculty_confirmation"]` and shown to the coordinator. Do not
+  present them as PDEU rules.
+- Assigning a mentor or guide completes the coordinator-owned, document-free
+  allocation stage (`_sync_allocation_stage`), for every programme; taking the
+  mentor away reopens it.
+- Real students get no seeded project work. Demo: Dr. Rakesh Bhatt coordinates
+  both roles; Arjun Verma (VII) and Pooja Shah (VIII) are left to register.
+
 ## Faculty performance score
 
 Requested by the department (not a PDEU rule — weights are flagged as

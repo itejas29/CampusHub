@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ClipboardList, Download, Layers, Users } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Alert } from "@/components/ui/Alert";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
@@ -19,6 +20,9 @@ export function ProgramsAdminPage() {
     queryFn: () => api.get<InternshipProgram[]>("/internships/programs"),
   });
 
+  // Only what this person coordinates; the registrar sees every programme.
+  const managed = (data ?? []).filter((p) => p.can_manage);
+
   return (
     <div>
       <PageHeader
@@ -36,7 +40,7 @@ export function ProgramsAdminPage() {
       {isLoading && <LoadingState rows={4} />}
       {error && <ErrorState onRetry={() => refetch()} />}
 
-      {data && data.length === 0 && (
+      {data && managed.length === 0 && (
         <Card>
           <EmptyState title="No internship programmes configured"
                       icon={<ClipboardList className="h-5 w-5" aria-hidden />} />
@@ -44,7 +48,7 @@ export function ProgramsAdminPage() {
       )}
 
       <div className="space-y-5">
-        {(data ?? []).map((program) => (
+        {managed.map((program) => (
           <ProgramCard key={program.id} program={program} />
         ))}
       </div>
@@ -79,8 +83,17 @@ function ProgramCard({ program }: { program: InternshipProgram }) {
         }
       />
       <CardBody className="space-y-5">
+        {(program.needs_confirmation?.length ?? 0) > 0 && (
+          <Alert variant="warning" title="Starting point — awaiting the department's confirmation">
+            The {program.needs_confirmation!.join(", ")} of this programme {program.needs_confirmation!.length === 1 ? "is" : "are"} not
+            taken from a PDEU document. They let the module run end to end until the department
+            confirms or replaces them.
+          </Alert>
+        )}
         <div className="flex flex-wrap gap-1.5">
           <Badge tone="brand" className="font-mono">{program.code}</Badge>
+          {program.batch_note && <Badge tone="info">{program.batch_note}</Badge>}
+          {(program.tracks ?? []).map((t) => <Badge key={t.key} tone="accent">{t.label}</Badge>)}
           <Badge tone="neutral">{humanise(program.type)}</Badge>
           <Badge tone="neutral">{program.credits} credits</Badge>
           {program.target_semester && (

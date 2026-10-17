@@ -271,6 +271,9 @@ class InternshipEnrollment(PKMixin, TimestampMixin, Base):
     start_date: Mapped[dt.date | None] = mapped_column(Date)
     end_date: Mapped[dt.date | None] = mapped_column(Date)
     # Summer-internship industry mentor (free text; not a portal user).
+    #: The track the student chose, for a programme that offers several
+    #: (`config["tracks"]`) — Semester VIII: in-house project or industry.
+    track: Mapped[str | None] = mapped_column(String(40))
     industry_mentor_name: Mapped[str | None] = mapped_column(String(150))
     industry_mentor_email: Mapped[str | None] = mapped_column(String(255))
     industry_mentor_phone: Mapped[str | None] = mapped_column(String(20))

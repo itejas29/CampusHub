@@ -16,7 +16,7 @@ from app.core.deps import (
     CurrentUser, DbSession, get_optional_faculty, require_permission, request_context,
 )
 from app.core.errors import (
-    BusinessRuleError, NotFoundError, PermissionDeniedError, ValidationError,
+    BusinessRuleError, ConflictError, NotFoundError, PermissionDeniedError, ValidationError,
 )
 from app.core.rbac import P
 from app.models.enums import (
@@ -160,6 +160,8 @@ def _program_out(db, program: InternshipProgram,
         my_enrollment = row.id if row else None
         if row:
             can_enroll, blocked = False, "You are already enrolled."
+        elif not engine.governs_batch(program, student.admission_year):
+            can_enroll, blocked = False, f"This programme is {engine.batch_note(program)}."
         elif InternshipWindowKind.REGISTRATION in program_windows.kinds_for(program):
             # A window-run programme: the coordinator's registration window is
             # the authority, not the semester alone.
@@ -178,7 +180,14 @@ def _program_out(db, program: InternshipProgram,
         else:
             can_enroll = True
 
+    domain = scope.domain_for_program(program)
     return InternshipProgramOut(
+        coordination_domain=domain.value if domain else None,
+        tracks=[{"key": t.get("key"), "label": t.get("label"), "description": t.get("description"),
+                 "stages": t.get("stages"), **engine.registration_requirements(program, t)}
+                for t in engine.program_tracks(program)],
+        batch_note=engine.batch_note(program) or None,
+        needs_confirmation=list((program.config or {}).get("requires_faculty_confirmation") or []),
         mentor_capacity=engine.mentor_capacity(program),
         window_kinds=[k.value for k in program_windows.kinds_for(program)],
         mentor_capacity_confirmed=engine.mentor_capacity_confirmed(program),
@@ -223,6 +232,10 @@ def _summary(db, enrollment: InternshipEnrollment,
         id=enrollment.id, program_id=enrollment.program_id,
         program_code=enrollment.program.code if enrollment.program else None,
         program_type=(enrollment.program.type.value if enrollment.program else None),
+        program_name=enrollment.program.name if enrollment.program else None,
+        track=enrollment.track,
+        track_label=next((t.get("label") for t in engine.program_tracks(enrollment.program)
+                          if t.get("key") == enrollment.track), None) if enrollment.track else None,
         student_id=enrollment.student_id,
         student_name=student.user.full_name if student else None,
         roll_number=student.roll_number if student else None,
@@ -440,6 +453,7 @@ def _student_visible_programs(db, student: Student,
         p for p in programs
         if (p.department_id is None or p.department_id == student.department_id
             or p.id in enrolled_ids)
+        and (p.id in enrolled_ids or engine.governs_batch(p, student.admission_year))
         and engine.student_can_see_program(
             p, student.current_semester, has_enrollment=p.id in enrolled_ids)
     ]
@@ -455,7 +469,14 @@ def list_programs(db: DbSession, user: CurrentUser,
     programs = list(db.scalars(stmt))
     if student:
         programs = _student_visible_programs(db, student, programs)
-    return [_program_out(db, p, student) for p in programs]
+    out = []
+    for p in programs:
+        row = _program_out(db, p, student)
+        # Lets each screen list only what this person runs, instead of every
+        # programme in the institution with actions that would then be refused.
+        row.can_manage = not student and _can_manage(user, db, p)
+        out.append(row)
+    return out
 
 
 @router.get("/programs/{program_id}", response_model=InternshipProgramOut)
@@ -496,17 +517,22 @@ def export_program_enrollments_csv(
         "Current Stage", "Progress %", "Evaluation Status",
         "Total Marks", "Final Grade", "Status",
     ])
+    # The export read four attributes the model does not have (mentor_faculty,
+    # current_stage, progress_percent, evaluation_status), so it always failed.
+    stage_names = dict(db.execute(select(InternshipStage.id, InternshipStage.name)
+                                  .where(InternshipStage.program_id == program_id)).all())
     for e in enrollments:
         student = e.student
         student_user = student.user if student else None
         dept = student.department.name if student and student.department else ""
-        mentor = (
-            e.mentor_faculty.user.full_name
-            if e.mentor_faculty and e.mentor_faculty.user
-            else ""
-        )
+        mentor = e.mentor.user.full_name if e.mentor and e.mentor.user else ""
         org = e.organization.name if e.organization else ""
-        stage = e.current_stage.title if e.current_stage else ""
+        stage = stage_names.get(e.current_stage_id, "") if e.current_stage_id else ""
+        evaluations = list(db.scalars(select(InternshipEvaluation.status).where(
+            InternshipEvaluation.enrollment_id == e.id)))
+        evaluation = ("FINALISED" if EvaluationStatus.FINALISED in evaluations
+                      else "SUBMITTED" if EvaluationStatus.SUBMITTED in evaluations
+                      else "DRAFT" if evaluations else "")
         writer.writerow([
             student.roll_number if student else "",
             student_user.full_name if student_user else "",
@@ -516,8 +542,8 @@ def export_program_enrollments_csv(
             e.industry_mentor_name or "",
             mentor,
             stage,
-            e.progress_percent,
-            e.evaluation_status.value if e.evaluation_status else "",
+            engine.completion_percent(db, e),
+            evaluation,
             float(e.final_marks) if e.final_marks is not None else "",
             e.final_grade or "",
             e.status.value,
@@ -708,21 +734,38 @@ def enroll(program_id: int, payload: EnrollRequest, db: DbSession,
     student = db.scalar(select(Student).where(Student.user_id == user.id))
     if student is None:
         raise PermissionDeniedError("Only students can enrol in an internship.")
+    if db.scalar(select(InternshipEnrollment.id).where(
+            InternshipEnrollment.program_id == program.id,
+            InternshipEnrollment.student_id == student.id)) is not None:
+        # A second POST used to overwrite the first registration, add another
+        # organisation row and resend "Enrolled". Corrections go through the
+        # record (PATCH) while the window is open.
+        raise ConflictError("You are already registered. Correct your details from your record.")
+    track = engine.track_for(program, payload.track)
+    engine.assert_registration_organisation(
+        db, program, organization_id=payload.organization_id,
+        new_type=payload.new_organization.type if payload.new_organization else None,
+        track=track)
+    if not engine.governs_batch(program, student.admission_year):
+        raise BusinessRuleError(f"{program.name} is {engine.batch_note(program)}.")
     if InternshipWindowKind.REGISTRATION in program_windows.kinds_for(program):
         # The coordinator's registration window decides — it is what lets a
         # Semester II student register for a Semester III programme.
         program_windows.assert_can_register(db, program, student, already_enrolled=False)
-        if program.requires_industry_mentor and not (
-                (payload.industry_mentor_name or "").strip()
-                and (payload.industry_mentor_phone or "").strip()):
-            raise ValidationError(
-                "Give the name and phone number of your supervisor at the organisation.")
     else:
         if program.status != ProgramStatus.REGISTRATION_OPEN:
             raise BusinessRuleError("Registration is not open for this programme.")
         engine.assert_submissions_open(program, student.current_semester)
+    # Checked for every programme. It used to sit inside the window branch, so
+    # the Summer Internship took registrations with no industry supervisor.
+    if engine.registration_requirements(program, track)["requires_supervisor"] and not (
+            (payload.industry_mentor_name or "").strip()
+            and (payload.industry_mentor_phone or "").strip()):
+        raise ValidationError(
+            "Give the name and phone number of your supervisor at the organisation.")
 
-    enrollment = engine.enroll_student(db, program=program, student=student, actor=user)
+    enrollment = engine.enroll_student(db, program=program, student=student, actor=user,
+                                       track=track["key"] if track else None)
     for field in ("industry_mentor_name", "industry_mentor_phone", "industry_mentor_email"):
         value = getattr(payload, field)
         if value:
@@ -974,10 +1017,15 @@ def delete_document(document_id: int, db: DbSession, user: CurrentUser) -> Messa
     if doc is None:
         raise NotFoundError("Document not found.")
     enrollment = db.get(InternshipEnrollment, doc.enrollment_id)
-    if not _can_manage(user, db, enrollment.program):
+    manager = _can_manage(user, db, enrollment.program)
+    if not manager:
         _assert_can_submit(db, enrollment, user)
-    if doc.status == SubmissionStatus.APPROVED:
-        raise BusinessRuleError("An approved document cannot be removed.")
+    # Reviewed documents become VERIFIED, not APPROVED — checking only APPROVED
+    # let a student delete a document their mentor had already verified.
+    if doc.status in (SubmissionStatus.APPROVED, SubmissionStatus.VERIFIED):
+        raise BusinessRuleError("A verified document cannot be removed.")
+    if doc.status == SubmissionStatus.UNDER_REVIEW and not manager:
+        raise BusinessRuleError("Your mentor is reviewing this document, so it cannot be removed now.")
     db.delete(doc)
     audit.record(db, action=AuditAction.DELETE, entity_type="internship_document",
                  entity_id=document_id, actor=user, description="Removed document")
@@ -994,13 +1042,15 @@ def submit_report(enrollment_id: int, payload: ReportSubmit, db: DbSession,
     if enrollment is None:
         raise NotFoundError("Internship record not found.")
     _assert_can_submit(db, enrollment, user)
+    engine.assert_report_in_schedule(enrollment.program, payload.report_type,
+                                     payload.sequence_number)
 
     existing = db.scalar(select(InternshipReport).where(
         InternshipReport.enrollment_id == enrollment.id,
         InternshipReport.report_type == payload.report_type,
         InternshipReport.sequence_number == payload.sequence_number,
     ))
-    if existing and existing.status == SubmissionStatus.APPROVED:
+    if existing and existing.status in (SubmissionStatus.APPROVED, SubmissionStatus.VERIFIED):
         raise BusinessRuleError("This report has already been approved.")
 
     report = existing or InternshipReport(
@@ -1044,6 +1094,7 @@ def review_report(report_id: int, payload: ReportReview, db: DbSession,
         raise NotFoundError("Report not found.")
     enrollment = db.get(InternshipEnrollment, report.enrollment_id)
     _assert_can_review(db, enrollment, user, faculty)
+    engine.assert_report_review(report, payload.status, payload.feedback)
 
     report.status = payload.status
     report.feedback = payload.feedback
@@ -1635,7 +1686,9 @@ def schedule_presentation(
     enrollment = db.get(InternshipEnrollment, enrollment_id)
     if enrollment is None:
         raise NotFoundError("Internship record not found.")
-    _assert_can_review(db, enrollment, user, faculty)
+    # Coordinator-only, as documented: a mentor could set slots before, which
+    # let two mentors book clashing times the coordinator never saw.
+    _assert_can_manage_program(db, user, enrollment.program)
 
     if payload.scheduled_at is not None and not _certificate_is_verified(db, enrollment):
         raise BusinessRuleError(
@@ -1685,10 +1738,7 @@ def presentation_queue(
     program = db.get(InternshipProgram, program_id)
     if program is None:
         raise NotFoundError("Programme not found.")
-    scope.assert_coordinates(
-        db, user, scope.domain_for_program(program), program.department_id,
-        permission=P["INTERNSHIP_MANAGE"], what=program.name,
-    )
+    _assert_can_manage_program(db, user, program)
 
     rows: list[PresentationQueueRow] = []
     for enrollment in db.scalars(select(InternshipEnrollment).where(

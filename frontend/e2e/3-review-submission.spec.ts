@@ -32,6 +32,8 @@ test("closing the record drawer clears it from the URL, so Back works", async ({
   await page.goto("/internships/review");
   await page.getByRole("row").nth(1).click();
   await expect(page).toHaveURL(/record=\d+/);
+  // The URL changes before the drawer mounts; Escape before then went nowhere.
+  await expect(page.getByRole("dialog")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page).not.toHaveURL(/record=/);
 });

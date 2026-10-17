@@ -122,6 +122,16 @@ class InternshipProgramOut(ORMModel):
     #: the mentors listed can hold students — see services/mentor_allocation.
     mentor_allocation_locked_at: dt.datetime | None = None
     mentor_allocation_ids: list[int] = Field(default_factory=list)
+    #: Whether the person asking may manage this programme (coordinator scope).
+    can_manage: bool = False
+    #: The coordinator role that runs it ("CSSI", "PROJECT", …).
+    coordination_domain: str | None = None
+    #: Ways to take the programme, each with what registering asks for.
+    tracks: list[dict] = Field(default_factory=list)
+    #: "for students admitted in 2024 or later" — empty when every batch.
+    batch_note: str | None = None
+    #: What the department still has to confirm (stages, rubric, credits).
+    needs_confirmation: list[str] = Field(default_factory=list)
     #: Window kinds this programme runs (e.g. ["REGISTRATION", "PRESENTATION"]);
     #: empty means the older semester-only rules apply.
     window_kinds: list[str] = Field(default_factory=list)
@@ -316,6 +326,10 @@ class EnrollmentSummary(ORMModel):
     program_id: int
     program_code: str | None = None
     program_type: str | None = None
+    program_name: str | None = None
+    #: The track chosen, for a programme that offers several (Semester VIII).
+    track: str | None = None
+    track_label: str | None = None
     student_id: int
     student_name: str | None = None
     roll_number: str | None = None
@@ -399,6 +413,8 @@ class EnrollRequest(BaseModel):
     industry_mentor_name: str | None = Field(default=None, max_length=150)
     industry_mentor_phone: str | None = Field(default=None, max_length=20)
     industry_mentor_email: EmailStr | None = None
+    #: Required when the programme offers tracks (`config["tracks"]`).
+    track: str | None = Field(default=None, max_length=40)
 
 
 class EnrollmentUpdate(BaseModel):

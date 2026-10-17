@@ -18,7 +18,7 @@ from app.core.errors import (
 )
 from app.core.rbac import P
 from app.models.enums import (
-    ASSIGNED_ROLE_CAPABILITIES, AssignedRole, AuditAction, CoordinationDomain,
+    ASSIGNED_ROLE_CAPABILITIES, INTERNSHIP_DOMAINS, AssignedRole, AuditAction, CoordinationDomain,
     NotificationType, Role,
 )
 from app.models.identity import (
@@ -48,6 +48,8 @@ DOMAIN_LABELS = {
     CoordinationDomain.OPEN_ELECTIVE: "Open Electives",
     CoordinationDomain.CORE_ELECTIVE: "Program Core Electives",
     CoordinationDomain.MENTORSHIP: "Mentor–Mentee",
+    CoordinationDomain.PROJECT: "Minor Project & Seminar",
+    CoordinationDomain.MAJOR_PROJECT: "Major Project / Internship",
 }
 
 
@@ -294,8 +296,7 @@ def assign(
     # is why holding it for Summer Internship does not open CSSI.
     # A Mentor assignment deliberately does NOT grant it.
     if (payload.role is AssignedRole.COORDINATOR
-            and payload.domain in (CoordinationDomain.CSSI,
-                                   CoordinationDomain.SUMMER_INTERNSHIP)):
+            and payload.domain in INTERNSHIP_DOMAINS):
         _ensure_role(db, faculty.user_id, Role.INTERNSHIP_COORDINATOR)
 
     department = db.get(Department, payload.department_id) if payload.department_id else None
@@ -356,15 +357,13 @@ def revoke(
     # last one takes it away. Revoking a Mentor grant must not strip a
     # Coordinator's access — one role never removes another's permissions.
     if (assignment.role is AssignedRole.COORDINATOR
-            and assignment.domain in (CoordinationDomain.CSSI,
-                                      CoordinationDomain.SUMMER_INTERNSHIP)):
+            and assignment.domain in INTERNSHIP_DOMAINS):
         remaining = db.scalar(select(FacultyRoleAssignment).where(
             FacultyRoleAssignment.faculty_id == assignment.faculty_id,
             FacultyRoleAssignment.id != assignment.id,
             FacultyRoleAssignment.is_active.is_(True),
             FacultyRoleAssignment.role == AssignedRole.COORDINATOR,
-            FacultyRoleAssignment.domain.in_([CoordinationDomain.CSSI,
-                                              CoordinationDomain.SUMMER_INTERNSHIP]),
+            FacultyRoleAssignment.domain.in_(list(INTERNSHIP_DOMAINS)),
         ))
         if not remaining:
             link = db.scalar(select(UserRole).where(
@@ -447,8 +446,7 @@ def edit(
     # Losing the last active internship coordination also drops the coarse role.
     if (changes.get("is_active") is False
             and assignment.role is AssignedRole.COORDINATOR
-            and assignment.domain in (CoordinationDomain.CSSI,
-                                      CoordinationDomain.SUMMER_INTERNSHIP)):
+            and assignment.domain in INTERNSHIP_DOMAINS):
         _sync_internship_role(db, assignment)
 
     audit.record(
@@ -472,8 +470,7 @@ def _sync_internship_role(db, assignment: FacultyRoleAssignment) -> None:
         FacultyRoleAssignment.id != assignment.id,
         FacultyRoleAssignment.is_active.is_(True),
         FacultyRoleAssignment.role == AssignedRole.COORDINATOR,
-        FacultyRoleAssignment.domain.in_([CoordinationDomain.CSSI,
-                                          CoordinationDomain.SUMMER_INTERNSHIP]),
+        FacultyRoleAssignment.domain.in_(list(INTERNSHIP_DOMAINS)),
     ))
     if remaining:
         return

@@ -234,7 +234,8 @@ def my_elective_components(
     allocations = {
         a.curriculum_component_id: a
         for a in db.scalars(
-            select(ElectiveAllocation).where(ElectiveAllocation.student_id == student.id)
+            select(ElectiveAllocation).where(ElectiveAllocation.student_id == student.id,
+                                             registration.visible_allocations())
         )
     }
     pref_counts = dict(db.execute(
@@ -297,6 +298,7 @@ def component_workspace(component_id: int, db: DbSession,
         select(ElectiveAllocation).where(
             ElectiveAllocation.student_id == student.id,
             ElectiveAllocation.curriculum_component_id == component.id,
+            registration.visible_allocations(),
         )
     )
     reg = registration.status_for(db, component, student)
@@ -449,7 +451,8 @@ def withdraw_preferences(component_id: int, db: DbSession, student: CurrentStude
 def my_allocations(db: DbSession, student: CurrentStudent) -> list[AllocationOut]:
     rows = db.scalars(
         select(ElectiveAllocation)
-        .where(ElectiveAllocation.student_id == student.id)
+        .where(ElectiveAllocation.student_id == student.id,
+               registration.visible_allocations())
         .order_by(ElectiveAllocation.created_at.desc())
     )
     return [_allocation_out(db, a) for a in rows]
@@ -1414,6 +1417,8 @@ def move_window(
     if going_live:
         # The last point a mistake can be caught before students are told.
         registration.validate_round(db, window, opening=True)
+        if previous == RegistrationWindowStatus.LOCKED:
+            registration.assert_can_reopen(db, window)
 
     registration.transition(window, target)
 
