@@ -1,52 +1,75 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Variants } from "framer-motion";
 import {
-  AlertCircle,
-  CheckCircle2,
-  CheckSquare,
-  ChevronDown,
-  Dices,
-  Download,
-  ListOrdered,
-  Lock,
-  RotateCcw,
-  Search,
-  ShieldAlert,
-  Square,
-  UserCheck,
-  Users,
-  UserX,
-  Zap,
+  CalendarClock, Check, Download, Eraser, Filter, ListOrdered, RotateCcw, Search,
+  ShieldAlert, UserCheck, Users, UserX, X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
-import { CountUp } from "@/components/ui/CountUp";
-import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
-import { Link, useSearchParams } from "react-router-dom";
-import { useAuth } from "@/lib/auth";
-import { Button } from "@/components/ui/Button";
+import { useMemo, useState, type ReactNode } from "react";
+import { useSearchParams } from "react-router-dom";
+import { Alert } from "@/components/ui/Alert";
+import { Badge } from "@/components/ui/Badge";
+import { Button, LinkButton } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { Input, Select } from "@/components/ui/Form";
-import { Avatar } from "@/components/ui/Misc";
+import { Avatar, PageHeader } from "@/components/ui/Misc";
 import { ConfirmDialog } from "@/components/ui/Modal";
+import { StatGrid, StatTile } from "@/components/ui/StatTile";
+import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
 import { ApiError, api, qs } from "@/lib/api";
-import { listContainer, listItem, slideUp } from "@/lib/motion";
+import { useAuth } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 import type { EnrollmentSummary, InternshipProgram, MentorCapacity, ProgramWindows } from "@/types";
 
-// ─── Animation helpers ────────────────────────────────────────────────────────
-const EASE = [0.16, 1, 0.3, 1] as const;
+/**
+ * Mentor allocation for an internship programme (CSSI, Summer Internship).
+ *
+ * Laid out the way a coordinator works: who is available to mentor (left), how
+ * the next roll-number run will split the cohort (top right), and every
+ * student with their mentor (below). The server enforces every rule shown
+ * here — department-only mentors, no HoD, the per-mentor cap, and (for a
+ * window-run programme) that registration has started.
+ */
 
-const staggerContainer: Variants = {
-  hidden: {},
-  shown: { transition: { staggerChildren: 0.06, delayChildren: 0.1 } },
-};
-const cardReveal: Variants = {
-  hidden: { opacity: 0, y: 14, scale: 0.98 },
-  shown: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.28, ease: EASE } },
-};
-const heroReveal: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  shown: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE } },
-};
+/** A real checkbox with an accessible name, styled to the design system. */
+function Tick({
+  checked, onChange, label, indeterminate,
+}: { checked: boolean; onChange: () => void; label: string; indeterminate?: boolean }) {
+  return (
+    <span className="relative inline-flex h-4 w-4 shrink-0 items-center justify-center">
+      <input
+        type="checkbox" checked={checked} onChange={onChange} aria-label={label}
+        ref={(el) => { if (el) el.indeterminate = Boolean(indeterminate); }}
+        className="peer h-4 w-4 cursor-pointer appearance-none rounded-sm border border-line-strong bg-surface checked:border-accent checked:bg-accent indeterminate:border-accent indeterminate:bg-accent"
+        onClick={(e) => e.stopPropagation()}
+      />
+      <Check className="pointer-events-none absolute h-3 w-3 text-white opacity-0 peer-checked:opacity-100" aria-hidden />
+    </span>
+  );
+}
+
+function LoadBar({ count, cap }: { count: number; cap: number }) {
+  const pct = cap > 0 ? Math.min(100, (count / cap) * 100) : 0;
+  return (
+    <span className="block h-1.5 w-full overflow-hidden rounded-full bg-surface-muted">
+      <span
+        className={cn("block h-full rounded-full transition-[width] duration-300",
+          count >= cap ? "bg-warning-solid" : count > 0 ? "bg-accent" : "bg-transparent")}
+        style={{ width: `${pct}%` }}
+      />
+    </span>
+  );
+}
+
+function PanelHeader({ title, meta, children }: { title: string; meta?: ReactNode; children?: ReactNode }) {
+  return (
+    <div className="border-b border-line px-4 py-3.5">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="font-heading text-md font-semibold text-ink">{title}</h2>
+        {meta}
+      </div>
+      {children}
+    </div>
+  );
+}
 
 export function MentorAssignmentPage() {
   const queryClient = useQueryClient();
@@ -62,7 +85,6 @@ export function MentorAssignmentPage() {
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<number>>(new Set());
   const [selectedMentorIds, setSelectedMentorIds] = useState<Set<number>>(new Set());
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [showClearStudentsConfirm, setShowClearStudentsConfirm] = useState(false);
   const [feedback, setFeedback] = useState<{ tone: "success" | "danger" | "info"; text: string } | null>(null);
 
   // Fetch internship programs
@@ -217,7 +239,6 @@ export function MentorAssignmentPage() {
       setSelectedMentorIds(new Set());
       setSelectedStudentIds(new Set());
       setShowResetConfirm(false);
-      setShowClearStudentsConfirm(false);
       void queryClient.invalidateQueries({ queryKey: ["mentor-capacity"] });
       void queryClient.invalidateQueries({ queryKey: ["internship-enrollments"] });
     },
@@ -227,7 +248,6 @@ export function MentorAssignmentPage() {
         text: err instanceof ApiError ? err.message : "Failed to clear mentor assignments.",
       });
       setShowResetConfirm(false);
-      setShowClearStudentsConfirm(false);
     },
   });
 
@@ -318,8 +338,6 @@ export function MentorAssignmentPage() {
   // The per-mentor cap is programme configuration, reported by the server.
   const cap = mentors[0]?.max_capacity ?? null;
   const requiredMentors = cap ? Math.min(mentors.length, Math.ceil(totalStudents / cap)) : 0;
-  const capacityUsedPct = cap && activeMentorsCount > 0
-    ? Math.round((assignedCount / (activeMentorsCount * cap)) * 100) : 0;
   const avgLoad = activeMentorsCount > 0 ? (assignedCount / activeMentorsCount).toFixed(1) : "—";
 
   // Toggle student selection
@@ -360,17 +378,6 @@ export function MentorAssignmentPage() {
     });
   }
 
-  // Randomly select mentors needed
-  function handleRandomlyPickMentors() {
-    const shuffled = [...mentors].sort(() => 0.5 - Math.random());
-    const picked = new Set(shuffled.slice(0, requiredMentors).map((m) => m.faculty_id));
-    setSelectedMentorIds(picked);
-    setFeedback({
-      tone: "info",
-      text: `🎲 Randomly selected ${picked.size} faculty mentors from ${mentors.length} available faculties. Click "Auto-Allocate Roll No Wise" to assign!`,
-    });
-  }
-
   function handleSelectAllMentors() {
     setSelectedMentorIds(new Set(mentors.map((m) => m.faculty_id)));
   }
@@ -406,43 +413,6 @@ export function MentorAssignmentPage() {
     clearSelectedStudents.mutate(studentsToClear);
   }
 
-  // Batch Range groups preview
-  const batchRangeGroups = useMemo(() => {
-    const groups: { mentorName: string; range: string; count: number; status: string }[] = [];
-    const mentorMap = new Map<number, { name: string; students: EnrollmentSummary[] }>();
-
-    for (const s of enrollments) {
-      if (s.mentor_faculty_id) {
-        if (!mentorMap.has(s.mentor_faculty_id)) {
-          const mentor = mentors.find((m) => m.faculty_id === s.mentor_faculty_id);
-          mentorMap.set(s.mentor_faculty_id, {
-            name: mentor?.name ?? s.mentor_name ?? "Mentor",
-            students: [],
-          });
-        }
-        mentorMap.get(s.mentor_faculty_id)!.students.push(s);
-      }
-    }
-
-    mentorMap.forEach(({ name, students }) => {
-      if (students.length > 0) {
-        const sorted = [...students].sort((a, b) =>
-          (a.roll_number ?? "").localeCompare(b.roll_number ?? "", undefined, { numeric: true }),
-        );
-        const first = sorted[0].roll_number ?? "";
-        const last = sorted[sorted.length - 1].roll_number ?? "";
-        groups.push({
-          mentorName: name,
-          range: first === last ? first : `${first}–${last.slice(-3)}`,
-          count: students.length,
-          status: cap && students.length >= cap ? "Full" : `${students.length}/${cap ?? "—"}`,
-        });
-      }
-    });
-
-    return groups.slice(0, 8);
-  }, [enrollments, mentors, cap]);
-
   const exportCSV = () => {
     // Quote every field, double embedded quotes, and neutralise a leading
     // = + - @ so a student-entered organisation name can't run as a formula.
@@ -473,921 +443,365 @@ export function MentorAssignmentPage() {
     window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
   };
 
-  const selectedCount = selectedMentorIds.size > 0 ? selectedMentorIds.size : mentors.length;
+
+  // ── derived view data ─────────────────────────────────────────────────
+  // Each mentor's current roll-number block, shown beside their load.
+  const rangesByMentor = useMemo(() => {
+    const map = new Map<number, string[]>();
+    for (const e of enrollments) {
+      if (!e.mentor_faculty_id || !e.roll_number) continue;
+      const list = map.get(e.mentor_faculty_id) ?? [];
+      list.push(e.roll_number);
+      map.set(e.mentor_faculty_id, list);
+    }
+    const out = new Map<number, string>();
+    map.forEach((rolls, id) => {
+      rolls.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+      out.set(id, rolls.length === 1 ? rolls[0] : `${rolls[0]} – ${rolls[rolls.length - 1]}`);
+    });
+    return out;
+  }, [enrollments]);
+
+  // What the next roll-number run will do — the same arithmetic the server uses.
+  const runMentors = selectedMentorIds.size > 0 ? selectedMentorIds.size : mentors.length;
+  const runUsed = cap ? Math.min(runMentors, Math.ceil(totalStudents / cap)) : 0;
+  const runSeated = cap ? Math.min(totalStudents, runUsed * cap) : 0;
+  const runLeft = totalStudents - runSeated;
+  const filteredMentorName = mentorFilter !== "ALL" && mentorFilter !== "UNASSIGNED"
+    ? mentors.find((m) => String(m.faculty_id) === mentorFilter)?.name : null;
+  const allVisibleSelected = filteredStudents.length > 0
+    && filteredStudents.every((s) => selectedStudentIds.has(s.id));
+  const someVisibleSelected = filteredStudents.some((s) => selectedStudentIds.has(s.id));
+
+  if (programsQuery.isLoading) return <LoadingState rows={4} />;
+  if (programsQuery.error) return <ErrorState onRetry={() => programsQuery.refetch()} />;
+  if (!activeProgram) {
+    return (
+      <Card>
+        <EmptyState title="No programme to allocate"
+          description="You coordinate no CSSI or Summer Internship programme. Your HoD appoints coordinators." />
+      </Card>
+    );
+  }
 
   return (
-    <motion.div
-      className="space-y-0 pb-12"
-      initial="hidden"
-      animate="shown"
-      variants={slideUp}
-    >
-      {/* ── 1. HERO BANNER ──────────────────────────────────────────────────── */}
-      <motion.div
-        className="relative overflow-hidden rounded-2xl mb-7 shadow-sm bg-brand-gradient"
-        variants={heroReveal}
-      >
-        {/* Decorative geometry */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 80% 50%, rgba(53,99,246,0.18) 0%, transparent 60%), " +
-              "radial-gradient(circle at 95% 10%, rgba(98,87,232,0.22) 0%, transparent 45%)",
-          }}
-        />
-        {/* Grid lines decoration (right side) */}
-        <svg
-          className="absolute right-0 top-0 h-full w-1/3 opacity-[0.06]"
-          viewBox="0 0 400 300"
-          fill="none"
-          aria-hidden
-        >
-          {Array.from({ length: 10 }).map((_, i) => (
-            <line key={`v${i}`} x1={i * 44} y1="0" x2={i * 44} y2="300" stroke="white" strokeWidth="1" />
-          ))}
-          {Array.from({ length: 8 }).map((_, i) => (
-            <line key={`h${i}`} x1="0" y1={i * 40} x2="400" y2={i * 40} stroke="white" strokeWidth="1" />
-          ))}
-          <circle cx="320" cy="150" r="80" stroke="white" strokeWidth="1.5" fill="none" />
-          <circle cx="320" cy="150" r="50" stroke="white" strokeWidth="1" fill="none" />
-          <circle cx="320" cy="150" r="20" stroke="white" strokeWidth="1" fill="none" />
-        </svg>
-
-        <div className="relative z-10 px-6 py-10 sm:px-8 sm:py-12">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-            {/* Left: title + meta */}
-            <div className="space-y-4 max-w-2xl">
-              {/* Top badges + Program Switcher */}
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-white/10 text-white/90 border border-white/20 backdrop-blur-sm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-success-solid animate-pulse" />
-                  Active Session
-                </span>
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-white/10 text-white/80 border border-white/15">
-                  {user?.faculty?.department_code ? `${user.faculty.department_code} Department` : "ICT Department"}
-                </span>
-
-                {/* Program Switcher */}
-                {availablePrograms.length > 1 ? (
-                  <div className="relative inline-flex items-center">
-                    <select
-                      value={activeProgram?.id ?? ""}
-                      onChange={(e) => handleProgramChange(e.target.value)}
-                      className="appearance-none bg-accent/30 hover:bg-accent/40 text-blue-100 font-semibold text-xs rounded-full pl-3 pr-7 py-1 border border-accent/60 backdrop-blur-sm cursor-pointer transition focus:outline-none focus:ring-1 focus:ring-white/40"
-                    >
-                      {availablePrograms.map((p) => (
-                        <option key={p.id} value={p.id} className="text-ink bg-white font-medium">
-                          {p.name} ({p.code})
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-2 h-3.5 w-3.5 text-blue-200 pointer-events-none" />
-                  </div>
-                ) : (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-accent/30 text-blue-200 border border-accent/60">
-                    {activeProgram?.code ?? "CSSI-202"}
-                  </span>
-                )}
-              </div>
-
-              {/* Title */}
-              <div>
-                <h1 className="font-heading text-3xl sm:text-4xl font-bold text-white leading-tight tracking-tight">
-                  {activeProgram ? `${activeProgram.name} Mentor Allocation` : "Mentor Allocation"}
-                </h1>
-                <p className="mt-2 text-base text-white/70 font-medium">
-                  {activeProgram?.type === "SUMMER"
-                    ? "Summer Industry Internship"
-                    : "Community & Social Service Internship"}
-                  &nbsp;&nbsp;·&nbsp;&nbsp;{activeProgram?.target_semester ? `Target Semester ${activeProgram.target_semester}` : "Cohort Year"}
-                  &nbsp;&nbsp;·&nbsp;&nbsp;Code: {activeProgram?.code ?? "—"}
-                </p>
-              </div>
-
-              {/* Stats pills */}
-              <div className="flex flex-wrap items-center gap-3">
-                {[
-                  { label: "Total Students", value: String(totalStudents), icon: Users },
-                  { label: "Faculty Mentors", value: String(mentors.length), icon: UserCheck },
-                  { label: "Allocated", value: `${allocPct}%`, icon: CheckCircle2 },
-                ].map(({ label, value, icon: Icon }) => (
-                  <div
-                    key={label}
-                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 border border-white/15 backdrop-blur-sm"
-                  >
-                    <Icon className="h-4 w-4 text-white/70 shrink-0" />
-                    <div>
-                      <div className="text-lg font-bold font-mono text-white leading-none">{value}</div>
-                      <div className="text-[10px] text-white/60 font-medium mt-0.5">{label}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Policy badges */}
-              <div className="flex flex-wrap gap-2 pt-1">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-warning-solid/15 text-amber-200 border border-warning/60">
-                  <ShieldAlert className="h-3.5 w-3.5" />
-                  Up to {cap ?? "—"} students per mentor
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-iris/15 text-indigo-200 border border-iris/60">
-                  <ListOrdered className="h-3.5 w-3.5" />
-                  Sequential Roll No. Allocation
-                </span>
-              </div>
-            </div>
-
-            {/* Right: primary CTAs */}
-            <div className="flex flex-col gap-3 shrink-0">
-              <button
-                onClick={() =>
-                  allocateByRollNo.mutate(
-                    selectedMentorIds.size > 0 ? Array.from(selectedMentorIds) : undefined,
-                  )
-                }
-                disabled={allocateByRollNo.isPending}
-                className="flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl font-semibold text-sm text-white bg-accent-gradient transition-all duration-200 shadow-lg hover:shadow-glow-accent hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60"
-              >
-                <Zap className="h-4.5 w-4.5 shrink-0" />
-                {allocateByRollNo.isPending ? "Allocating…" : "Auto-Allocate Roll No Wise"}
-              </button>
-              <div className="flex gap-2">
-                <button
-                  onClick={exportCSV}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white/90 border border-white/25 bg-white/10 hover:bg-white/20 transition-all duration-200"
-                >
-                  <Download className="h-4 w-4" />
-                  Export CSV
-                </button>
-                <button
-                  onClick={() => {
-                    setFeedback({
-                      tone: "success",
-                      text: `All ${activeProgram?.name ?? "internship"} mentor allocations locked for AY 2024-25. Verification notifications dispatched.`,
-                    });
-                  }}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white/90 border border-white/25 bg-white/10 hover:bg-white/20 transition-all duration-200"
-                >
-                  <Lock className="h-4 w-4" />
-                  Finalize &amp; Lock
-                </button>
-              </div>
-            </div>
+    <div className="space-y-5">
+      <PageHeader
+        title="Mentor allocation"
+        description={`${activeProgram.name} · ${activeProgram.code}${activeProgram.target_semester ? ` · Semester ${activeProgram.target_semester}` : ""}`}
+        breadcrumbs={[{ label: "Internships", to: "/internships" }, { label: "Mentor allocation" }]}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            {availablePrograms.length > 1 && (
+              <Select aria-label="Programme" value={String(activeProgram.id)}
+                      onChange={(e) => handleProgramChange(e.target.value)} className="h-9 w-60">
+                {availablePrograms.map((p) => <option key={p.id} value={p.id}>{p.name} · {p.code}</option>)}
+              </Select>
+            )}
+            {activeProgram.window_kinds?.length > 0 && (
+              <LinkButton to={`/internships/windows?program_id=${activeProgram.id}`} variant="secondary" size="sm"
+                          icon={<CalendarClock className="h-3.5 w-3.5" aria-hidden />}>
+                Windows &amp; deadlines
+              </LinkButton>
+            )}
+            <Button variant="secondary" size="sm" onClick={exportCSV} disabled={!enrollments.length}
+                    icon={<Download className="h-3.5 w-3.5" aria-hidden />}>
+              Export CSV
+            </Button>
           </div>
-        </div>
-      </motion.div>
+        }
+      />
 
-      {allocationLocked && activeProgram && (
-        <div className="mb-5 flex flex-col gap-3 rounded-xl border border-info/30 bg-info-soft px-4 py-3.5 sm:flex-row sm:items-center">
-          <Lock className="hidden h-5 w-5 shrink-0 text-info sm:block" aria-hidden />
-          <div className="min-w-0 flex-1 text-sm">
-            <p className="font-semibold text-ink">Mentor allocation opens once registration starts</p>
-            <p className="mt-0.5 text-ink-muted">
-              Open the registration window first — students register their organisation, then
-              you allocate mentors.
+      {allocationLocked && (
+        <Alert variant="info" title="Allocation opens once registration starts"
+               action={<LinkButton to={`/internships/windows?program_id=${activeProgram.id}`} size="sm" variant="accent">Open registration</LinkButton>}>
+          Students register their organisation first; then you allocate mentors.
+        </Alert>
+      )}
+      {!activeProgram.mentor_capacity_confirmed && <MentorCapNotice program={activeProgram} />}
+      {feedback && (
+        <Alert variant={feedback.tone === "danger" ? "danger" : feedback.tone === "success" ? "success" : "info"}
+               onDismiss={() => setFeedback(null)}>
+          {feedback.text}
+        </Alert>
+      )}
+
+      <StatGrid columns={4}>
+        <StatTile label="Students" value={loadingData ? "—" : totalStudents} icon={Users} tone="neutral"
+                  hint={`Registered for ${activeProgram.code}`} />
+        <StatTile label="With a mentor" value={loadingData ? "—" : assignedCount} icon={UserCheck}
+                  tone={assignedCount && !unassignedCount ? "success" : "accent"} hint={loadingData ? null : `${allocPct}% of the cohort`} />
+        <StatTile label="Awaiting a mentor" value={loadingData ? "—" : unassignedCount} icon={UserX}
+                  tone={unassignedCount ? "warning" : "neutral"}
+                  hint={unassignedCount ? "Run allocation or assign below" : "Everyone is allocated"} />
+        <StatTile label="Average load" value={loadingData ? "—" : avgLoad} icon={ListOrdered} tone="neutral"
+                  hint={cap ? `Cap ${cap} per mentor · ${activeMentorsCount} mentors in use` : null} />
+      </StatGrid>
+
+      <div className="grid items-start gap-5 lg:grid-cols-[22rem_minmax(0,1fr)]">
+        {/* ── Faculty mentors ─────────────────────────────────────────── */}
+        <Card className="lg:sticky lg:top-20">
+          <PanelHeader
+            title="Faculty mentors"
+            meta={<Badge tone="neutral">{selectedMentorIds.size ? `${selectedMentorIds.size} of ${mentors.length} selected` : `${mentors.length} eligible`}</Badge>}
+          >
+            <p className="mt-1 text-xs text-ink-muted">
+              Choose who takes part in the next run. With none selected, every eligible mentor does.
             </p>
-          </div>
-          <Link
-            to={`/internships/windows?program_id=${activeProgram.id}`}
-            className="inline-flex h-9 shrink-0 items-center justify-center rounded-md bg-accent px-3.5 text-sm font-semibold text-accent-fg hover:bg-accent-hover"
-          >
-            Windows &amp; deadlines
-          </Link>
-        </div>
-      )}
-
-      {activeProgram && !activeProgram.mentor_capacity_confirmed && (
-        <MentorCapNotice program={activeProgram} />
-      )}
-
-      {/* ── Feedback Banner ─────────────────────────────────────────────────── */}
-      <AnimatePresence>
-        {feedback && (
-          <motion.div
-            initial={{ opacity: 0, y: -8, height: 0 }}
-            animate={{ opacity: 1, y: 0, height: "auto" }}
-            exit={{ opacity: 0, y: -8, height: 0 }}
-            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="overflow-hidden"
-          >
-            <div
-              className={`flex items-center justify-between rounded-xl border px-4 py-3 text-sm mb-5 ${
-                feedback.tone === "success"
-                  ? "border-success/25 bg-success-soft text-success"
-                  : feedback.tone === "danger"
-                  ? "border-danger/25 bg-danger-soft text-danger"
-                  : "border-accent/25 bg-accent-soft text-accent"
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                {feedback.tone === "success" && <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />}
-                {feedback.tone === "danger" && <ShieldAlert className="h-4 w-4 shrink-0 text-danger" />}
-                {feedback.tone === "info" && <AlertCircle className="h-4 w-4 shrink-0 text-accent" />}
-                <span className="font-medium">{feedback.text}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setFeedback(null)}
-                className="text-xs font-semibold opacity-60 hover:opacity-100 transition-opacity ml-4 shrink-0"
-              >
-                Dismiss
+            <div className="relative mt-3">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-subtle" aria-hidden />
+              <Input value={mentorSearch} onChange={(e) => setMentorSearch(e.target.value)}
+                     placeholder="Search mentors" aria-label="Search mentors" className="h-9 pl-8" />
+            </div>
+            <div className="mt-2.5 flex flex-wrap gap-x-3 gap-y-1 text-xs font-semibold">
+              <button type="button" className="cursor-pointer text-accent hover:underline disabled:text-ink-subtle disabled:no-underline"
+                      onClick={handleAutoSelectRequiredMentors} disabled={!requiredMentors}>
+                Select required ({requiredMentors})
               </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ── 2. ACTION TOOLBAR ────────────────────────────────────────────────── */}
-      <div className="bg-surface rounded-2xl px-5 py-3.5 border border-line shadow-xs flex flex-wrap items-center gap-3.5 justify-between mb-7">
-        {/* Left: selection actions */}
-        <div className="flex items-center flex-wrap gap-2.5">
-          <button
-            onClick={handleAutoSelectRequiredMentors}
-            className="inline-flex cursor-pointer items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold border border-accent text-accent bg-accent/5 hover:bg-accent/10 transition-colors duration-150"
-          >
-            <UserCheck className="h-4 w-4 shrink-0" />
-            Auto-Select Required ({requiredMentors})
-          </button>
-          <button
-            onClick={handleRandomlyPickMentors}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold border border-line text-ink-muted bg-surface hover:border-line-strong hover:text-ink transition-all duration-150 cursor-pointer"
-          >
-            <Dices className="h-4 w-4 shrink-0" />
-            Randomly Select Faculty
-          </button>
-
-          <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-line bg-surface-muted/50 text-sm font-medium text-ink">
-            <span className="w-2 h-2 rounded-full bg-success-solid shrink-0" />
-            <span>
-              Faculty: <span className="font-mono font-bold text-ink">{selectedCount}</span>
-              <span className="text-ink-muted"> / {mentors.length} selected</span>
-            </span>
-          </div>
-
-        </div>
-
-        {/* Right: actions */}
-        <div className="flex items-center gap-2.5 ml-auto">
-          <Button
-            variant="secondary"
-            size="sm"
-            icon={<RotateCcw className="h-4 w-4 text-danger" />}
-            loading={clearAllAssignments.isPending}
-            onClick={() => setShowResetConfirm(true)}
-          >
-            Reset
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            icon={<Zap className="h-4 w-4" />}
-            loading={allocateByRollNo.isPending}
-            onClick={() =>
-              allocateByRollNo.mutate(
-                selectedMentorIds.size > 0 ? Array.from(selectedMentorIds) : undefined,
-              )
-            }
-          >
-            Auto-Allocate Roll No Wise
-          </Button>
-        </div>
-      </div>
-
-      {/* ── 3. METRICS STRIP ─────────────────────────────────────────────────── */}
-      <motion.div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8"
-        variants={staggerContainer}
-        initial="hidden"
-        animate="shown"
-      >
-        {[
-          {
-            key: "students", label: "Students", icon: Users,
-            chip: "bg-accent-soft text-accent", bar: "bg-success-solid",
-            value: totalStudents,
-            badge: totalStudents > 0 ? `${allocPct}% have a mentor` : null,
-            left: <>With mentor <strong className="font-mono text-ink">{assignedCount}</strong></>,
-            right: <>Waiting <strong className={cn("font-mono", unassignedCount ? "text-warning" : "text-ink")}>{unassignedCount}</strong></>,
-            pct: allocPct,
-          },
-          {
-            key: "mentors", label: "Mentors in this run", icon: UserCheck,
-            chip: "bg-iris-soft text-iris", bar: "bg-iris",
-            value: selectedCount,
-            badge: selectedMentorIds.size === 0 ? "All eligible" : `of ${mentors.length} eligible`,
-            left: <>From the programme's department</>,
-            right: <><strong className="font-mono text-ink">{activeMentorsCount}</strong> carrying students</>,
-            pct: mentors.length > 0 ? (selectedCount / mentors.length) * 100 : 0,
-          },
-          {
-            key: "load", label: "Average load", icon: Zap,
-            chip: "bg-warning-soft text-warning", bar: "bg-warning-solid",
-            value: avgLoad,
-            badge: cap ? `cap ${cap} per mentor` : null,
-            left: <>Capacity used <strong className="font-mono text-ink">{capacityUsedPct}%</strong></>,
-            right: null,
-            pct: capacityUsedPct,
-          },
-          {
-            key: "status", label: "Allocation", icon: CheckCircle2,
-            chip: unassignedCount === 0 && totalStudents > 0 ? "bg-success-soft text-success" : "bg-surface-muted text-ink-muted",
-            bar: "bg-success-solid",
-            value: totalStudents === 0 ? "No students" : unassignedCount === 0 ? "Complete" : "In progress",
-            badge: null,
-            left: <>{totalStudents === 0 ? "Nobody has registered yet" : unassignedCount > 0 ? `${unassignedCount} still need a mentor` : "Every student has a mentor"}</>,
-            right: null,
-            pct: allocPct,
-          },
-        ].map((k) => (
-          <motion.div
-            key={k.key}
-            variants={cardReveal}
-            className="group relative min-w-0 overflow-hidden rounded-2xl border border-line bg-surface p-5 shadow-sm transition-[box-shadow,transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-card-hover"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">{k.label}</p>
-                <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                  {loadingData ? (
-                    <span className="skeleton inline-block h-8 w-24 rounded-md" aria-label="Loading" />
-                  ) : (
-                    <>
-                      <span className="font-heading text-3xl font-semibold leading-none text-ink tabular-nums">
-                        {typeof k.value === "number" ? <CountUp value={k.value} /> : k.value}
-                      </span>
-                      {k.badge && <span className="text-xs font-medium text-ink-muted">{k.badge}</span>}
-                    </>
-                  )}
-                </div>
-              </div>
-              <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105", k.chip)}>
-                <k.icon className="h-5 w-5" aria-hidden />
-              </span>
-            </div>
-            <div className={cn("mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-ink-muted", loadingData && "invisible")}>
-              <span>{k.left}</span>
-              {k.right && <span>{k.right}</span>}
-            </div>
-            <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-surface-muted">
-              <motion.div
-                className={cn("h-full rounded-full", k.bar)}
-                initial={{ width: 0 }}
-                animate={{ width: `${loadingData ? 0 : Math.min(100, Math.max(0, k.pct))}%` }}
-                transition={{ duration: 0.9, delay: 0.25, ease: EASE }}
-              />
-            </div>
-          </motion.div>
-        ))}
-      </motion.div>
-
-      {/* ── 4. SECTION 1: PARTICIPATING FACULTY MENTORS (TOP) ──────────────── */}
-      <motion.div
-        className="w-full rounded-2xl border border-line shadow-sm flex flex-col overflow-hidden mb-8 bg-surface"
-        variants={cardReveal}
-        initial="hidden"
-        animate="shown"
-        transition={{ delay: 0.2 }}
-      >
-        {/* Panel header — navy tinted */}
-        <div
-          className="px-6 py-4 border-b border-line/60 flex flex-wrap items-center justify-between gap-4 bg-gradient-to-br from-navy to-navy-light"
-        >
-          <div className="flex items-center gap-3.5">
-            <div className="p-2.5 rounded-xl bg-white/10">
-              <Users className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2.5">
-                <h3 className="font-heading text-base font-bold text-white">
-                  Participating Faculty Mentors
-                </h3>
-                <span className="bg-white/15 text-white text-xs font-mono px-2.5 py-0.5 rounded-full font-bold border border-white/20">
-                  {mentors.length}
-                </span>
-                <span className="text-white/70 text-xs font-medium ml-1">
-                  · <span className="text-emerald-300 font-bold">{selectedCount}</span> Selected for Allocation
-                </span>
-              </div>
-              <p className="text-white/70 text-xs mt-0.5">
-                Select mentors to participate in sequential roll number student allocation (up to {cap ?? "—"} students each)
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Search */}
-            <div className="relative w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/40" />
-              <input
-                value={mentorSearch}
-                onChange={(e) => setMentorSearch(e.target.value)}
-                placeholder="Filter by name, dept, designation…"
-                className="w-full pl-9 pr-3.5 py-2 text-xs rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:border-white/50 focus:bg-white/15 transition-all font-medium"
-              />
-            </div>
-            <div className="flex items-center gap-2 text-xs">
-              <button
-                type="button"
-                onClick={handleSelectAllMentors}
-                className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-blue-100 hover:text-white font-semibold transition-colors cursor-pointer"
-              >
-                Select All
+              <button type="button" className="cursor-pointer text-accent hover:underline" onClick={handleSelectAllMentors}>
+                Select all
               </button>
               {selectedMentorIds.size > 0 && (
-                <button
-                  type="button"
-                  onClick={handleClearMentorSelection}
-                  className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors cursor-pointer"
-                >
-                  Clear ({selectedMentorIds.size})
+                <button type="button" className="cursor-pointer text-ink-muted hover:text-ink hover:underline" onClick={handleClearMentorSelection}>
+                  Clear
                 </button>
               )}
             </div>
-          </div>
-        </div>
-
-        {/* Mentor card list — Spacious Responsive Grid */}
-        <div className="overflow-y-auto custom-scrollbar p-6 bg-surface-muted/20" style={{ maxHeight: "500px" }}>
-          <motion.div
-            variants={listContainer}
-            initial="hidden"
-            animate="shown"
-            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"
-          >
-            {filteredMentors.map((m) => {
-              const isFiltered = mentorFilter === String(m.faculty_id);
-              const isChecked = selectedMentorIds.has(m.faculty_id);
-              const isFull = m.is_full;
-              const isWarning = !isFull && m.remaining_capacity <= 2;
-              const loadPct = m.max_capacity > 0 ? Math.min((m.assigned_count / m.max_capacity) * 100, 100) : 0;
-
-              return (
-                <motion.div
-                  key={m.faculty_id}
-                  variants={listItem}
-                  className={cn(
-                    "min-w-0 rounded-2xl border transition-[box-shadow,border-color,background-color] duration-200 overflow-hidden flex flex-col justify-between shadow-2xs hover:shadow-md",
-                    isChecked
-                      ? "border-accent ring-1 ring-accent bg-accent/[0.03]"
-                      : isFiltered
-                      ? "border-accent/60 ring-1 ring-accent/40 bg-surface-soft"
-                      : "border-line bg-surface",
-                  )}
-                  whileHover={{ y: -2 }}
-                >
-                  <div className="p-4 sm:p-5">
-                    {/* Header: Checkbox + Avatar + Name + Load Tag */}
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3 min-w-0">
-                        <button
-                          type="button"
-                          onClick={() => toggleSelectMentor(m.faculty_id)}
-                          className="mt-0.5 shrink-0 text-ink-subtle hover:text-accent transition-colors cursor-pointer"
-                          title={isChecked ? "Deselect faculty mentor" : "Select faculty mentor"}
-                        >
-                          {isChecked ? (
-                            <CheckSquare className="h-4.5 w-4.5 text-accent" />
-                          ) : (
-                            <Square className="h-4.5 w-4.5" />
-                          )}
-                        </button>
-                        <div className="shrink-0">
-                          <Avatar name={m.name} size="sm" />
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="font-heading text-sm font-bold text-ink truncate leading-snug" title={m.name}>
-                            {m.name}
-                          </h4>
-                          <p className="text-xs text-ink-subtle truncate mt-0.5">
-                            {m.designation ?? "Faculty"} · <span className="font-semibold text-ink-muted">{m.department_code ?? "ICT"}</span>
-                          </p>
-                        </div>
-                      </div>
-
-                      <span
-                        className={`text-2xs font-mono px-2 py-0.5 rounded-full font-bold shrink-0 border ${
-                          isFull
-                            ? "bg-success-soft text-success border-success/25"
-                            : isWarning
-                            ? "bg-warning-soft text-warning border-warning/25"
-                            : "bg-surface-muted text-ink-muted border-line"
-                        }`}
-                      >
-                        {isFull ? `Full ${m.assigned_count}/${m.max_capacity}` : `${m.assigned_count}/${m.max_capacity}`}
-                      </span>
-                    </div>
-
-                    {/* Capacity bar section */}
-                    <div className="mt-4 pt-3.5 border-t border-line/40">
-                      <div className="flex items-center justify-between text-xs mb-1.5">
-                        <span className="font-medium text-ink">
-                          {m.assigned_count} <span className="font-normal text-ink-subtle">/ {m.max_capacity} students</span>
-                        </span>
-                        <span
-                          className={`font-mono text-2xs font-bold px-2 py-0.5 rounded ${
-                            isFull
-                              ? "text-success bg-success-soft font-bold"
-                              : isWarning
-                              ? "text-warning bg-warning-soft font-bold"
-                              : "text-ink-subtle font-medium"
-                          }`}
-                        >
-                          {loadPct}% Capacity
-                        </span>
-                      </div>
-                      <div className="h-2 rounded-full bg-surface-muted overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-300 ${
-                            isFull ? "bg-success-solid" : isWarning ? "bg-warning-solid" : "bg-accent"
-                          }`}
-                          style={{ width: `${loadPct}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Footer: status & action button */}
-                    <div className="mt-4 pt-3 border-t border-line/40 flex items-center justify-between">
-                      <span className="text-xs text-ink-subtle">
-                        {m.assigned_count > 0 ? (
-                          <span className="text-success font-semibold">{m.assigned_count} assigned</span>
-                        ) : (
-                          <span className="text-ink-subtle">0 assigned</span>
-                        )}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMentorFilter(isFiltered ? "ALL" : String(m.faculty_id));
-                          document.getElementById("student-allocation-section")?.scrollIntoView({ behavior: "smooth" });
-                        }}
-                        className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${
-                          isFiltered
-                            ? "bg-danger-soft text-danger border-danger/25 hover:bg-danger-soft"
-                            : "bg-accent-soft/80 text-accent border-accent/25 hover:bg-accent-soft"
-                        }`}
-                      >
-                        {isFiltered ? "✕ Clear Filter" : `View Mentees (${m.assigned_count}) →`}
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </motion.div>
-        </div>
-
-        {/* Section 1 footer */}
-        <div className="px-5 py-2.5 border-t border-line bg-surface-muted/60 flex items-center justify-between text-xs text-ink-muted">
-          <span>
-            Showing <strong className="text-ink">{filteredMentors.length}</strong> of {mentors.length} Faculty Mentors
-          </span>
-          <Link to="/faculty/directory" className="text-accent font-semibold hover:underline text-xs">
-            Faculty Directory →
-          </Link>
-        </div>
-      </motion.div>
-
-      {/* ── 5. SECTION 2: STUDENT COHORT ALLOCATION (BOTTOM) ──────────────── */}
-      <motion.div
-        id="student-allocation-section"
-        className="w-full rounded-2xl border border-line shadow-sm flex flex-col overflow-hidden bg-surface"
-        variants={cardReveal}
-        initial="hidden"
-        animate="shown"
-        transition={{ delay: 0.3 }}
-      >
-        {/* Panel header */}
-        <div className="px-6 py-4 border-b border-line bg-surface-muted/40 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h3 className="font-heading text-base font-bold text-ink">
-                Student Cohort &amp; Roll Number Allocation
-              </h3>
-              <span className="bg-accent-soft text-accent text-xs font-mono px-2.5 py-0.5 rounded-full font-bold">
-                {enrollments.length} Students
-              </span>
-            </div>
-            <p className="text-xs text-ink-subtle mt-0.5">
-              2nd Year B.Tech ICT · Sections A &amp; B · Roll Number Wise Mentor Allocation Table
-            </p>
-          </div>
-
-          <div className="flex items-center flex-wrap gap-2.5">
-            {/* Filter tabs */}
-            <div className="flex items-center bg-surface-muted/80 rounded-lg p-0.5 border border-line text-xs">
-              {(["ALL", "UNASSIGNED", "ASSIGNED"] as const).map((tab) => {
-                const label =
-                  tab === "ALL"
-                    ? `All (${enrollments.length})`
-                    : tab === "UNASSIGNED"
-                    ? `Unassigned (${unassignedCount})`
-                    : `Assigned (${assignedCount})`;
-                const isActive = assignmentTab === tab;
+          </PanelHeader>
+          {mentorsQuery.isLoading ? <LoadingState rows={5} /> : filteredMentors.length === 0 ? (
+            <EmptyState compact title={mentorSearch ? "No mentor matches" : "No eligible mentors"} />
+          ) : (
+            <ul className="max-h-[34rem] divide-y divide-line overflow-y-auto">
+              {filteredMentors.map((m) => {
+                const selected = selectedMentorIds.has(m.faculty_id);
+                const filtering = mentorFilter === String(m.faculty_id);
                 return (
-                  <button
-                    key={tab}
-                    onClick={() => setAssignmentTab(tab)}
-                    className={`px-3 py-1.5 rounded-md font-semibold transition-all duration-150 cursor-pointer ${
-                      isActive
-                        ? tab === "ASSIGNED"
-                          ? "bg-surface text-success shadow-xs"
-                          : tab === "UNASSIGNED"
-                          ? "bg-surface text-warning shadow-xs"
-                          : "bg-surface text-ink shadow-xs"
-                        : "text-ink-subtle hover:text-ink"
-                    }`}
-                  >
-                    {label}
-                  </button>
+                  <li key={m.faculty_id}
+                      className={cn("flex items-start gap-3 px-4 py-3 transition-colors",
+                        selected ? "bg-accent-soft/50" : "hover:bg-surface-muted/50")}>
+                    <span className="pt-0.5">
+                      <Tick checked={selected} onChange={() => toggleSelectMentor(m.faculty_id)}
+                            label={`Include ${m.name} in the next run`} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="truncate text-sm font-semibold text-ink" title={m.name}>{m.name}</p>
+                        <span className={cn("shrink-0 font-mono text-xs tabular-nums", m.is_full ? "font-semibold text-warning" : "text-ink-muted")}>
+                          {m.assigned_count}/{m.max_capacity}
+                        </span>
+                      </div>
+                      <p className="truncate text-xs text-ink-subtle">
+                        {[m.designation, m.department_code].filter(Boolean).join(" · ")}
+                      </p>
+                      <div className="mt-1.5"><LoadBar count={m.assigned_count} cap={m.max_capacity} /></div>
+                      <div className="mt-1.5 flex items-center justify-between gap-2">
+                        <span className="truncate font-mono text-2xs text-ink-subtle">
+                          {rangesByMentor.get(m.faculty_id) ?? "No students yet"}
+                        </span>
+                        {m.assigned_count > 0 && (
+                          <button type="button"
+                                  onClick={() => setMentorFilter(filtering ? "ALL" : String(m.faculty_id))}
+                                  className={cn("shrink-0 cursor-pointer text-2xs font-semibold hover:underline",
+                                    filtering ? "text-ink" : "text-accent")}>
+                            {filtering ? "Showing" : "View students"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
+          )}
+        </Card>
 
-            {/* Clear All Assigned Mentors Button */}
-            <button
-              type="button"
-              onClick={() => setShowClearStudentsConfirm(true)}
-              disabled={assignedCount === 0 || clearAllAssignments.isPending}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-danger hover:text-danger bg-danger-soft hover:bg-danger-soft border border-danger/25 transition-colors shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-              title="Clear mentor assignments from all students"
-            >
-              <RotateCcw className="h-3.5 w-3.5 text-danger" />
-              <span>Clear All Assigned Mentors ({assignedCount})</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Mapped Batches strip */}
-        {batchRangeGroups.length > 0 && (
-          <div className="px-6 py-3 bg-surface border-b border-line flex items-center gap-3 overflow-x-auto custom-scrollbar">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-ink-subtle shrink-0">
-              Mapped Batches:
-            </span>
-            {batchRangeGroups.map((g, idx) => (
-              <div
-                key={idx}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-line bg-surface-muted/50 shrink-0 text-xs shadow-2xs"
-              >
-                <span className="font-mono text-accent font-bold">{g.range}</span>
-                <span className="text-ink-subtle">·</span>
-                <span className="text-ink font-medium truncate max-w-[140px]">{g.mentorName.split(" ").slice(-1)[0]}</span>
-                <span className="text-success font-bold">{g.status}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Search row */}
-        <div className="px-6 py-3.5 border-b border-line bg-surface flex items-center gap-4 justify-between">
-          <div className="relative flex-1 max-w-lg">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-subtle" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by student name, roll number, or NGO partner…"
-              className="w-full pl-9 pr-3.5 py-2 text-xs rounded-xl bg-canvas border border-line text-ink focus:outline-none focus:border-accent/60 focus:ring-2 focus:ring-blue-100 transition-all font-medium"
-            />
-          </div>
-          {mentorFilter !== "ALL" && (
-            <div className="flex items-center gap-2.5 shrink-0">
-              <span className="text-xs text-accent bg-accent-soft border border-accent/25 px-3 py-1.5 rounded-lg font-medium">
-                Viewing Mentees for Faculty ID: #{mentorFilter} ({filteredStudents.length} Students)
+        <div className="min-w-0 space-y-5">
+          {/* ── The next run ──────────────────────────────────────────── */}
+          <Card>
+            <div className="flex flex-col gap-4 p-5 md:flex-row md:items-center">
+              <span className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent md:flex">
+                <ListOrdered className="h-5 w-5" aria-hidden />
               </span>
-              <button
-                type="button"
-                onClick={() => handleClearFacultyMentees(Number(mentorFilter))}
-                disabled={clearSelectedStudents.isPending}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-danger bg-danger-soft hover:bg-danger-soft border border-danger/25 transition-colors cursor-pointer"
-              >
-                <UserX className="h-3.5 w-3.5 text-danger" />
-                Unassign This Faculty&apos;s Students
-              </button>
-              <button
-                onClick={() => setMentorFilter("ALL")}
-                className="text-xs font-semibold text-ink-muted hover:text-ink hover:underline shrink-0 cursor-pointer"
-              >
-                ✕ Clear Filter
-              </button>
+              <div className="min-w-0 flex-1">
+                <h2 className="font-heading text-md font-semibold text-ink">Allocate by roll number</h2>
+                <p className="mt-0.5 text-sm text-ink-muted">
+                  {!cap || loadingData ? "Loading the cohort…" : totalStudents === 0 ? "No students have registered yet." : (
+                    <>
+                      Consecutive roll numbers go to the same mentor:{" "}
+                      <strong className="text-ink">{runSeated}</strong> of {totalStudents} students across{" "}
+                      <strong className="text-ink">{runUsed}</strong> mentor{runUsed === 1 ? "" : "s"}, at most {cap} each.
+                      {runLeft > 0 && (
+                        <span className="text-warning"> {runLeft} will still need a mentor — select more mentors or confirm a higher cap.</span>
+                      )}
+                    </>
+                  )}
+                </p>
+                <p className="mt-1 text-xs text-ink-subtle">Replaces every current mentor in this programme. Students and mentors are notified.</p>
+              </div>
+              <div className="flex shrink-0 flex-wrap gap-2">
+                <Button variant="ghost" size="sm" className="text-danger"
+                        icon={<RotateCcw className="h-3.5 w-3.5" aria-hidden />}
+                        onClick={() => setShowResetConfirm(true)} disabled={!assignedCount || clearAllAssignments.isPending}>
+                  Reset all
+                </Button>
+                <Button variant="accent" size="sm" loading={allocateByRollNo.isPending}
+                        disabled={allocationLocked || !totalStudents || !runUsed}
+                        icon={<UserCheck className="h-3.5 w-3.5" aria-hidden />}
+                        onClick={() => allocateByRollNo.mutate(selectedMentorIds.size > 0 ? Array.from(selectedMentorIds) : undefined)}>
+                  Run allocation
+                </Button>
+              </div>
             </div>
-          )}
-        </div>
+          </Card>
 
-        {/* Selected students action bar */}
-        <AnimatePresence>
-          {selectedStudentIds.size > 0 && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="px-6 py-3 bg-accent-soft/90 border-b border-accent/25 flex items-center justify-between gap-3 text-xs overflow-hidden"
-            >
-              <div className="flex items-center gap-2.5">
-                <span className="font-semibold text-accent">
-                  {selectedStudentIds.size} student{selectedStudentIds.size > 1 ? "s" : ""} selected
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setSelectedStudentIds(new Set())}
-                  className="text-2xs text-accent hover:text-accent font-medium hover:underline cursor-pointer"
-                >
-                  Deselect all
-                </button>
+          {/* ── Students ──────────────────────────────────────────────── */}
+          <Card>
+            <div className="flex flex-col gap-3 border-b border-line px-4 py-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="font-heading text-md font-semibold text-ink">Students</h2>
+                <div role="tablist" aria-label="Filter by allocation" className="inline-flex rounded-lg bg-surface-muted p-0.5">
+                  {([["ALL", "All", totalStudents], ["UNASSIGNED", "Awaiting", unassignedCount], ["ASSIGNED", "Allocated", assignedCount]] as const).map(([key, label, n]) => (
+                    <button key={key} type="button" role="tab" aria-selected={assignmentTab === key}
+                            onClick={() => setAssignmentTab(key)}
+                            className={cn("cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
+                              assignmentTab === key ? "bg-surface text-ink shadow-xs" : "text-ink-subtle hover:text-ink")}>
+                      {label} <span className="tabular-nums text-ink-subtle">{n}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleClearSelectedStudents}
-                  disabled={clearSelectedStudents.isPending}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-danger hover:text-danger bg-danger-soft hover:bg-danger-soft border border-danger/25 transition-colors shadow-2xs cursor-pointer"
-                >
-                  <UserX className="h-3.5 w-3.5 text-danger" />
-                  <span>Clear Mentors for Selected ({selectedStudentIds.size})</span>
-                </button>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <div className="relative min-w-0 flex-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-subtle" aria-hidden />
+                  <Input value={search} onChange={(e) => setSearch(e.target.value)} className="h-9 pl-8"
+                         placeholder="Search name, roll number or organisation" aria-label="Search students" />
+                </div>
+                <Select aria-label="Filter by mentor" value={mentorFilter} onChange={(e) => setMentorFilter(e.target.value)} className="h-9 sm:w-56">
+                  <option value="ALL">All mentors</option>
+                  <option value="UNASSIGNED">No mentor</option>
+                  {mentors.filter((m) => m.assigned_count > 0).map((m) => (
+                    <option key={m.faculty_id} value={m.faculty_id}>{m.name} ({m.assigned_count})</option>
+                  ))}
+                </Select>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Table */}
-        <div className="overflow-auto custom-scrollbar" style={{ maxHeight: "620px" }}>
-          <table className="w-full text-left border-collapse">
-            <thead className="sticky top-0 z-10 bg-surface-muted/95 backdrop-blur-sm border-b border-line">
-              <tr>
-                <th className="py-3.5 px-5 w-12">
-                  <button
-                    type="button"
-                    onClick={toggleSelectAllStudents}
-                    className="flex items-center text-ink-subtle hover:text-ink transition-colors cursor-pointer"
-                  >
-                    {selectedStudentIds.size === filteredStudents.length && filteredStudents.length > 0 ? (
-                      <CheckSquare className="h-4.5 w-4.5 text-accent" />
-                    ) : (
-                      <Square className="h-4.5 w-4.5" />
-                    )}
+              {filteredMentorName && (
+                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-accent/25 bg-accent-soft/50 px-3 py-2 text-xs">
+                  <Filter className="h-3.5 w-3.5 text-accent" aria-hidden />
+                  <span className="text-ink">Students of <strong>{filteredMentorName}</strong></span>
+                  <button type="button" onClick={() => handleClearFacultyMentees(Number(mentorFilter))}
+                          className="ml-auto cursor-pointer font-semibold text-danger hover:underline">
+                    Remove this mentor from all
                   </button>
-                </th>
-                <th className="py-3.5 px-5 text-2xs font-bold uppercase tracking-widest text-ink-subtle w-32">Roll No</th>
-                <th className="py-3.5 px-5 text-2xs font-bold uppercase tracking-widest text-ink-subtle w-60">Student Name</th>
-                <th className="py-3.5 px-5 text-2xs font-bold uppercase tracking-widest text-ink-subtle">NGO / Project</th>
-                <th className="py-3.5 px-5 text-2xs font-bold uppercase tracking-widest text-ink-subtle w-32">Status</th>
-                <th className="py-3.5 px-5 text-2xs font-bold uppercase tracking-widest text-ink-subtle min-w-[280px]">Assigned Mentor</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredStudents.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-16 text-center text-ink-subtle text-sm">
-                    <div className="flex flex-col items-center gap-2">
-                      <Users className="h-8 w-8 text-ink-subtle/40" />
-                      <span>No students found matching current filters.</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredStudents.map((row, idx) => {
-                  const currentMentor = mentors.find((m) => m.faculty_id === row.mentor_faculty_id);
-                  const isChecked = selectedStudentIds.has(row.id);
+                  <button type="button" onClick={() => setMentorFilter("ALL")} aria-label="Clear mentor filter"
+                          className="cursor-pointer rounded p-0.5 text-ink-subtle hover:text-ink">
+                    <X className="h-3.5 w-3.5" aria-hidden />
+                  </button>
+                </div>
+              )}
+              {selectedStudentIds.size > 0 && (
+                <div className="flex flex-wrap items-center gap-2 rounded-lg bg-surface-muted px-3 py-2 text-xs">
+                  <span className="font-semibold text-ink">{selectedStudentIds.size} selected</span>
+                  <Button variant="ghost" size="sm" className="ml-auto h-7 text-danger"
+                          icon={<Eraser className="h-3.5 w-3.5" aria-hidden />}
+                          loading={clearSelectedStudents.isPending} onClick={handleClearSelectedStudents}>
+                    Remove mentor
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-7" onClick={() => setSelectedStudentIds(new Set())}>
+                    Deselect
+                  </Button>
+                </div>
+              )}
+            </div>
 
-                  return (
-                    <motion.tr
-                      key={row.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: Math.min(idx * 0.005, 0.2) }}
-                      className={`border-b border-line/50 transition-colors duration-100 ${
-                        isChecked
-                          ? "bg-accent-soft/60"
-                          : idx % 2 === 0
-                          ? "bg-surface hover:bg-accent-soft/30"
-                          : "bg-surface-muted/20 hover:bg-accent-soft/30"
-                      }`}
-                    >
-                      <td className="py-3.5 px-5">
-                        <button
-                          type="button"
-                          onClick={() => toggleSelectStudent(row.id)}
-                          className="flex items-center text-ink-subtle hover:text-accent transition-colors cursor-pointer"
-                        >
-                          {isChecked ? (
-                            <CheckSquare className="h-4.5 w-4.5 text-accent" />
-                          ) : (
-                            <Square className="h-4.5 w-4.5" />
-                          )}
-                        </button>
-                      </td>
-                      <td className="py-3.5 px-5">
-                        <span className="font-mono font-bold text-xs text-accent">
-                          {row.roll_number}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-5">
-                        <div className="flex items-center gap-2.5">
-                          <Avatar name={row.student_name ?? "Student"} size="xs" />
-                          <span className="font-semibold text-xs text-ink truncate">
-                            {row.student_name}
+            {loadingData ? <LoadingState rows={6} /> : (
+              <div className="max-h-[40rem] overflow-auto">
+                <table className="w-full min-w-[46rem] border-collapse text-left">
+                  <thead className="sticky top-0 z-10 border-b border-line bg-surface-muted">
+                    <tr className="text-2xs font-semibold uppercase tracking-wide text-ink-subtle">
+                      <th scope="col" className="w-10 px-4 py-2.5">
+                        <Tick checked={allVisibleSelected} indeterminate={!allVisibleSelected && someVisibleSelected}
+                              onChange={toggleSelectAllStudents} label="Select every student shown" />
+                      </th>
+                      <th scope="col" className="px-3 py-2.5">Student</th>
+                      <th scope="col" className="px-3 py-2.5">Organisation</th>
+                      <th scope="col" className="w-[17rem] px-3 py-2.5">Faculty mentor</th>
+                      <th scope="col" className="w-28 px-3 py-2.5">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {filteredStudents.length === 0 ? (
+                      <tr><td colSpan={5} className="px-4 py-12 text-center text-sm text-ink-muted">
+                        {enrollments.length === 0 ? "No students have registered yet." : "No student matches these filters."}
+                      </td></tr>
+                    ) : filteredStudents.map((row) => (
+                      <tr key={row.id} className={cn("transition-colors", selectedStudentIds.has(row.id) ? "bg-accent-soft/40" : "hover:bg-surface-muted/50")}>
+                        <td className="px-4 py-2.5">
+                          <Tick checked={selectedStudentIds.has(row.id)} onChange={() => toggleSelectStudent(row.id)}
+                                label={`Select ${row.student_name}`} />
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <div className="flex min-w-0 items-center gap-2.5">
+                            <Avatar name={row.student_name ?? undefined} size="sm" />
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium text-ink" title={row.student_name ?? undefined}>{row.student_name}</p>
+                              <p className="font-mono text-2xs text-ink-subtle">{row.roll_number}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="max-w-[14rem] px-3 py-2.5">
+                          <span className="block truncate text-xs text-ink-muted" title={row.organization_name || undefined}>
+                            {row.organization_name ?? <span className="text-ink-subtle">Not recorded</span>}
                           </span>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-5">
-                        <span className="text-xs text-ink-muted truncate block">
-                          {row.organization_name ?? <span className="text-ink-subtle">—</span>}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-5">
-                        {row.mentor_faculty_id ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-2xs font-bold bg-success-soft text-success border border-success/25">
-                            <span className="w-1.5 h-1.5 rounded-full bg-success-solid" />
-                            Allocated
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-2xs font-bold bg-warning-soft text-warning border border-warning/25">
-                            <span className="w-1.5 h-1.5 rounded-full bg-warning-solid" />
-                            Unassigned
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-5">
-                        <div className="flex items-center gap-2 max-w-sm">
+                        </td>
+                        <td className="px-3 py-2.5">
                           <Select
+                            aria-label={`Mentor for ${row.student_name}`}
                             value={String(row.mentor_faculty_id ?? "")}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              assignSingle.mutate({
-                                enrollmentId: row.id,
-                                mentorId: val ? Number(val) : null,
-                              });
-                            }}
-                            className="h-8 text-xs font-medium flex-1"
+                            disabled={allocationLocked || assignSingle.isPending}
+                            onChange={(e) => assignSingle.mutate({ enrollmentId: row.id, mentorId: e.target.value ? Number(e.target.value) : null })}
+                            className="h-8 w-full text-xs"
                           >
-                            <option value="">— Unassigned —</option>
+                            <option value="">No mentor</option>
                             {mentors.map((m) => {
-                              const isCurrent = m.faculty_id === row.mentor_faculty_id;
-                              const isFull = m.is_full && !isCurrent;
+                              const full = m.is_full && m.faculty_id !== row.mentor_faculty_id;
                               return (
-                                <option key={m.faculty_id} value={m.faculty_id} disabled={isFull}>
-                                  {m.name} ({m.assigned_count}/{m.max_capacity}{isFull ? " · full" : ""})
+                                <option key={m.faculty_id} value={m.faculty_id} disabled={full}>
+                                  {m.name} — {m.assigned_count}/{m.max_capacity}{full ? " (full)" : ""}
                                 </option>
                               );
                             })}
                           </Select>
-                          {row.mentor_faculty_id && (
-                            <span className="font-mono text-xs text-accent font-bold px-2 py-0.5 rounded bg-accent-soft border border-accent/25 shrink-0">
-                              {currentMentor?.assigned_count ?? 1}/{currentMentor?.max_capacity ?? cap ?? "—"}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                    </motion.tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          {row.mentor_faculty_id
+                            ? <Badge tone="success">Allocated</Badge>
+                            : <Badge tone="warning">Awaiting</Badge>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-4 py-3 text-xs text-ink-muted">
+              <span>Showing <strong className="text-ink">{filteredStudents.length}</strong> of {enrollments.length}</span>
+              <span className="tabular-nums">
+                <span className="font-semibold text-success">{assignedCount}</span> allocated ·{" "}
+                <span className="font-semibold text-warning">{unassignedCount}</span> awaiting
+              </span>
+            </div>
+          </Card>
         </div>
+      </div>
 
-        {/* Section 2 footer */}
-        <div className="px-6 py-3.5 border-t border-line bg-surface-muted/60 flex items-center justify-between">
-          <span className="text-xs text-ink-muted">
-            Showing <strong className="text-ink">{filteredStudents.length}</strong> of {enrollments.length} Students
-          </span>
-          <div className="flex items-center gap-4">
-            <span className="text-xs font-mono text-ink-muted">
-              <span className="text-success font-bold">{assignedCount}</span> Assigned
-              {" · "}
-              <span className="text-warning font-bold">{unassignedCount}</span> Pending
-            </span>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Reset Confirmation Dialog */}
       <ConfirmDialog
-        open={showResetConfirm}
-        onClose={() => setShowResetConfirm(false)}
-        onConfirm={() => clearAllAssignments.mutate()}
-        title="Reset &amp; Clear All Mentor Assignments"
-        message="Are you sure you want to clear all mentor assignments and selected mentors? This will reset all student mappings back to unassigned and unselect all faculty mentors."
-        confirmLabel="Yes, Clear All"
-        cancelLabel="Cancel"
-        destructive
-        loading={clearAllAssignments.isPending}
+        open={showResetConfirm} onClose={() => setShowResetConfirm(false)}
+        onConfirm={() => clearAllAssignments.mutate()} loading={clearAllAssignments.isPending} destructive
+        title="Remove every mentor allocation?"
+        message={`All ${assignedCount} allocated students in ${activeProgram.code} go back to awaiting a mentor. This is recorded in the audit log.`}
+        confirmLabel="Remove all"
       />
-
-      {/* Clear All Student Mentor Assignments Confirmation */}
-      <ConfirmDialog
-        open={showClearStudentsConfirm}
-        onClose={() => setShowClearStudentsConfirm(false)}
-        onConfirm={() => clearAllAssignments.mutate()}
-        title="Clear All Assigned Mentors"
-        message={`Are you sure you want to clear assigned mentors from all ${assignedCount} students? All students will be reset to Unassigned.`}
-        confirmLabel="Yes, Clear All Student Mentors"
-        cancelLabel="Cancel"
-        destructive
-        loading={clearAllAssignments.isPending}
-      />
-
-    </motion.div>
+    </div>
   );
 }
 
