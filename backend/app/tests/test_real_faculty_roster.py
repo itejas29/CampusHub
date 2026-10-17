@@ -5,7 +5,8 @@ as real people.
 * Nothing PDEU does not publish is invented — no cabin, no phone.
 * A real faculty member's login address can never reach their real inbox, and
   they cannot sign in to a demo with the shared demo password.
-* No real person is given a coordinator or HoD role the source does not state.
+* A real person holds a role only when it is recorded as confirmed
+  (`CONFIRMED_REAL_ROLES`) — the public list names none.
 """
 from __future__ import annotations
 
@@ -38,11 +39,17 @@ def test_a_real_faculty_login_can_never_reach_a_real_inbox():
         assert "pdpu.ac.in" not in email and "pdeu.ac.in" not in email
 
 
-def test_no_real_person_holds_a_role_the_source_does_not_state():
+def test_a_real_person_holds_only_roles_recorded_as_confirmed():
     real = {code for _n, _e, code, *_ in D.ICT_FACULTY_ROSTER}
-    assert not real & set(D.HEADS_OF_DEPARTMENT.values())
+    confirmed_hods = {code for code, (role, *_rest) in D.CONFIRMED_REAL_ROLES.items()
+                      if role == "HOD"}
+    assert real & set(D.HEADS_OF_DEPARTMENT.values()) <= confirmed_hods
     coordinators = {code for code, role, *_ in D.ROLE_ASSIGNMENTS if role == "COORDINATOR"}
     assert not real & coordinators
-    # Mentor grants only make someone eligible for the generated students.
     mentor_roles = {role for code, role, *_ in D.ROLE_ASSIGNMENTS if code in real}
     assert mentor_roles <= {"MENTOR"}
+
+
+def test_the_hod_is_in_no_mentor_pool():
+    hods = set(D.HEADS_OF_DEPARTMENT.values())
+    assert not hods & {code for code, role, *_ in D.ROLE_ASSIGNMENTS if role == "MENTOR"}

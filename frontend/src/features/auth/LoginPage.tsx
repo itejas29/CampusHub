@@ -157,7 +157,6 @@ const STUDENT_ACCOUNTS: DemoAccount[] = [
 ];
 
 const ADMIN_ACCOUNTS: DemoAccount[] = [
-  { name: "Dr. Rakesh Bhatt", role: "Head of Department", dept: "ICT", email: "rakesh.bhatt@campushub.example.com", domain: "Appoints ICT Coordinators" },
   { name: "ICT Department Office", role: "Department Admin", dept: "ICT", email: "ict.office@campushub.example.com", domain: "ICT Data Administration" },
   { name: "Clubs & Events Cell", role: "Club Admin", dept: "Campus", email: "clubs@campushub.example.com", domain: "Student Affairs & Events" },
   { name: "System Administrator", role: "Campus Super Admin", dept: "University", email: "admin@campushub.example.com", domain: "Root System Access" },

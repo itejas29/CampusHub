@@ -1810,8 +1810,6 @@ def print_credentials(db: Session) -> None:
     print("=" * 74)
     rows = [
         ("SUPER_ADMIN", "admin@campushub.example.com", "Full system administration"),
-        ("HOD (ICT)", "rakesh.bhatt@campushub.example.com",
-         "Appoints ICT coordinators · no mentees"),
         ("DEPARTMENT_ADMIN (ICT office)", "ict.office@campushub.example.com",
          "ICT data administration · cannot appoint"),
         ("COORDINATOR — Open Electives", "vikram.joshi@campushub.example.com",

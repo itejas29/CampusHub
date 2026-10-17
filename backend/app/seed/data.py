@@ -120,7 +120,9 @@ FACULTY = FACULTY + ICT_FACULTY_ROSTER
 #: mentees — so the person named here appears nowhere in ROLE_ASSIGNMENTS and in
 #: no mentor pool. ICT only for now; other departments follow.
 HEADS_OF_DEPARTMENT = {
-    "ICT": "ICT-F-103",   # Dr. Rakesh Bhatt
+    # Dr. Mohendra Roy — confirmed by the department through the project owner
+    # on 2026-10-17 (PDEU's public faculty list does not name the HoD).
+    "ICT": "ICT-P-18",
 }
 
 #: Department office accounts: day-to-day data administration, separate from the
@@ -131,7 +133,8 @@ DEPARTMENT_OFFICES = [
 ]
 
 ROLE_ASSIGNMENTS = [
-    # ── ICT coordinators — appointed by the HoD, Dr. Rakesh Bhatt ──
+    # ── ICT coordinators — demo personas until the department confirms who ──
+    # ── holds each module. The HoD (Dr. Mohendra Roy) appoints them.        ──
     ("ICT-F-102", "COORDINATOR", "SUMMER_INTERNSHIP", "ICT"),  # Dr. Priya Nair
     ("ICT-F-104", "COORDINATOR", "CSSI",              "ICT"),  # Prof. Sneha Iyer
     ("ICT-F-105", "COORDINATOR", "MOOC",              "ICT"),  # Dr. Meera Krishnan
@@ -177,8 +180,16 @@ ROLE_ASSIGNMENTS = [
 ROLE_ASSIGNMENTS += [
     (code, "MENTOR", domain, "ICT")
     for _n, _e, code, *_ in ICT_FACULTY_ROSTER
+    # The HoD takes no mentees, so is never in a mentor pool.
+    if code not in HEADS_OF_DEPARTMENT.values()
     for domain in ("SUMMER_INTERNSHIP", "CSSI")
 ]
+
+#: Roles held by real people, each with how it was confirmed. A real person may
+#: hold a role only if it is recorded here — see test_real_faculty_roster.
+CONFIRMED_REAL_ROLES = {
+    "ICT-P-18": ("HOD", "ICT", "Confirmed by the department via the project owner, 2026-10-17"),
+}
 
 #: Kept so older imports keep working; coordinators are a subset of the above.
 COORDINATOR_ASSIGNMENTS = [

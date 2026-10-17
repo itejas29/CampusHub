@@ -50,7 +50,6 @@ them and fills the form on click.
 | `STUDENT (Sem VIII)` | `pooja.shah.081@campushub.example.com` | Sem VIII — 4th Year Capstone Project & Degree Completion |
 | `FACULTY` | `anand.mehta@campushub.example.com` | Mentor + CSSI Group 1, submissions awaiting review |
 | `FACULTY` + `INTERNSHIP_COORDINATOR` | `priya.nair@campushub.example.com` | Programme configuration, mentor override |
-| `FACULTY` + `HOD` | `rakesh.bhatt@campushub.example.com` | Head of ICT: appoints and removes ICT coordinators; no mentees |
 | `FACULTY` + `DEPARTMENT_ADMIN` | `ict.office@campushub.example.com` | ICT office: department data administration; cannot appoint |
 | `FACULTY` (Open Elective coordinator) | `vikram.joshi@campushub.example.com` | Runs ICT Open Elective registration rounds |
 | `FACULTY` (Core Elective coordinator) | `leena.nambiar@campushub.example.com` | Runs ICT Core Elective registration rounds |
