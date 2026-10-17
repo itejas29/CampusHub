@@ -34,7 +34,9 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
-    allow_origin_regex=r"^https://.*\.vercel\.app$",
+    # Was any *.vercel.app site — anyone can deploy one. Now opt-in and exact
+    # to this project's deployments (see BACKEND_CORS_ORIGIN_REGEX).
+    allow_origin_regex=settings.BACKEND_CORS_ORIGIN_REGEX or None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

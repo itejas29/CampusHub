@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     # Comma-separated in .env; parsed by the `cors_origins` property below.
     # Kept as a plain string so pydantic-settings does not attempt JSON decoding.
     BACKEND_CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
+    #: Optional pattern for origins that cannot be listed exactly — Vercel gives
+    #: every preview deployment its own URL. Anchor it to the project, e.g.
+    #: ^https://campus-hub-fyb9(-[a-z0-9-]+)?\.vercel\.app$ — never a bare
+    #: *.vercel.app, which any Vercel user can deploy to.
+    BACKEND_CORS_ORIGIN_REGEX: str = ""
 
     # --- storage ------------------------------------------------------------
     STORAGE_BACKEND: Literal["local", "s3"] = "local"
