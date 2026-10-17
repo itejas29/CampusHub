@@ -5,8 +5,9 @@
 # from here with a project token sidesteps that, and only deploys code whose
 # tests pass.
 #
-# Needs one repository secret, RAILWAY_TOKEN — a *project* token from Railway
-# (project → Settings → Tokens), scoped to the production environment.
+# Needs one repository secret: RAILWAY_API_TOKEN (an account token from
+# railway.com/account/tokens — project tokens are unavailable on the trial
+# plan) or RAILWAY_TOKEN (a project token). Either works.
 name: Deploy backend
 
 on:
@@ -46,15 +47,18 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     env:
+      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-      # The CampusHub service in the sparkling-enjoyment project.
+      # The CampusHub service in the sparkling-enjoyment project, production.
+      RAILWAY_PROJECT_ID: b32057f4-ae0f-4f9b-9575-1004dc57cf9c
+      RAILWAY_ENVIRONMENT_ID: 58e3e21a-091d-4a1f-a8c2-83029acf712b
       RAILWAY_SERVICE_ID: f5ed39ac-7984-47ae-9ede-a89c8645d94b
     steps:
       - uses: actions/checkout@v4
       - name: Check the token is configured
         run: |
-          if [ -z "$RAILWAY_TOKEN" ]; then
-            echo "::error::Add a Railway project token as the RAILWAY_TOKEN repository secret."
+          if [ -z "$RAILWAY_API_TOKEN" ] && [ -z "$RAILWAY_TOKEN" ]; then
+            echo "::error::Add a Railway token as the RAILWAY_API_TOKEN (account) or RAILWAY_TOKEN (project) repository secret."
             exit 1
           fi
       - uses: actions/setup-node@v4
@@ -66,4 +70,12 @@ jobs:
       # backend/Dockerfile. (Uploading only backend/ fails — Railway then looks
       # for backend/backend.) --ci streams the build and fails this job if the
       # deploy fails.
-      - run: railway up --service "$RAILWAY_SERVICE_ID" --ci
+      # An account token is not tied to a project, so name it explicitly. An
+      # empty variable still counts as set for the CLI — drop the unused one.
+      - run: |
+          [ -n "$RAILWAY_TOKEN" ] || unset RAILWAY_TOKEN
+          [ -n "$RAILWAY_API_TOKEN" ] || unset RAILWAY_API_TOKEN
+          railway up --ci \
+            --project "$RAILWAY_PROJECT_ID" \
+            --environment "$RAILWAY_ENVIRONMENT_ID" \
+            --service "$RAILWAY_SERVICE_ID"
