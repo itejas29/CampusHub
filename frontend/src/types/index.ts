@@ -583,6 +583,10 @@ export interface FacultyRow {
   specialization: string | null; qualification: string | null;
   avatar_url: string | null; bio: string | null; is_mentor: boolean;
   is_active: boolean; mentee_count: number;
+  /** A fictional demo persona, not a real PDEU faculty member. */
+  is_demo: boolean;
+  /** Where the published details came from. */
+  profile_url: string | null;
 }
 
 export interface DepartmentRow {

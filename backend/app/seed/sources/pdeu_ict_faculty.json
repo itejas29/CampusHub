@@ -1,0 +1,559 @@
+{
+  "department": {
+    "code": "ICT",
+    "name": "Information and Communication Technology",
+    "school": "SoT"
+  },
+  "source": {
+    "url": "https://pdeu.ac.in/faculties-and-staff",
+    "title": "Faculties and Staff — Pandit Deendayal Energy University",
+    "publisher": "Pandit Deendayal Energy University",
+    "retrieved_at": "2026-10-17",
+    "filter": "department == 'Information and Communication Technology'",
+    "confidence": "CONFIRMED_OFFICIAL_SOURCE",
+    "notes": [
+      "Names in ALL CAPS were title-cased; '?' in 'Assistant Professor ? On Contract' is a mis-encoded dash in the source.",
+      "The source does not name the Head of Department or any coordinator — those roles are not assigned to anyone here.",
+      "Cabins and phone numbers are not published, so none are recorded."
+    ]
+  },
+  "faculty": [
+    {
+      "name": "Paawan Sharma",
+      "title": "Dr.",
+      "designation": "Associate Professor",
+      "official_email": "Paawan.Sharma@sot.pdpu.ac.in",
+      "research_areas": [
+        "Internet of Things (IoT)",
+        "Image Analysis",
+        "Machine vision",
+        "Machine learning",
+        "communication systems",
+        "Embedded System on SBCs"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "Indira Gandhi Centre for Atomic Research, Kalpakkam (HBNI, Mumbai)",
+        "year": "2014"
+      },
+      "source_id": "619"
+    },
+    {
+      "name": "Abhishek Joshi",
+      "title": "Dr.",
+      "designation": "Assistant Professor",
+      "official_email": "Abhishek.Joshi@sot.pdpu.ac.in",
+      "research_areas": [
+        "Wireless Sensor Network",
+        "UAV Network",
+        "IoT",
+        "TinyML",
+        "Embedded System"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "BITS Pilani",
+        "year": "2022"
+      },
+      "source_id": "851"
+    },
+    {
+      "name": "Abhishek S Kumar",
+      "title": "Dr.",
+      "designation": "Assistant Professor",
+      "official_email": "AbhishekS.Kumar@sot.pdpu.ac.in",
+      "research_areas": [
+        "Digital Communications",
+        "Signal Processing for Telecommunication Systems",
+        "Detection and Estimation Theory",
+        "AI &ML",
+        "Applications: 6G",
+        "Software Radio"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "National Institute of Technology Patna",
+        "year": "2021"
+      },
+      "source_id": "839"
+    },
+    {
+      "name": "Anand Singh",
+      "title": "Dr.",
+      "designation": "Assistant Professor",
+      "official_email": "Anand.Singh@sot.pdpu.ac.in",
+      "research_areas": [
+        "Visible light Communication (VLC)",
+        "LiFi",
+        "Indoor Outdoor positioning using VLC",
+        "Location-assisted Communication",
+        "Internet-of-Things (IoT)",
+        "UAV Enabled Indoor VLC systems"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "IIIT Delhi",
+        "year": "2022"
+      },
+      "source_id": "870"
+    },
+    {
+      "name": "Ankur Changela",
+      "title": "Dr.",
+      "designation": "Assistant Professor",
+      "official_email": "Ankur.Changela@sot.pdpu.ac.in",
+      "research_areas": [
+        "Digital CMOS VLSI Circuits and Sub-systems",
+        "FPGA Based VLSI signal processing",
+        "VLSI architectures for  high-speed computing",
+        "Verilog HDL based Implementation of Arithmetic building blocks"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "Ahmedabad University",
+        "year": "2021"
+      },
+      "source_id": "799"
+    },
+    {
+      "name": "Arpan Desai",
+      "title": "Dr.",
+      "designation": "Assistant Professor",
+      "official_email": "Arpan.Desai@sot.pdpu.ac.in",
+      "research_areas": [
+        "mm-wave antennas",
+        "RF front-end design",
+        "transparent antennas",
+        "MIMO antennas",
+        "circularly polarized antennas",
+        "CMOS VLSI Design"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "Charotar University of Science and Technology",
+        "year": "2019"
+      },
+      "source_id": "852"
+    },
+    {
+      "name": "Bablu Kumar Singh",
+      "title": "Dr.",
+      "designation": "Assistant Professor",
+      "official_email": "Bablu.Singh@sot.pdpu.ac.in",
+      "research_areas": [
+        "SoC & SDR development and implementation. FPGA",
+        "Frequency channel optimization",
+        "Internet of Things"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "Jai Narain Vyas University Jodhpur",
+        "year": "2020"
+      },
+      "source_id": "874"
+    },
+    {
+      "name": "Deepak Kumar Sharma",
+      "title": "Dr.",
+      "designation": "Assistant Professor",
+      "official_email": "Deepak.Sharma@sot.pdpu.ac.in",
+      "research_areas": [
+        "Blockchain",
+        "Distributed Ledger Technology",
+        "Information Security",
+        "Intrusion Detection Systems"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "University of Petroleum and Energy Studies",
+        "year": "2024"
+      },
+      "source_id": "905"
+    },
+    {
+      "name": "Deepak Sahu",
+      "title": "Dr.",
+      "designation": "Assistant Professor",
+      "official_email": "Deepak.Sahu@sot.pdpu.ac.in",
+      "research_areas": [
+        "Machine Learning in 5G and 6G Communication",
+        "Cognitive Radio Network",
+        "MIMO",
+        "Precoder Designing",
+        "Energy Efficiency"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "Indian Institute of Information Technology, Design and Manufacturing, Jabalpur",
+        "year": "2023"
+      },
+      "source_id": "853"
+    },
+    {
+      "name": "Devlina Adhikari",
+      "title": "Dr.",
+      "designation": "Assistant Professor",
+      "official_email": "Devlina.Adhikari@sot.pdpu.ac.in",
+      "research_areas": [
+        "Optical Fiber Communication Systems",
+        "Wireless Communication and Network",
+        "Cyber Physical Systems",
+        "IoT",
+        "Cyber Security"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "IIT Kharagpur",
+        "year": "2021"
+      },
+      "source_id": "758"
+    },
+    {
+      "name": "Ganga Prasad Pandey",
+      "title": "Dr.",
+      "designation": "Assistant Professor",
+      "official_email": "Gangaprasad.Pandey@sot.pdpu.ac.in",
+      "research_areas": [
+        "machine learning in antenna",
+        "energy harvesting",
+        "ME-dipole",
+        "active",
+        "Reconfigurable",
+        "frequency agile microstrip"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "Uttarakhand Technical University",
+        "year": "2015"
+      },
+      "source_id": "563"
+    },
+    {
+      "name": "Gaurav Bhargava",
+      "title": "Dr.",
+      "designation": "Assistant Professor",
+      "official_email": "Gaurav.Bhargava@sot.pdpu.ac.in",
+      "research_areas": [
+        "GaN power amplifier design",
+        "Automation",
+        "analog filter design"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "National Institute of Technology Meghalaya",
+        "year": "2024"
+      },
+      "source_id": "948"
+    },
+    {
+      "name": "Hardik Vyas",
+      "title": "Dr.",
+      "designation": "Assistant Professor",
+      "official_email": "Hardik.Svyas@sot.pdpu.ac.in",
+      "research_areas": [
+        "Electromagnetic analysis of sub-wavelength devices"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "IIT Gandhinagar",
+        "year": "2021"
+      },
+      "source_id": "796"
+    },
+    {
+      "name": "Jigarkumar Shah",
+      "title": "Dr.",
+      "designation": "Assistant Professor",
+      "official_email": "Jigarkumar.Shah@sot.pdpu.ac.in",
+      "research_areas": [
+        "Financial Signal Processing",
+        "Time Series Analysis"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "Faculty of Technology and Engg., The M S University of Baroda, Vadodara",
+        "year": "2013"
+      },
+      "source_id": "587"
+    },
+    {
+      "name": "Kamal Garg",
+      "title": "Dr.",
+      "designation": "Assistant Professor",
+      "official_email": "Kamal.Garg@sot.pdpu.ac.in",
+      "research_areas": [
+        "Wireless and Mobile Communications",
+        "Signal Processing for Communications",
+        "Non-line-of-sight Ultraviolet Communications",
+        "Underwater Wireless Communications",
+        "Cooperative Relay Communications",
+        "Spatial Diversity Techniques"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "Indian Institute of Technology Indore",
+        "year": "2022"
+      },
+      "source_id": "841"
+    },
+    {
+      "name": "Mahesh Kumar",
+      "title": "Dr.",
+      "designation": "Assistant Professor",
+      "official_email": "Mahesh.Kumar@sot.pdpu.ac.in",
+      "research_areas": [
+        "Microfluidic Sensor",
+        "Early-Stage Cancer Diagnostic Sensors",
+        "Smart Walkers",
+        "Health Care Analytics"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "Manipal University Jaipur",
+        "year": "2022"
+      },
+      "source_id": "868"
+    },
+    {
+      "name": "Manish Mandloi",
+      "title": "Dr.",
+      "designation": "Assistant Professor",
+      "official_email": "Manish.Mandloi@sot.pdpu.ac.in",
+      "research_areas": [
+        "Massive MIMO",
+        "Index Modulation",
+        "Cell Free Massive MIMO",
+        "Intelligent Reflecting Surfaces"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "IIT Indore",
+        "year": "2017"
+      },
+      "source_id": "798"
+    },
+    {
+      "name": "Mohendra Roy",
+      "title": "Dr.",
+      "designation": "Assistant Professor",
+      "official_email": "Mohendra.Roy@sot.pdpu.ac.in",
+      "research_areas": [
+        "Artificial Intelligence",
+        "Machine Learning",
+        "Physics of BioInspired Systems",
+        "BioPhotonics",
+        "Biomedical Imaging and processing"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "Korea University",
+        "year": "2016"
+      },
+      "source_id": "677"
+    },
+    {
+      "name": "Nitin Singh Rajput",
+      "title": "Dr.",
+      "designation": "Assistant Professor",
+      "official_email": "Nitin.Rajput@sot.pdpu.ac.in",
+      "research_areas": [
+        "Applying Artificial Intelligence",
+        "Machine Learning",
+        "Wired and Wireless Networking",
+        "Game Theory",
+        "Cooperation Theory",
+        "Optimization Techniques"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "Birla Institute of Technology and Science Pilani RJ INDIA",
+        "year": "2020"
+      },
+      "source_id": "777"
+    },
+    {
+      "name": "Pradip Barik",
+      "title": "Dr.",
+      "designation": "Assistant Professor",
+      "official_email": "Pradip.Barik@sot.pdpu.ac.in",
+      "research_areas": [
+        "resource allocation in heterogeneous cellular network",
+        "power optimization",
+        "green communication",
+        "adaptive multimedia transmission over next generation cellular networks",
+        "application of graph theory",
+        "game theory and machine learning for wireless communication"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "IIT Kharagpur",
+        "year": "2021"
+      },
+      "source_id": "770"
+    },
+    {
+      "name": "Prashant Dwivedy",
+      "title": "Dr.",
+      "designation": "Assistant Professor",
+      "official_email": "Prashant.Dwivedy@sot.pdpu.ac.in",
+      "research_areas": [
+        "communication engineering",
+        "wireless technologies",
+        "spectral efficiency",
+        "especially for Internet of Things (IoT) environments",
+        "signal processing techniques"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "PDPM-IIITDM, JABALPUR",
+        "year": "2024"
+      },
+      "source_id": "958"
+    },
+    {
+      "name": "Ritesh Vyas",
+      "title": "Dr.",
+      "designation": "Assistant Professor",
+      "official_email": "Ritesh.Vyas@sot.pdpu.ac.in",
+      "research_areas": [
+        "Biometrics",
+        "Computer Vision",
+        "Image Processing",
+        "Pattern Recognition",
+        "Artificial Intelligence",
+        "Machine Learning"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "NIT Delhi",
+        "year": "2020"
+      },
+      "source_id": "801"
+    },
+    {
+      "name": "Santosh Satapathy",
+      "title": null,
+      "designation": "Assistant Professor",
+      "official_email": "Santosh.Satapathy@sot.pdpu.ac.in",
+      "research_areas": [
+        "Artificial Intelligence",
+        "Machine Learning",
+        "Biomedical Signal Processing",
+        "Brain-Human Interface",
+        "EEG Data Analytics"
+      ],
+      "highest_degree": null,
+      "source_id": "784"
+    },
+    {
+      "name": "Soumyashree Soumyaprakash Panda",
+      "title": "Dr.",
+      "designation": "Assistant Professor",
+      "official_email": "Soumyashree.Panda@sot.pdpu.ac.in",
+      "research_areas": [
+        "AI-assisted Inverse Design",
+        "Scientific Machine Learning",
+        "Evolutionary Computing",
+        "Nanophotonics",
+        "Metaoptics",
+        "Computational Electromagnetics"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "Indian Institute of Technology, Gandhinagar",
+        "year": "2022"
+      },
+      "source_id": "802"
+    },
+    {
+      "name": "Vivek Pandit",
+      "title": "Dr.",
+      "designation": "Assistant Professor",
+      "official_email": "Vivek.Pandit@sot.pdpu.ac.in",
+      "research_areas": [
+        "Multi-band and Wide-band Compact Antenna Design",
+        "Artificial Magnetic Conductor (AMC) Surfaces",
+        "HIS",
+        "EBG",
+        "Metamaterial Absorber",
+        "Frequency Selective surfaces"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "IIT Kanpur",
+        "year": null
+      },
+      "source_id": "782"
+    },
+    {
+      "name": "Aarti Solanki",
+      "title": "Dr.",
+      "designation": "Assistant Professor (On Contract)",
+      "official_email": "Aarti.Solanki@sot.pdpu.ac.in",
+      "research_areas": [
+        "Embedded system",
+        "IoT",
+        "VLSI design"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "Gujarat Technological University",
+        "year": "2029"
+      },
+      "source_id": "863"
+    },
+    {
+      "name": "Kirti Kant Sharma",
+      "title": "Dr.",
+      "designation": "Assistant Professor (On Contract)",
+      "official_email": "Kirtikant.Sharma_ad@sot.pdpu.ac.in",
+      "research_areas": [
+        "Cooperative Wireless Communication",
+        "RF-Energy Harvesting and Physical Layer Security"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "Indian Institute Of Technology Delhi",
+        "year": "2023"
+      },
+      "source_id": "871"
+    },
+    {
+      "name": "Rashmi Bhattad",
+      "title": "Dr.",
+      "designation": "Assistant Professor (On Contract)",
+      "official_email": "Rashmi.Bhattad@sot.pdpu.ac.in",
+      "research_areas": [
+        "Image Processing",
+        "Remote Sensing",
+        "Deep Learning"
+      ],
+      "highest_degree": {
+        "degree": "Ph.D.",
+        "institution": "Vishwakarma Government Engineering College",
+        "year": "2025"
+      },
+      "source_id": "884"
+    },
+    {
+      "name": "Shivangi Mehta",
+      "title": null,
+      "designation": "Assistant Professor (On Contract)",
+      "official_email": "Shivangi.Mehta@sot.pdpu.ac.in",
+      "research_areas": [
+        "Cyber Security",
+        "Malware Detection",
+        "Modern Web Development (MERN Stack and MEAN Stack)",
+        "OWASP Top 10",
+        "Web Security",
+        "LLM Security"
+      ],
+      "highest_degree": {
+        "degree": "B.E.",
+        "institution": "Gujarat Technological University",
+        "year": "2019"
+      },
+      "source_id": "865"
+    }
+  ]
+}

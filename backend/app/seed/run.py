@@ -10,6 +10,7 @@ import argparse
 import datetime as dt
 import hashlib
 import random
+import secrets
 import sys
 import uuid
 from pathlib import Path
@@ -575,25 +576,43 @@ def seed(db: Session) -> None:
 
     log("Faculty accounts…")
     faculty_by_code: dict[str, Faculty] = {}
-    roster_codes = {row[2] for row in D.ICT_FACULTY_ROSTER}
+    source_url = D.ICT_FACULTY_SOURCE["source"]["url"]
     for name, email, emp_code, dept, designation, cabin, spec, extra in D.FACULTY:
         roles = [Role.FACULTY] + [Role(r) for r in extra]
-        if emp_code in roster_codes:
-            # Fixed numbers, so the roster never draws from `rng` and cannot shift
-            # the generated students — whose emails the sign-in shortcuts name.
-            serial = int(emp_code.rsplit("-", 1)[1])
-            mobile, office = f"+91 98{25000000 + serial:08d}", f"+91 79 232{40000 + serial}"
+        real = D.ICT_FACULTY_DETAILS.get(emp_code)
+        if real:
+            # A real PDEU faculty member: published details only, no invented
+            # phone, and no `rng` draw — so generated students do not shift.
+            user = make_user(db, name=name, email=email, roles=roles, phone=None)
+            # Nobody knows this password; a demo cannot sign in as a real person.
+            user.hashed_password = hash_password(secrets.token_urlsafe(32))
+            degree = real.get("highest_degree") or {}
+            faculty = Faculty(
+                user_id=user.id, employee_code=emp_code,
+                department_id=departments[dept].id, designation=designation, cabin=None,
+                specialization=spec,
+                qualification=", ".join(filter(None, [degree.get("degree"),
+                                                      degree.get("institution")]))[:150] or None,
+                public_email=real["official_email"], public_phone=None,
+                profile_url=source_url, is_mentor=True, is_demo=False,
+                bio=(f"{designation}, {departments[dept].name}, School of Technology. "
+                     f"Research areas: {'; '.join(real['research_areas']) or 'not published'}. "
+                     f"Source: PDEU faculty list, retrieved "
+                     f"{D.ICT_FACULTY_SOURCE['source']['retrieved_at']}."),
+            )
         else:
             mobile = f"+91 98{rng.randint(10000000, 99999999)}"
             office = f"+91 79 232{rng.randint(10000, 99999)}"
-        user = make_user(db, name=name, email=email, roles=roles, phone=mobile)
-        faculty = Faculty(
-            user_id=user.id, employee_code=emp_code,
-            department_id=departments[dept].id, designation=designation, cabin=cabin,
-            specialization=spec, qualification="Ph.D.", public_email=email,
-            public_phone=office, is_mentor=True,
-            bio=f"{designation}, {departments[dept].name}. Research interests: {spec}.",
-        )
+            user = make_user(db, name=name, email=email, roles=roles, phone=mobile)
+            faculty = Faculty(
+                user_id=user.id, employee_code=emp_code,
+                department_id=departments[dept].id, designation=designation, cabin=cabin,
+                specialization=spec, qualification="Ph.D.", public_email=email,
+                public_phone=office, is_mentor=True, is_demo=True,
+                bio=(f"Demo account — a fictional {designation.lower()} used to "
+                     f"demonstrate the portal, not a PDEU faculty member. "
+                     f"Research interests: {spec}."),
+            )
         db.add(faculty)
         db.flush()
         faculty_by_code[emp_code] = faculty
@@ -603,7 +622,7 @@ def seed(db: Session) -> None:
         db.add(Faculty(
             user_id=office_user.id, employee_code=emp_code,
             department_id=departments[dept].id, designation="Department Office",
-            public_email=email, is_mentor=False,
+            public_email=email, is_mentor=False, is_demo=True,
             bio=f"Administrative office of {departments[dept].name}.",
         ))
     db.flush()
@@ -1216,21 +1235,21 @@ def seed_internship_records(db, cssi, summer, cssi_groups, students, ngos, compa
     sizes = internship_engine.split_by_roll(
         len(summer_students), len(mentors), internship_engine.mentor_capacity(summer))
     mentor_by_position = [m for m, n in zip(mentors, sizes) for _ in range(n)]
-    if len(mentor_by_position) < len(summer_students):
-        raise RuntimeError(
-            f"{len(summer_students)} Summer interns need more than the "
-            f"{len(mentors)} ICT mentors in seed/data.py can carry."
-        )
+    # With PDEU's real ICT roster, the unconfirmed 10-per-mentor cap cannot seat
+    # two generated cohorts. The rest are left registered and *awaiting a
+    # mentor* — the coordinator's screen then shows the shortfall honestly
+    # instead of the seed inventing faculty to hide it.
     for index, student in enumerate(summer_students):
-        mentor = mentor_by_position[index]
+        mentor = mentor_by_position[index] if index < len(mentor_by_position) else None
         company = companies[index % len(companies)]
         reached = min(3 + (index % 6), len(summer_stages))
         completed = index == 0  # one fully-evaluated record so the UI shows a finished flow
 
         enrollment = InternshipEnrollment(
             program_id=summer.id, student_id=student.id,
-            mentor_faculty_id=mentor.id, organization_id=company.id,
-            status=(EnrollmentStatus.COMPLETED if completed
+            mentor_faculty_id=mentor.id if mentor else None, organization_id=company.id,
+            status=(EnrollmentStatus.REGISTERED if mentor is None
+                    else EnrollmentStatus.COMPLETED if completed
                     else EnrollmentStatus.IN_PROGRESS),
             registered_at=NOW - dt.timedelta(days=50),
             start_date=summer.start_date, end_date=summer.end_date,
@@ -1248,6 +1267,10 @@ def seed_internship_records(db, cssi, summer, cssi_groups, students, ngos, compa
         )
         db.add(enrollment)
         db.flush()
+        if mentor is None:
+            # Registered, nothing else: no mentor has reviewed or marked anything.
+            internship_engine.initialise_stage_progress(db, enrollment=enrollment, program=summer)
+            continue
 
         for position, stage in enumerate(summer_stages):
             if completed or position < reached - 1:

@@ -287,6 +287,13 @@ docs/            phase reports, curriculum research, deployment
 
 ## Demo data
 
+**ICT faculty are real** — PDEU's published list (`backend/app/seed/sources/pdeu_ict_faculty.json`,
+source URL and retrieval date inside). Only published fields are used; real
+faculty cannot sign in (unusable password, non-routable login address) and hold
+no coordinator/HoD role until the department confirms who does. Sign-in uses the
+**demo personas** (`faculty.is_demo`, labelled "Demo account"). Students are
+still generated.
+
 The seed is the demo. After pulling a change to `seed/`, reseed — the database
 keeps its old rows otherwise, and new demo logins will not exist:
 

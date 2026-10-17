@@ -160,6 +160,10 @@ class FacultyOut(ORMModel):
     bio: str | None = None
     is_mentor: bool
     is_active: bool
+    #: Fictional demo persona, not a real faculty member.
+    is_demo: bool = False
+    #: Where the published details came from (the official profile page).
+    profile_url: str | None = None
     mentee_count: int = 0
 
 

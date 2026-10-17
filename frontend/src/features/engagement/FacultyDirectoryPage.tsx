@@ -98,8 +98,11 @@ export function FacultyDirectoryPage() {
                     <div className="flex items-start gap-3 min-w-0">
                       <Avatar name={member.full_name} src={member.avatar_url} size="lg" />
                       <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-base font-semibold text-ink">
-                          {member.full_name}
+                        <h3 className="flex min-w-0 items-center gap-1.5 text-base font-semibold text-ink">
+                          <span className="truncate" title={member.full_name}>{member.full_name}</span>
+                          {member.is_demo && (
+                            <Badge tone="warning" className="shrink-0 text-2xs" >Demo account</Badge>
+                          )}
                         </h3>
                         <p className="truncate text-xs font-medium text-ink-muted">{member.designation}</p>
                         <p className="truncate text-2xs text-ink-subtle">{member.department_name}</p>
@@ -164,9 +167,15 @@ export function FacultyDirectoryPage() {
                     {member.employee_code}
                   </Badge>
                   {member.qualification && (
-                    <Badge tone="neutral" className="text-2xs">
-                      {member.qualification}
+                    <Badge tone="neutral" className="max-w-full truncate text-2xs">
+                      <span className="truncate" title={member.qualification}>{member.qualification}</span>
                     </Badge>
+                  )}
+                  {member.profile_url && (
+                    <a href={member.profile_url} target="_blank" rel="noreferrer"
+                       className="text-2xs font-medium text-accent hover:underline">
+                      Source: PDEU
+                    </a>
                   )}
                   {member.is_mentor && (
                     <Badge tone="accent" className="text-2xs">

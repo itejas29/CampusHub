@@ -75,42 +75,36 @@ FACULTY = [
      "Assistant Professor", "10-014", "Bioprocess Engineering", []),
 ]
 
-# ── the rest of the ICT faculty ──────────────────────────────────────────
-# A real B.Tech department carries enough faculty to mentor its own cohorts. With
-# only the named few above, the demo put ~136 Summer interns on each mentor —
-# over ten times the per-mentor cap the allocator enforces. These complete the
-# roster so every internship load in the seed sits inside that cap. Generated
-# deterministically (no RNG), so the same people appear on every reseed.
-_ICT_FACULTY_FIRST = [
-    "Amit", "Bhavna", "Chirag", "Deepa", "Gaurav", "Hema", "Jatin", "Kiran",
-    "Lalit", "Mansi", "Naveen", "Pallavi", "Rajesh", "Shruti", "Tushar", "Usha",
-    "Vipul", "Yamini", "Ashish", "Bina", "Dhaval", "Falguni", "Hiren", "Jigna",
-    "Ketan", "Monika", "Nirav", "Purvi", "Ronak", "Swati", "Tejal", "Urvish",
-    "Viral", "Zarna", "Abhay", "Charu", "Darshan", "Ekta", "Mihir", "Nidhi",
-]
-_ICT_FACULTY_LAST = [
-    "Parikh", "Vyas", "Pandya", "Thakkar", "Dave", "Bhatt", "Raval", "Soni",
-    "Modi", "Gandhi", "Shukla", "Jani", "Mistry", "Kothari", "Dholakia", "Upadhyay",
-    "Acharya", "Panchal", "Rathod", "Brahmbhatt",
-]
-_ICT_SPECIALIZATIONS = [
-    "Computer Networks", "Machine Learning", "VLSI Design", "Signal Processing",
-    "Database Systems", "Cyber Security", "Internet of Things", "Cloud Computing",
-    "Natural Language Processing", "Embedded Systems", "Wireless Communication",
-    "Computer Vision", "Software Engineering", "Data Mining", "Optical Networks",
-]
-_ICT_DESIGNATIONS = ["Assistant Professor"] * 3 + ["Associate Professor"]
+# ── the real ICT faculty, from PDEU's published list ───────────────────────
+# Loaded from seed/sources/pdeu_ict_faculty.json, which records where and when
+# it was retrieved. These are real people, so:
+#   * only what PDEU publishes is used — name, designation, official email,
+#     research areas, highest degree. No cabin or phone is invented.
+#   * they cannot sign in to a demo: their accounts get an unusable password.
+#   * they hold no coordinator or HoD role — the source names none. Those stay
+#     on the demo personas above (marked `is_demo`) until the department
+#     confirms who holds them.
+import json as _json
+from pathlib import Path as _Path
 
-ICT_FACULTY_ROSTER = [
-    (
-        f"{'Dr.' if i % 3 else 'Prof.'} {_ICT_FACULTY_FIRST[i]} {_ICT_FACULTY_LAST[i % len(_ICT_FACULTY_LAST)]}",
-        f"{_ICT_FACULTY_FIRST[i].lower()}.{_ICT_FACULTY_LAST[i % len(_ICT_FACULTY_LAST)].lower()}"
-        f"@campushub.example.com",
-        f"ICT-F-{111 + i}", "ICT", _ICT_DESIGNATIONS[i % len(_ICT_DESIGNATIONS)],
-        f"6-{300 + i}", _ICT_SPECIALIZATIONS[i % len(_ICT_SPECIALIZATIONS)], [],
-    )
-    for i in range(len(_ICT_FACULTY_FIRST))
-]
+ICT_FACULTY_SOURCE = _json.loads(
+    (_Path(__file__).parent / "sources" / "pdeu_ict_faculty.json").read_text(encoding="utf-8"))
+
+#: employee code -> the published record, for the details FACULTY's tuple lacks.
+ICT_FACULTY_DETAILS: dict[str, dict] = {}
+ICT_FACULTY_ROSTER = []
+for _i, _f in enumerate(ICT_FACULTY_SOURCE["faculty"], 1):
+    _code = f"ICT-P-{_i:02d}"
+    _local = (_f["official_email"] or _f["name"].replace(" ", ".")).split("@")[0].lower()
+    ICT_FACULTY_DETAILS[_code] = _f
+    ICT_FACULTY_ROSTER.append((
+        f"{_f['title'] + ' ' if _f['title'] else ''}{_f['name']}",
+        # A login address that cannot reach the real person — notifications
+        # from a demo must never land in a PDEU inbox.
+        f"{_local}@faculty.campushub.example.com",
+        _code, "ICT", _f["designation"], None,
+        "; ".join(_f["research_areas"])[:255] or None, [],
+    ))
 FACULTY = FACULTY + ICT_FACULTY_ROSTER
 
 # Coordination is scoped: (employee code, domain, department code or None).
@@ -177,14 +171,13 @@ ROLE_ASSIGNMENTS = [
     # admin matrix should show that honestly rather than inventing cover.
 ]
 
-# Every rostered ICT faculty member mentors Summer interns; the first half also
-# mentors a CSSI group. A faculty member may carry both — the cap is per
-# programme. Sized from the cohort: 203 CSSI and 409 Summer students need 21
-# and 41 mentors at 10 each, and this gives 23 and 43.
+# Every real ICT faculty member is in the internship mentor pools — a mentor
+# grant only makes them eligible; it is not a claim about any real allocation,
+# and the students they are given in the demo are generated.
 ROLE_ASSIGNMENTS += [
-    (code, "MENTOR", "SUMMER_INTERNSHIP", "ICT") for _n, _e, code, *_ in ICT_FACULTY_ROSTER
-] + [
-    (code, "MENTOR", "CSSI", "ICT") for _n, _e, code, *_ in ICT_FACULTY_ROSTER[:20]
+    (code, "MENTOR", domain, "ICT")
+    for _n, _e, code, *_ in ICT_FACULTY_ROSTER
+    for domain in ("SUMMER_INTERNSHIP", "CSSI")
 ]
 
 #: Kept so older imports keep working; coordinators are a subset of the above.
