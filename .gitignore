@@ -45,3 +45,4 @@ test-results/
 /index.html
 /pdeu_campus.jpg
 *.pptx
+.vercel
