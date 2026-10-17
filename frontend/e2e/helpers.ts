@@ -6,6 +6,7 @@ export const DEMO_PASSWORD = "Campus@123";
 export const ACCOUNTS = {
   cssiCoordinator: "sneha.iyer@campushub.example.com",
   summerMentor: "meera.krishnan@campushub.example.com",
+  registrar: "admin@campushub.example.com",
 } as const;
 
 /** Sign in through the real form, the way a person does. */
