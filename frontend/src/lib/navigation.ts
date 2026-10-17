@@ -102,6 +102,10 @@ export const NAVIGATION: NavSection[] = [
         permission: "internships:manage",
       },
       {
+        label: "Windows & Deadlines", to: "/internships/windows", icon: CalendarClock,
+        permission: "internships:manage",
+      },
+      {
         label: "Assign Mentors", to: "/internships/mentor-assignment", icon: UserCheck,
         permission: "internships:manage",
       },

@@ -22,6 +22,7 @@ const MinorsPage = lazy(() => import("@/features/academics/MinorsPage").then((m)
 const NptelPage = lazy(() => import("@/features/academics/NptelPage").then((m) => ({ default: m.NptelPage })));
 const InternshipRecordPage = lazy(() => import("@/features/internships/InternshipRecordPage").then((m) => ({ default: m.InternshipRecordPage })));
 const InternshipsPage = lazy(() => import("@/features/internships/InternshipsPage").then((m) => ({ default: m.InternshipsPage })));
+const ProgramWindowsPage = lazy(() => import("@/features/internships/ProgramWindowsPage").then((m) => ({ default: m.ProgramWindowsPage })));
 const MentorAssignmentPage = lazy(() => import("@/features/internships/MentorAssignmentPage").then((m) => ({ default: m.MentorAssignmentPage })));
 const MyStudentsPage = lazy(() => import("@/features/internships/MyStudentsPage").then((m) => ({ default: m.MyStudentsPage })));
 const ProgramsAdminPage = lazy(() => import("@/features/internships/ProgramsAdminPage").then((m) => ({ default: m.ProgramsAdminPage })));
@@ -199,6 +200,14 @@ export default function App() {
                   element={
                     <RequireAccess permission="internships:manage">
                       <MyStudentsPage scope="all" />
+                    </RequireAccess>
+                  }
+                />
+                <Route
+                  path="internships/windows"
+                  element={
+                    <RequireAccess permission="internships:manage">
+                      <ProgramWindowsPage />
                     </RequireAccess>
                   }
                 />

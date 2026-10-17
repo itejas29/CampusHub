@@ -120,7 +120,7 @@ changes university policy.
 | Open Elective 90 / 150 / 151 | `[75,15]` / `[75,75]` / `[75,75,1]` | `test_sections.py` |
 | Core Elective minimum | **40 combined across divisions**, never per division | `services/sections.py` |
 | Core Elective ceiling | **none** — one combined class however large | `services/sections.py` |
-| CSSI window | Sem I hidden · II announced · III active · IV+ concluded | `services/internships.py` |
+| CSSI window | Sem I hidden · II announced · III active · IV+ concluded — **except** that the coordinator's registration window lets the Sem II cohort register early (below) | `services/internships.py`, `services/internship_windows.py` |
 | Summer Internship rubric | 25 + 25 + 25 + 25 = 100 | seeded `EvaluationCriteria` |
 | Minor eligibility | CPI ≥ 7.5, 0 backlogs, 75 seats, from Sem III | `MinorProgram` rows |
 
@@ -219,6 +219,31 @@ described its practice to the project team; it is not from a written rule.)
   number is the coordinator's call, not a university rule.
 
 ---
+
+## CSSI runs in coordinator-opened windows
+
+How the ICT department runs CSSI, as described to the project team (not from a
+written rule). It is configuration on the one internship engine —
+`internship_programs.config["windows"] = ["REGISTRATION", "PRESENTATION"]` — and
+a programme that lists no windows keeps the semester-only rules. Enforced in
+`services/internship_windows.py`.
+
+1. The HoD appoints the CSSI coordinator.
+2. The coordinator opens **registration** with a message, an opening date and a
+   deadline, aimed at the Semester II cohort. Opening it notifies those
+   students. While it is open they record the NGO and their **NGO supervisor's
+   name and phone number** (required). **No window, no early access** — the
+   Sem II "announced" phase is still view-only otherwise.
+3. **Mentor allocation needs registration to have started** (`assert_can_allocate_mentors`).
+4. In Semester III the coordinator opens **presentations** with the poster
+   deadline, presentation day(s) and the process deadline. It needs
+   registration closed and every registered student to have a mentor; opening
+   it tells each student their mentor (with the full roll-range list) and each
+   mentor their students.
+5. Posters are accepted until the poster deadline; **marks lock when the window
+   closes** — for the coordinator too.
+6. The coordinator may extend, reschedule or reopen a window (audited, notifies);
+   nobody else can.
 
 ## Security invariants
 

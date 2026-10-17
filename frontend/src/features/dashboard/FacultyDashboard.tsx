@@ -109,6 +109,10 @@ function daysSince(iso: string | null): number | null {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
 }
 
+const WINDOW_LABEL = { REGISTRATION: "Registration", PRESENTATION: "Presentations & marks" } as const;
+const WINDOW_STATE = { NOT_STARTED: "Not started", SCHEDULED: "Scheduled", OPEN: "Open", CLOSED: "Closed" } as const;
+const WINDOW_TONE = { NOT_STARTED: "neutral", SCHEDULED: "info", OPEN: "success", CLOSED: "neutral" } as const;
+
 const STAT_TONE: Record<PortfolioStat["tone"], string> = {
   default: "text-ink",
   warning: "text-warning",
@@ -202,6 +206,21 @@ function PortfolioCard({ portfolio }: { portfolio: FacultyPortfolio }) {
           </div>
         )}
 
+        {portfolio.windows && portfolio.windows.length > 0 && (
+          <div className="mt-4 rounded-lg border border-line bg-surface-sunken px-3 py-2.5">
+            <p className="text-2xs font-semibold uppercase tracking-wide text-ink-subtle">Cycle</p>
+            <ol className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs">
+              {portfolio.windows.map((w, i) => (
+                <li key={w.kind} className="flex items-center gap-2">
+                  {i > 0 && <span aria-hidden className="text-ink-subtle">→</span>}
+                  <span className="font-medium text-ink">{WINDOW_LABEL[w.kind]}</span>
+                  <Badge tone={WINDOW_TONE[w.state]}>{WINDOW_STATE[w.state]}</Badge>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-5">
           <LinkButton to={primary.to} size="sm" variant="accent" icon={<PrimaryIcon className="h-3.5 w-3.5" aria-hidden />}>
             {primary.label}
@@ -209,6 +228,12 @@ function PortfolioCard({ portfolio }: { portfolio: FacultyPortfolio }) {
           {secondary && (
             <LinkButton to={secondary.to} size="sm" variant="secondary">
               {secondary.label}
+            </LinkButton>
+          )}
+          {portfolio.windows && portfolio.windows.length > 0 && portfolio.program_id && (
+            <LinkButton to={`/internships/windows?program_id=${portfolio.program_id}`} size="sm" variant="ghost"
+                        icon={<CalendarClock className="h-3.5 w-3.5" aria-hidden />}>
+              Windows & deadlines
             </LinkButton>
           )}
         </div>

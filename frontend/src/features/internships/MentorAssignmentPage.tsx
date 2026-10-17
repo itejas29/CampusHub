@@ -30,7 +30,7 @@ import { Avatar } from "@/components/ui/Misc";
 import { ConfirmDialog } from "@/components/ui/Modal";
 import { ApiError, api, qs } from "@/lib/api";
 import { listContainer, listItem, slideUp } from "@/lib/motion";
-import type { EnrollmentSummary, InternshipProgram, MentorCapacity } from "@/types";
+import type { EnrollmentSummary, InternshipProgram, MentorCapacity, ProgramWindows } from "@/types";
 
 // ─── Animation helpers ────────────────────────────────────────────────────────
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -136,6 +136,19 @@ export function MentorAssignmentPage() {
       ),
     enabled: !!activeProgramId,
   });
+
+  // A window-run programme (CSSI) allocates only once registration has started.
+  const windowsQuery = useQuery({
+    queryKey: ["internship-windows", activeProgramId],
+    queryFn: () => api.get<ProgramWindows>(`/internships/programs/${activeProgramId}/windows`),
+    enabled: Boolean(activeProgramId && activeProgram?.window_kinds?.length),
+  });
+  const registrationWindow = windowsQuery.data?.windows.find((w) => w.kind === "REGISTRATION");
+  const allocationLocked = Boolean(
+    activeProgram?.window_kinds?.includes("REGISTRATION")
+      && windowsQuery.isSuccess
+      && (!registrationWindow || registrationWindow.state === "SCHEDULED"),
+  );
 
   const mentors = mentorsQuery.data ?? [];
   // Until both lists arrive, "0 students" would be a claim, not a fact.
@@ -624,6 +637,25 @@ export function MentorAssignmentPage() {
           </div>
         </div>
       </motion.div>
+
+      {allocationLocked && activeProgram && (
+        <div className="mb-5 flex flex-col gap-3 rounded-xl border border-info/30 bg-info-soft px-4 py-3.5 sm:flex-row sm:items-center">
+          <Lock className="hidden h-5 w-5 shrink-0 text-info sm:block" aria-hidden />
+          <div className="min-w-0 flex-1 text-sm">
+            <p className="font-semibold text-ink">Mentor allocation opens once registration starts</p>
+            <p className="mt-0.5 text-ink-muted">
+              Open the registration window first — students register their organisation, then
+              you allocate mentors.
+            </p>
+          </div>
+          <Link
+            to={`/internships/windows?program_id=${activeProgram.id}`}
+            className="inline-flex h-9 shrink-0 items-center justify-center rounded-md bg-accent px-3.5 text-sm font-semibold text-accent-fg hover:bg-accent-hover"
+          >
+            Windows &amp; deadlines
+          </Link>
+        </div>
+      )}
 
       {activeProgram && !activeProgram.mentor_capacity_confirmed && (
         <MentorCapNotice program={activeProgram} />

@@ -118,6 +118,9 @@ class InternshipProgramOut(ORMModel):
     #: (False = the portal's default of 10, not a confirmed PDEU rule).
     mentor_capacity: int = 10
     mentor_capacity_confirmed: bool = False
+    #: Window kinds this programme runs (e.g. ["REGISTRATION", "PRESENTATION"]);
+    #: empty means the older semester-only rules apply.
+    window_kinds: list[str] = Field(default_factory=list)
     # Aggregates
     enrolled_count: int = 0
     completed_count: int = 0
@@ -387,6 +390,11 @@ class EnrollmentDetail(EnrollmentSummary):
 class EnrollRequest(BaseModel):
     organization_id: int | None = None
     new_organization: OrganizationCreate | None = None
+    #: The person at the organisation who supervises the student (for CSSI,
+    #: the NGO supervisor). Required when the programme requires one.
+    industry_mentor_name: str | None = Field(default=None, max_length=150)
+    industry_mentor_phone: str | None = Field(default=None, max_length=20)
+    industry_mentor_email: EmailStr | None = None
 
 
 class EnrollmentUpdate(BaseModel):
@@ -519,3 +527,66 @@ class DocumentReviewRequest(BaseModel):
 # EnrollmentDetail references the document schemas defined above it, so the
 # forward references have to be resolved once the module is fully loaded.
 EnrollmentDetail.model_rebuild()
+
+
+# ── coordinator-run windows ───────────────────────────────────────────────
+class InternshipWindowOut(ORMModel):
+    id: int
+    program_id: int
+    kind: str
+    title: str
+    message: str
+    opens_at: dt.datetime
+    closes_at: dt.datetime
+    cohort_semester: int | None = None
+    submission_due_at: dt.datetime | None = None
+    presentation_from: dt.date | None = None
+    presentation_to: dt.date | None = None
+    closed_early_at: dt.datetime | None = None
+    #: SCHEDULED, OPEN or CLOSED — computed by the server at request time.
+    state: str = "SCHEDULED"
+
+
+class InternshipWindowOpen(BaseModel):
+    kind: str
+    title: str = Field(default="", max_length=180)
+    message: str = Field(min_length=1, max_length=5000)
+    opens_at: dt.datetime
+    closes_at: dt.datetime
+    cohort_semester: int | None = Field(default=None, ge=1, le=10)
+    submission_due_at: dt.datetime | None = None
+    presentation_from: dt.date | None = None
+    presentation_to: dt.date | None = None
+
+
+class InternshipWindowUpdate(BaseModel):
+    opens_at: dt.datetime | None = None
+    closes_at: dt.datetime | None = None
+    message: str | None = Field(default=None, max_length=5000)
+    submission_due_at: dt.datetime | None = None
+    presentation_from: dt.date | None = None
+    presentation_to: dt.date | None = None
+
+
+class ProgramWindowsOut(BaseModel):
+    kinds: list[str]
+    windows: list[InternshipWindowOut]
+    can_manage: bool = False
+    #: How many students have registered — the coordinator's progress figure.
+    registered_count: int = 0
+    unassigned_count: int = 0
+
+
+class MentorRosterStudent(BaseModel):
+    roll_number: str
+    name: str
+
+
+class MentorRosterGroup(BaseModel):
+    faculty_id: int
+    name: str
+    designation: str | None = None
+    email: str | None = None
+    cabin: str | None = None
+    roll_range: str
+    students: list[MentorRosterStudent]

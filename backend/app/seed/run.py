@@ -37,7 +37,8 @@ from app.models.enums import (
     SourceConfidence, AnnouncementCategory, AudienceType, AuditAction, ClubCategory,
     ClubMemberRole, ComponentType, CoordinationDomain, DocumentType, EnrollmentStatus,
     EvaluationStatus, FileCategory,
-    EvaluatorRole, EventMode, EventStatus, EventType, InternshipType, MeetingMode,
+    EvaluatorRole, EventMode, EventStatus, EventType, InternshipType, InternshipWindowKind,
+    MeetingMode,
     AssignedRole, MeetingStatus, MinorApplicationStatus, MinorEnrollmentStatus, MoocPlatform,
     MoocStatus, NotificationType, OfferingStatus, OrganizationType, PreferenceStatus,
     Priority, ProgramStatus, RegistrationStatus, ReportFrequency, ReportType, Role,
@@ -50,7 +51,7 @@ from app.models.identity import (
 from app.models.internships import (
     EnrollmentStageProgress, EvaluationCriteria, EvaluationScore, InternshipDocument,
     InternshipEnrollment, InternshipEvaluation, InternshipGroup, InternshipProgram,
-    InternshipProject, InternshipReport, InternshipStage, Organization,
+    InternshipProject, InternshipReport, InternshipStage, InternshipWindow, Organization,
 )
 from app.models.minors import (
     MinorApplication, MinorCourse, MinorEnrollment, MinorProgram,
@@ -931,13 +932,17 @@ def seed(db: Session) -> None:
         credits=2,
         requires_group=True, default_group_size=10, requires_organization=True,
         allowed_organization_types=["NGO"], report_frequency=ReportFrequency.NONE,
-        expected_report_count=0, requires_industry_mentor=False,
+        # CSSI asks each student for their NGO supervisor's name and number.
+        expected_report_count=0, requires_industry_mentor=True,
         registration_opens_at=NOW - dt.timedelta(days=45),
         registration_closes_at=NOW + dt.timedelta(days=15),
         start_date=TODAY - dt.timedelta(days=40), end_date=TODAY + dt.timedelta(days=25),
         status=ProgramStatus.REGISTRATION_OPEN,
         coordinator_faculty_id=faculty_by_code["ICT-F-104"].id,
-        config={"group_size_configurable": True},
+        # Run in coordinator-opened windows: registration in Semester II, then
+        # posters, presentations and marks in Semester III.
+        config={"group_size_configurable": True,
+                "windows": ["REGISTRATION", "PRESENTATION"]},
     )
     summer = InternshipProgram(
         code="SI-2025", name="Summer Internship",
@@ -1060,6 +1065,20 @@ def seed(db: Session) -> None:
 
 def seed_internship_records(db, cssi, summer, cssi_groups, students, ngos, companies,
                             faculty_by_code, admin_user) -> None:
+    # The cohort registered in Semester II through the coordinator's window,
+    # which has since closed. The presentation window is left for the
+    # coordinator to open in the demo — that is the step that tells every
+    # student their mentor and starts the marks clock.
+    db.add(InternshipWindow(
+        program_id=cssi.id, kind=InternshipWindowKind.REGISTRATION,
+        title="CSSI registration — Semester II",
+        message=("CSSI (Community and Social Service Internship) is a compulsory "
+                 "2-credit internship with an approved NGO, carried out over the break "
+                 "and presented in Semester III. Register your NGO and your NGO "
+                 "supervisor's name and phone number before the deadline."),
+        opens_at=NOW - dt.timedelta(days=60), closes_at=NOW - dt.timedelta(days=30),
+        cohort_semester=2, opened_by_user_id=faculty_by_code["ICT-F-104"].user_id,
+    ))
     log("CSSI enrolments with live stage progress…")
     cssi_stages = list(db.scalars(
         select(InternshipStage).where(InternshipStage.program_id == cssi.id)
@@ -1076,6 +1095,10 @@ def seed_internship_records(db, cssi, summer, cssi_groups, students, ngos, compa
             program_id=cssi.id, student_id=student.id, group_id=group.id,
             mentor_faculty_id=group.faculty_id,
             organization_id=ngos[index % len(ngos)].id,
+            # The NGO's own contact supervises — taken from the NGO row, not
+            # drawn from `rng`, so later generated values do not shift.
+            industry_mentor_name=ngos[index % len(ngos)].contact_person,
+            industry_mentor_phone=ngos[index % len(ngos)].phone,
             status=EnrollmentStatus.IN_PROGRESS,
             registered_at=NOW - dt.timedelta(days=38),
             start_date=cssi.start_date, end_date=cssi.end_date,

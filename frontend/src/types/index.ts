@@ -383,6 +383,32 @@ export interface InternshipProgram {
   enrolled_count: number; completed_count: number; group_count: number;
   my_enrollment_id: number | null; can_enroll: boolean;
   enroll_blocked_reason: string | null;
+  /** Coordinator-run windows this programme uses; empty = semester rules only. */
+  window_kinds: InternshipWindowKind[];
+}
+
+export type InternshipWindowKind = "REGISTRATION" | "PRESENTATION";
+export type InternshipWindowState = "SCHEDULED" | "OPEN" | "CLOSED";
+
+export interface InternshipWindow {
+  id: number; program_id: number; kind: InternshipWindowKind; title: string;
+  message: string; opens_at: string; closes_at: string;
+  cohort_semester: number | null; submission_due_at: string | null;
+  presentation_from: string | null; presentation_to: string | null;
+  closed_early_at: string | null;
+  /** Computed by the server at request time. */
+  state: InternshipWindowState;
+}
+
+export interface ProgramWindows {
+  kinds: InternshipWindowKind[]; windows: InternshipWindow[]; can_manage: boolean;
+  registered_count: number; unassigned_count: number;
+}
+
+export interface MentorRosterGroup {
+  faculty_id: number; name: string; designation: string | null; email: string | null;
+  cabin: string | null; roll_range: string;
+  students: { roll_number: string; name: string }[];
 }
 
 export interface InternshipGroup {
@@ -695,6 +721,9 @@ export interface FacultyPortfolio {
   /** Set for CSSI / Summer Internship: the programme this entry describes. */
   program_id: number | null; program_name: string | null;
   stats: PortfolioStat[];
+  /** For a window-run programme (CSSI): each step's state, in order. */
+  windows?: { kind: InternshipWindowKind; state: InternshipWindowState | "NOT_STARTED";
+    closes_at: string | null }[];
 }
 
 export interface HodDashboard {

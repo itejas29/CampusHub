@@ -18,6 +18,7 @@ from app.models.identity import (
 from app.models.internships import (
     EnrollmentStageProgress, EvaluationCriteria, EvaluationScore, InternshipDocument,
     InternshipEnrollment, InternshipEvaluation, InternshipGroup, InternshipProgram,
+    InternshipWindow,
     InternshipProject, InternshipReport, InternshipStage, Organization,
 )
 from app.models.minors import (
@@ -40,6 +41,7 @@ __all__ = [
     "MinorProgram", "MinorCourse", "MinorApplication", "MinorEnrollment",
     # internships
     "Organization", "InternshipProgram", "InternshipStage", "InternshipGroup",
+    "InternshipWindow",
     "InternshipEnrollment", "EnrollmentStageProgress", "InternshipProject",
     "InternshipDocument", "InternshipReport", "EvaluationCriteria",
     "InternshipEvaluation", "EvaluationScore",

@@ -12,9 +12,9 @@ import { ProgressBar, ProgressStepper, type StepperStep } from "@/components/ui/
 import { Tabs } from "@/components/ui/Tabs";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
 import { ApiError, api } from "@/lib/api";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { humanise, roman } from "@/lib/utils";
-import type { EnrollmentDetail, MentorCapacity } from "@/types";
+import type { EnrollmentDetail, MentorCapacity, ProgramWindows } from "@/types";
 
 const TABS = [
   { key: "personal", label: "Personal" },
@@ -387,6 +387,7 @@ export function StudentDetailDrawer({
 
           {tab === "evaluation" && (
             <div className="space-y-4">
+              <MarksWindowNotice programId={data.program_id} />
               {data.criteria.length === 0 ? (
                 <EmptyState compact title="No rubric configured"
                             description="An administrator defines the evaluation criteria for this programme." />
@@ -554,5 +555,40 @@ function MentorOverrideModal({
         </FormField>
       </div>
     </Modal>
+  );
+}
+
+/**
+ * When marks lock, for a programme run in coordinator windows. Informational —
+ * the server refuses marks outside the window whatever this shows.
+ */
+function MarksWindowNotice({ programId }: { programId: number }) {
+  const windows = useQuery({
+    queryKey: ["internship-windows", programId],
+    queryFn: () => api.get<ProgramWindows>(`/internships/programs/${programId}/windows`),
+  });
+  if (!windows.data?.kinds.includes("PRESENTATION")) return null;
+  const w = windows.data.windows.find((x) => x.kind === "PRESENTATION");
+  if (!w || w.state === "SCHEDULED") {
+    return (
+      <Alert variant="info" title="Marks are not open yet">
+        They open with the presentation window, which the coordinator has not started.
+      </Alert>
+    );
+  }
+  if (w.state === "CLOSED") {
+    return (
+      <Alert variant="warning" title="Marks are locked">
+        The deadline passed on {formatDateTime(w.closed_early_at ?? w.closes_at)}. Only the
+        coordinator can extend it.
+      </Alert>
+    );
+  }
+  return (
+    <Alert variant="info" title={`Marks lock on ${formatDateTime(w.closes_at)}`}>
+      Presentation {formatDate(w.presentation_from)}
+      {w.presentation_to && w.presentation_to !== w.presentation_from && ` – ${formatDate(w.presentation_to)}`}.
+      Enter marks after the student presents.
+    </Alert>
   );
 }

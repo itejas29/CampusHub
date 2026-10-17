@@ -34,6 +34,7 @@ from app.schemas.admin import (
 )
 from app.services import announcements as announcement_audience
 from app.services import registration, scope
+from app.services import internship_windows as program_windows
 from app.services import documents as docs
 from app.services import serializers
 from app.services import internships as engine
@@ -589,7 +590,15 @@ def _coordination_portfolios(db, user: User) -> list[dict]:
                 out.append(base)
             for p in programs:
                 out.append({**base, "program_id": p.id, "program_name": p.name,
-                            "stats": _program_stats(db, p)})
+                            "stats": _program_stats(db, p),
+                            # Where a window-run cycle stands, step by step.
+                            "windows": [
+                                {"kind": kind.value,
+                                 "state": (w.state_at(now) if (w := program_windows.get(
+                                     db, p.id, kind)) else "NOT_STARTED"),
+                                 "closes_at": w.closes_at.isoformat() if w else None}
+                                for kind in program_windows.kinds_for(p)
+                            ]})
             continue
 
         if c.domain in (D.OPEN_ELECTIVE, D.CORE_ELECTIVE):

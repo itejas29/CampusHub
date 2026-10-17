@@ -43,10 +43,15 @@ from app.schemas.internships import (
     ProjectDetailOut, ProjectDetailUpdate, ReportOut, ReportReview, ReportSubmit,
     StageActionRequest, StageOut, StageProgressOut, StageReviewRequest,
     MentorCapacityOut, BatchMentorAssignRequest, BatchMentorAssignResponse,
+    InternshipWindowOpen, InternshipWindowOut, InternshipWindowUpdate, MentorRosterGroup,
+    MentorRosterStudent, ProgramWindowsOut,
 )
 from app.services import (
     audit, documents as docs, internships as engine, notifications, scope,
 )
+from app.services import internship_windows as program_windows
+from app.models.enums import InternshipWindowKind
+from app.models.internships import InternshipWindow
 from app.services.files import save_upload, signed_url
 
 router = APIRouter(prefix="/internships", tags=["internships"])
@@ -154,6 +159,15 @@ def _program_out(db, program: InternshipProgram,
         my_enrollment = row.id if row else None
         if row:
             can_enroll, blocked = False, "You are already enrolled."
+        elif InternshipWindowKind.REGISTRATION in program_windows.kinds_for(program):
+            # A window-run programme: the coordinator's registration window is
+            # the authority, not the semester alone.
+            try:
+                program_windows.assert_can_register(db, program, student,
+                                                    already_enrolled=False)
+                can_enroll = True
+            except BusinessRuleError as exc:
+                can_enroll, blocked = False, exc.message
         elif phase is not ProgramPhase.ACTIVE:
             # Announced but not yet open, or already past — see program_phase().
             can_enroll = False
@@ -165,6 +179,7 @@ def _program_out(db, program: InternshipProgram,
 
     return InternshipProgramOut(
         mentor_capacity=engine.mentor_capacity(program),
+        window_kinds=[k.value for k in program_windows.kinds_for(program)],
         mentor_capacity_confirmed=engine.mentor_capacity_confirmed(program),
         id=program.id, code=program.code, name=program.name, type=program.type,
         description=program.description, department_id=program.department_id,
@@ -690,11 +705,25 @@ def enroll(program_id: int, payload: EnrollRequest, db: DbSession,
     student = db.scalar(select(Student).where(Student.user_id == user.id))
     if student is None:
         raise PermissionDeniedError("Only students can enrol in an internship.")
-    if program.status != ProgramStatus.REGISTRATION_OPEN:
-        raise BusinessRuleError("Registration is not open for this programme.")
-    engine.assert_submissions_open(program, student.current_semester)
+    if InternshipWindowKind.REGISTRATION in program_windows.kinds_for(program):
+        # The coordinator's registration window decides — it is what lets a
+        # Semester II student register for a Semester III programme.
+        program_windows.assert_can_register(db, program, student, already_enrolled=False)
+        if program.requires_industry_mentor and not (
+                (payload.industry_mentor_name or "").strip()
+                and (payload.industry_mentor_phone or "").strip()):
+            raise ValidationError(
+                "Give the name and phone number of your supervisor at the organisation.")
+    else:
+        if program.status != ProgramStatus.REGISTRATION_OPEN:
+            raise BusinessRuleError("Registration is not open for this programme.")
+        engine.assert_submissions_open(program, student.current_semester)
 
     enrollment = engine.enroll_student(db, program=program, student=student, actor=user)
+    for field in ("industry_mentor_name", "industry_mentor_phone", "industry_mentor_email"):
+        value = getattr(payload, field)
+        if value:
+            setattr(enrollment, field, value.strip() if isinstance(value, str) else value)
 
     if payload.new_organization:
         org = Organization(**payload.new_organization.model_dump(),
@@ -727,7 +756,12 @@ def update_enrollment(enrollment_id: int, payload: EnrollmentUpdate, db: DbSessi
     if not _can_manage(user, db, enrollment.program):
         # Students edit only while the window is open. Ownership alone let a
         # Semester IV student keep editing a CSSI record that had concluded.
-        _assert_can_submit(db, enrollment, user)
+        if InternshipWindowKind.REGISTRATION in program_windows.kinds_for(enrollment.program):
+            student = _assert_is_owner(db, enrollment, user)
+            program_windows.assert_can_register(db, enrollment.program, student,
+                                                already_enrolled=True)
+        else:
+            _assert_can_submit(db, enrollment, user)
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(enrollment, field, value)
     audit.record(db, action=AuditAction.UPDATE, entity_type="internship_enrollment",
@@ -768,6 +802,9 @@ def submit_stage(enrollment_id: int, payload: StageActionRequest, db: DbSession,
     if enrollment is None:
         raise NotFoundError("Internship record not found.")
     _assert_can_submit(db, enrollment, user)
+    stage = db.get(InternshipStage, payload.stage_id)
+    if stage is not None and stage.document_type == DocumentType.POSTER:
+        program_windows.assert_can_submit_poster(db, enrollment.program)
     engine.submit_stage(db, enrollment=enrollment, stage_id=payload.stage_id,
                         actor=user, data=payload.data)
     db.commit()
@@ -806,6 +843,8 @@ async def upload_document(
     if enrollment is None:
         raise NotFoundError("Internship record not found.")
     _assert_can_submit(db, enrollment, user)
+    if document_type == DocumentType.POSTER:
+        program_windows.assert_can_submit_poster(db, enrollment.program)
 
     category = {
         DocumentType.CERTIFICATE: FileCategory.CERTIFICATE,
@@ -1038,6 +1077,8 @@ def submit_evaluation(
     if enrollment is None:
         raise NotFoundError("Internship record not found.")
     _assert_can_review(db, enrollment, user, faculty)
+    # Marks lock when the coordinator's presentation window closes.
+    program_windows.assert_marks_open(db, enrollment.program)
 
     criteria = engine.rubric_for(db, enrollment.program_id)
     valid_ids = {c.id for c in criteria}
@@ -1142,6 +1183,7 @@ def override_mentor(
     if enrollment is None:
         raise NotFoundError("Internship record not found.")
     _assert_can_manage_program(db, user, enrollment.program)
+    program_windows.assert_can_allocate_mentors(db, enrollment.program)
     if payload.group_id is not None:
         group = db.get(InternshipGroup, payload.group_id)
         if group is None or group.program_id != enrollment.program_id:
@@ -1215,6 +1257,8 @@ def batch_assign_mentors(
     if program is None:
         raise NotFoundError("Program not found.")
     _assert_can_manage_program(db, user, program)
+    if not payload.clear_all:
+        program_windows.assert_can_allocate_mentors(db, program)
 
     capacity = engine.mentor_capacity(program)
     pool = engine.eligible_mentors(db, program)
@@ -1329,6 +1373,128 @@ def batch_assign_mentors(
                                          message=f"Updated {changed} mentor assignments.")
 
     return BatchMentorAssignResponse(assigned_count=0, message="No changes performed.")
+
+
+# ── coordinator-run windows ───────────────────────────────────────────────
+def _window_out(window: InternshipWindow) -> InternshipWindowOut:
+    out = InternshipWindowOut.model_validate(window)
+    out.state = window.state_at(program_windows.utcnow())
+    return out
+
+
+@router.get("/programs/{program_id}/windows", response_model=ProgramWindowsOut)
+def list_windows(program_id: int, db: DbSession, user: CurrentUser) -> ProgramWindowsOut:
+    program = db.get(InternshipProgram, program_id)
+    if program is None:
+        raise NotFoundError("Program not found.")
+    can_manage = _can_manage(user, db, program)
+    counts = dict(db.execute(
+        select(InternshipEnrollment.mentor_faculty_id.is_(None), func.count())
+        .where(InternshipEnrollment.program_id == program.id)
+        .group_by(InternshipEnrollment.mentor_faculty_id.is_(None))
+    ).all()) if can_manage else {}
+    return ProgramWindowsOut(
+        kinds=[k.value for k in program_windows.kinds_for(program)],
+        windows=[_window_out(w) for w in program_windows.windows(db, program)],
+        can_manage=can_manage,
+        registered_count=sum(counts.values()),
+        unassigned_count=counts.get(True, 0),
+    )
+
+
+@router.post("/programs/{program_id}/windows", response_model=InternshipWindowOut,
+             status_code=201)
+def open_window(
+    program_id: int, payload: InternshipWindowOpen, db: DbSession,
+    user: User = Depends(require_permission(P["INTERNSHIP_MANAGE"])),
+) -> InternshipWindowOut:
+    program = db.get(InternshipProgram, program_id)
+    if program is None:
+        raise NotFoundError("Program not found.")
+    _assert_can_manage_program(db, user, program)
+    try:
+        kind = InternshipWindowKind(payload.kind)
+    except ValueError:
+        raise ValidationError("Unknown window kind.") from None
+    window = program_windows.open_window(
+        db, program, kind, title=payload.title, message=payload.message,
+        opens_at=payload.opens_at, closes_at=payload.closes_at,
+        cohort_semester=payload.cohort_semester,
+        submission_due_at=payload.submission_due_at,
+        presentation_from=payload.presentation_from,
+        presentation_to=payload.presentation_to, actor=user,
+    )
+    db.commit()
+    db.refresh(window)
+    return _window_out(window)
+
+
+def _managed_window(db, user, window_id: int) -> InternshipWindow:
+    window = db.get(InternshipWindow, window_id)
+    if window is None:
+        raise NotFoundError("Window not found.")
+    _assert_can_manage_program(db, user, db.get(InternshipProgram, window.program_id))
+    return window
+
+
+@router.patch("/windows/{window_id}", response_model=InternshipWindowOut)
+def update_window(
+    window_id: int, payload: InternshipWindowUpdate, db: DbSession,
+    user: User = Depends(require_permission(P["INTERNSHIP_MANAGE"])),
+) -> InternshipWindowOut:
+    window = _managed_window(db, user, window_id)
+    program_windows.update_window(db, window, actor=user, **payload.model_dump(exclude_unset=True))
+    db.commit()
+    db.refresh(window)
+    return _window_out(window)
+
+
+@router.post("/windows/{window_id}/close", response_model=InternshipWindowOut)
+def close_window(
+    window_id: int, db: DbSession,
+    user: User = Depends(require_permission(P["INTERNSHIP_MANAGE"])),
+) -> InternshipWindowOut:
+    window = _managed_window(db, user, window_id)
+    program_windows.close_window(db, window, actor=user)
+    db.commit()
+    db.refresh(window)
+    return _window_out(window)
+
+
+@router.get("/programs/{program_id}/mentor-roster", response_model=list[MentorRosterGroup])
+def mentor_roster(program_id: int, db: DbSession, user: CurrentUser,
+                  faculty=Depends(get_optional_faculty)) -> list[MentorRosterGroup]:
+    """The mentor list students are sent when presentations open.
+
+    The coordinator sees it any time; students and mentors of the programme see
+    it once the presentation window has been opened — that is when it is
+    published to them.
+    """
+    program = db.get(InternshipProgram, program_id)
+    if program is None:
+        raise NotFoundError("Program not found.")
+    if not _can_manage(user, db, program):
+        if program_windows.get(db, program.id, InternshipWindowKind.PRESENTATION) is None:
+            raise PermissionDeniedError("The mentor list has not been published yet.")
+        student = db.scalar(select(Student).where(Student.user_id == user.id))
+        in_program = (
+            (student is not None and db.scalar(select(InternshipEnrollment.id).where(
+                InternshipEnrollment.program_id == program.id,
+                InternshipEnrollment.student_id == student.id)) is not None)
+            or (faculty is not None and db.scalar(select(InternshipEnrollment.id).where(
+                InternshipEnrollment.program_id == program.id,
+                InternshipEnrollment.mentor_faculty_id == faculty.id).limit(1)) is not None)
+        )
+        if not in_program:
+            raise PermissionDeniedError("Only this programme's students and mentors see its list.")
+    return [
+        MentorRosterGroup(
+            faculty_id=g.faculty_id, name=g.name, designation=g.designation,
+            email=g.email, cabin=g.cabin, roll_range=g.roll_range,
+            students=[MentorRosterStudent(roll_number=r, name=n) for r, n in g.students],
+        )
+        for g in program_windows.mentor_roster(db, program)
+    ]
 
 
 # ── organizations ─────────────────────────────────────────────────────────

@@ -329,6 +329,22 @@ class EnrollmentStatus(StrEnum):
     WITHDRAWN = "WITHDRAWN"
 
 
+class InternshipWindowKind(StrEnum):
+    """A dated window a coordinator opens on an internship programme.
+
+    Which windows a programme runs is its configuration (``config["windows"]``),
+    not code: CSSI runs REGISTRATION then PRESENTATION; a programme that lists
+    none keeps the older semester-only rules.
+
+        REGISTRATION  students record their organisation and its supervisor
+        PRESENTATION  posters are submitted to the faculty mentor, presented,
+                      and marked — marks lock when the window closes
+    """
+
+    REGISTRATION = "REGISTRATION"
+    PRESENTATION = "PRESENTATION"
+
+
 class StageStatus(StrEnum):
     LOCKED = "LOCKED"
     PENDING = "PENDING"
@@ -525,6 +541,7 @@ class NotificationType(StrEnum):
     MENTOR_ANNOUNCEMENT = "MENTOR_ANNOUNCEMENT"
     MEETING_UPDATE = "MEETING_UPDATE"
     MINOR_APPLICATION = "MINOR_APPLICATION"
+    INTERNSHIP_WINDOW = "INTERNSHIP_WINDOW"
     SYSTEM = "SYSTEM"
 
 
