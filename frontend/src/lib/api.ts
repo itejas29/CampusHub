@@ -11,16 +11,86 @@ export const API_BASE = RAW_BASE.replace(/\/$/, "");
 const ACCESS_KEY = "campushub.access";
 const REFRESH_KEY = "campushub.refresh";
 
+/**
+ * Where the sign-in lives.
+ *
+ * Each tab keeps its own in sessionStorage, so a student signed in in one tab
+ * and a coordinator in another stay who they are when either is refreshed.
+ * localStorage, which every tab shares, used to be the only copy, so the last
+ * person to sign in anywhere took over every tab on its next reload.
+ *
+ * localStorage still holds the most recent sign-in, but only to start a *new*
+ * tab (a link opened in a new tab, a reopened browser) already signed in. A tab
+ * reads it once, when it has nothing of its own, and from then on keeps its own.
+ */
+const SIGNED_OUT_KEY = "campushub.signed_out";
+
+function read(store: Storage, key: string): string | null {
+  try {
+    return store.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function write(store: Storage, key: string, value: string | null) {
+  try {
+    if (value === null) store.removeItem(key);
+    else store.setItem(key, value);
+  } catch {
+    // Storage blocked (private mode, quota): the sign-in lasts for this page only.
+  }
+}
+
+/** Adopt the most recent sign-in if this tab has none of its own yet. */
+function ensureTabCopy() {
+  // A tab that signed itself out stays signed out, even on reload.
+  if (read(sessionStorage, ACCESS_KEY) || read(sessionStorage, SIGNED_OUT_KEY)) return;
+  const access = read(localStorage, ACCESS_KEY);
+  if (!access) return;
+  write(sessionStorage, ACCESS_KEY, access);
+  write(sessionStorage, REFRESH_KEY, read(localStorage, REFRESH_KEY));
+}
+
 export const tokenStore = {
-  access: () => localStorage.getItem(ACCESS_KEY),
-  refresh: () => localStorage.getItem(REFRESH_KEY),
-  set(access: string, refresh: string) {
-    localStorage.setItem(ACCESS_KEY, access);
-    localStorage.setItem(REFRESH_KEY, refresh);
+  access: () => {
+    ensureTabCopy();
+    return read(sessionStorage, ACCESS_KEY);
   },
+  refresh: () => {
+    ensureTabCopy();
+    return read(sessionStorage, REFRESH_KEY);
+  },
+  /** A new sign-in: this tab's, and the one new tabs start with. */
+  set(access: string, refresh: string) {
+    write(sessionStorage, SIGNED_OUT_KEY, null);
+    write(sessionStorage, ACCESS_KEY, access);
+    write(sessionStorage, REFRESH_KEY, refresh);
+    write(localStorage, ACCESS_KEY, access);
+    write(localStorage, REFRESH_KEY, refresh);
+  },
+  /** Fresh tokens for whoever this tab is signed in as. The shared copy is
+   *  updated only if it is still this same sign-in; otherwise refreshing the
+   *  student's tab would make new tabs open as the student again. */
+  rotate(access: string, refresh: string) {
+    const shared = read(localStorage, REFRESH_KEY) === read(sessionStorage, REFRESH_KEY);
+    write(sessionStorage, ACCESS_KEY, access);
+    write(sessionStorage, REFRESH_KEY, refresh);
+    if (shared) {
+      write(localStorage, ACCESS_KEY, access);
+      write(localStorage, REFRESH_KEY, refresh);
+    }
+  },
+  /** Sign this tab out. The shared copy goes too only if it is this tab's, so
+   *  signing the student out does not sign the coordinator's tab out. */
   clear() {
-    localStorage.removeItem(ACCESS_KEY);
-    localStorage.removeItem(REFRESH_KEY);
+    if (read(localStorage, REFRESH_KEY) === read(sessionStorage, REFRESH_KEY)) {
+      write(localStorage, ACCESS_KEY, null);
+      write(localStorage, REFRESH_KEY, null);
+    }
+    write(sessionStorage, ACCESS_KEY, null);
+    write(sessionStorage, REFRESH_KEY, null);
+    write(sessionStorage, SIGNED_OUT_KEY, "1");
   },
 };
 
@@ -62,7 +132,7 @@ async function refreshAccessToken(): Promise<boolean> {
         });
         if (!response.ok) return false;
         const data = await response.json();
-        tokenStore.set(data.access_token, data.refresh_token ?? refresh);
+        tokenStore.rotate(data.access_token, data.refresh_token ?? refresh);
         return true;
       } catch {
         return false;
