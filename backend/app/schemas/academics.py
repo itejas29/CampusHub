@@ -6,8 +6,8 @@ from pydantic import BaseModel, Field
 
 from app.models.enums import (
     AllocationStatus, ComponentType, CurriculumStatus, MoocPlatform, MoocStatus,
-    OfferingStatus, RegistrationWindowStatus, SourceScope,
-    StudentRegistrationState, VerificationStatus,
+    OfferingStatus, RegistrationWindowStatus, RoundSelectionMode, RoundStage,
+    SourceScope, StudentRegistrationState, VerificationStatus,
 )
 from app.schemas.common import ORMModel
 
@@ -103,6 +103,10 @@ class CurriculumComponentOut(ORMModel):
     source_confidence: str | None = None
     source_note: str | None = None
     # Contextual, filled in for the signed-in student.
+    #: The registration round governing this slot for them, if any. Slots of
+    #: one semester in the same two-stage round are chosen together.
+    round_id: int | None = None
+    round_two_stage: bool | None = None
     is_unlocked: bool | None = None
     status_label: str | None = None
     allocated_course: str | None = None
@@ -330,6 +334,119 @@ class AllocationOut(ORMModel):
     remarks: str | None = None
 
 
+class RoundSubjectOut(BaseModel):
+    course_id: int
+    code: str
+    title: str
+    credits: float | None = None
+
+
+class StudentRoundOut(BaseModel):
+    """A two-stage round as one student sees it: what to tick, and what they ticked."""
+
+    id: int
+    title: str
+    stage: RoundStage
+    pick_count: int
+    opens_at: dt.datetime | None = None
+    closes_at: dt.datetime | None = None
+    can_submit: bool
+    reason: str | None = None
+    subjects: list[RoundSubjectOut] = Field(default_factory=list)
+    my_course_ids: list[int] = Field(default_factory=list)
+    submitted_at: dt.datetime | None = None
+    #: Interest ticks the student made earlier, shown during the final stage.
+    my_interest_course_ids: list[int] = Field(default_factory=list)
+    #: The curriculum slots this round fills, e.g. PE2 and PE3.
+    slot_codes: list[str] = Field(default_factory=list)
+    slot_titles: list[str] = Field(default_factory=list)
+
+
+class RoundChoiceSubmit(BaseModel):
+    course_ids: list[int] = Field(default_factory=list, max_length=50)
+
+
+class InterestTallyRow(BaseModel):
+    course_id: int
+    code: str
+    title: str
+    votes: int
+    #: Still in the round (False once the shortlist dropped it).
+    in_round: bool
+
+
+class InterestTallyOut(BaseModel):
+    stage: RoundStage
+    voters: int
+    eligible_student_count: int
+    interest_pick_count: int | None = None
+    slot_count: int = 0
+    subjects: list[InterestTallyRow] = Field(default_factory=list)
+
+
+class ShortlistRequest(BaseModel):
+    course_ids: list[int] = Field(min_length=1)
+    final_pick_count: int = Field(ge=1, le=20)
+    opens_at: dt.datetime | None = None
+    closes_at: dt.datetime
+
+
+class FinaliseRequest(BaseModel):
+    #: Overrides the round's minimum for this run.
+    min_students_to_run: int | None = Field(default=None, ge=1, le=10_000)
+    #: Which subjects run, when the coordinator decides rather than the count.
+    run_course_ids: list[int] | None = None
+    dry_run: bool = True
+
+
+class FinalSubjectOut(BaseModel):
+    course_id: int
+    code: str
+    title: str
+    demand: int
+    runs: bool
+    seated: int
+
+
+class FinaliseResult(BaseModel):
+    dry_run: bool
+    minimum: int
+    pick_count: int
+    subjects: list[FinalSubjectOut]
+    students_placed: int
+    by_choice: int
+    replaced_withdrawn: int
+    placed_no_submission: int
+    unplaced: int
+    seats_written: int = 0
+    notes: list[str] = Field(default_factory=list)
+
+
+class SubjectIn(BaseModel):
+    code: str = Field(min_length=1, max_length=30)
+    title: str = Field(min_length=1, max_length=200)
+    credits: float = Field(default=3, ge=0, le=20)
+    description: str | None = None
+
+
+class SubjectUpdate(BaseModel):
+    code: str | None = Field(default=None, min_length=1, max_length=30)
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    credits: float | None = Field(default=None, ge=0, le=20)
+    description: str | None = None
+
+
+class SubjectOut(BaseModel):
+    offering_id: int
+    course_id: int
+    code: str
+    title: str
+    credits: float | None = None
+    description: str | None = None
+    component_id: int
+    registration_window_id: int | None = None
+
+
 class ElectiveWorkspace(BaseModel):
     """Everything a student needs for one elective component, in one call."""
 
@@ -352,6 +469,9 @@ class ElectiveWorkspace(BaseModel):
     offerings: list[CourseOfferingOut] = Field(default_factory=list)
     my_preferences: list[PreferenceOut] = Field(default_factory=list)
     my_allocation: AllocationOut | None = None
+    #: Set when the governing round is two-stage: the student ticks subjects
+    #: for the whole round here instead of ranking this slot's courses.
+    round: StudentRoundOut | None = None
 
 
 class RegistrationWindowOut(ORMModel):
@@ -394,6 +514,13 @@ class RegistrationWindowOut(ORMModel):
     slot_semester: int | None = None
     #: False for a Head of Department, who may read a round but not drive it.
     can_manage: bool = False
+    selection_mode: RoundSelectionMode = RoundSelectionMode.RANKED
+    stage: RoundStage | None = None
+    interest_pick_count: int | None = None
+    final_pick_count: int | None = None
+    min_students_to_run: int | None = None
+    section_capacity: int | None = None
+    interest_closed_at: dt.datetime | None = None
 
 
 class RegistrationWindowIn(BaseModel):
@@ -412,6 +539,11 @@ class RegistrationWindowIn(BaseModel):
     min_preferences: int | None = Field(default=None, ge=1, le=20)
     max_preferences: int | None = Field(default=None, ge=1, le=20)
     notes: str | None = None
+    selection_mode: RoundSelectionMode = RoundSelectionMode.RANKED
+    interest_pick_count: int | None = Field(default=None, ge=1, le=20)
+    final_pick_count: int | None = Field(default=None, ge=1, le=20)
+    min_students_to_run: int | None = Field(default=None, ge=1, le=10_000)
+    section_capacity: int | None = Field(default=None, ge=1, le=10_000)
 
 
 class RegistrationWindowUpdate(BaseModel):
@@ -425,6 +557,11 @@ class RegistrationWindowUpdate(BaseModel):
     min_preferences: int | None = Field(default=None, ge=1, le=20)
     max_preferences: int | None = Field(default=None, ge=1, le=20)
     notes: str | None = None
+    selection_mode: RoundSelectionMode | None = None
+    interest_pick_count: int | None = Field(default=None, ge=1, le=20)
+    final_pick_count: int | None = Field(default=None, ge=1, le=20)
+    min_students_to_run: int | None = Field(default=None, ge=1, le=10_000)
+    section_capacity: int | None = Field(default=None, ge=1, le=10_000)
 
 
 class WindowOfferingLink(BaseModel):

@@ -539,7 +539,10 @@ def test_the_slot_reads_as_unlocked_in_the_students_elective_list(
     headers = login(world.student_a.email)
     rows = {c["code"]: c for c in api.get(
         "/api/v1/electives/components", headers=headers).json()}
-    assert rows["OE1"]["is_unlocked"] is True and rows["OE1"]["status_label"] == "Not started"
+    # The card follows the round: it used to say "Not started" while the
+    # dashboard and the notification said choice filling had opened.
+    assert rows["OE1"]["is_unlocked"] is True
+    assert rows["OE1"]["status_label"] == "Choice filling open"
     assert rows["OE3"]["is_unlocked"] is False and rows["OE3"]["status_label"] == "Upcoming"
 
 

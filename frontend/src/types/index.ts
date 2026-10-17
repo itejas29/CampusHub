@@ -124,6 +124,9 @@ export interface CurriculumComponent {
   source_confidence: string | null; source_note: string | null;
   is_unlocked: boolean | null; status_label: string | null;
   allocated_course: string | null; offering_count: number | null;
+  /** The round governing this slot for the student; one two-stage round
+   *  covering a semester's slots means they are chosen together. */
+  round_id: number | null; round_two_stage: boolean | null;
 }
 
 export interface CurriculumSemester {
@@ -252,6 +255,45 @@ export interface ElectiveWorkspace {
   min_preferences: number;
   max_preferences: number; offerings: CourseOffering[]; my_preferences: Preference[];
   my_allocation: Allocation | null;
+  /** Set when the round is two-stage: tick subjects here instead of ranking. */
+  round: StudentRound | null;
+}
+
+export type RoundSelectionMode = "RANKED" | "TWO_STAGE";
+export type RoundStage = "INTEREST" | "FINAL";
+
+export interface RoundSubject {
+  course_id: number; code: string; title: string; credits: number | null;
+}
+
+export interface StudentRound {
+  id: number; title: string; stage: RoundStage; pick_count: number;
+  opens_at: string | null; closes_at: string | null;
+  can_submit: boolean; reason: string | null;
+  subjects: RoundSubject[]; my_course_ids: number[]; submitted_at: string | null;
+  my_interest_course_ids: number[];
+  /** The curriculum slots this round fills, e.g. PE2 and PE3. */
+  slot_codes: string[]; slot_titles: string[];
+}
+
+export interface InterestTally {
+  stage: RoundStage; voters: number; eligible_student_count: number;
+  interest_pick_count: number | null; slot_count: number;
+  subjects: { course_id: number; code: string; title: string; votes: number; in_round: boolean }[];
+}
+
+export interface FinaliseResult {
+  dry_run: boolean; minimum: number; pick_count: number;
+  subjects: { course_id: number; code: string; title: string; demand: number;
+    runs: boolean; seated: number }[];
+  students_placed: number; by_choice: number; replaced_withdrawn: number;
+  placed_no_submission: number; unplaced: number; seats_written: number; notes: string[];
+}
+
+export interface Subject {
+  offering_id: number; course_id: number; code: string; title: string;
+  credits: number | null; description: string | null; component_id: number;
+  registration_window_id: number | null;
 }
 
 export interface AllocationStrategy {
@@ -836,6 +878,10 @@ export interface RegistrationWindow {
   slot_semester: number | null;
   /** False for a Head of Department, who reads rounds but does not drive them. */
   can_manage: boolean;
+  selection_mode: RoundSelectionMode; stage: RoundStage | null;
+  interest_pick_count: number | null; final_pick_count: number | null;
+  min_students_to_run: number | null; section_capacity: number | null;
+  interest_closed_at: string | null;
 }
 
 /** A curriculum slot a coordinator may open a round for, with its courses. */
@@ -848,7 +894,11 @@ export interface RoundSlot {
   /** Programme data — never a fixed A–D. */
   divisions: string[];
   offerings: { id: number; course_code: string; course_title: string;
-    department_code: string | null; registration_window_id: number | null }[];
+    department_code: string | null; registration_window_id: number | null;
+    /** Which year's offering, e.g. 2026-27 — the same course recurs each year. */
+    academic_year: string | null;
+    /** Students already seated in it (an earlier cohort). */
+    seats_taken: number }[];
 }
 
 // ── unified student profile ────────────────────────────────────────────────
