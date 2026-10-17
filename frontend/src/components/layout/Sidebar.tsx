@@ -1,4 +1,5 @@
-import { GraduationCap, LogOut, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
+import { LogOut, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
+import { CampusHubMark } from "@/components/brand/Brand";
 import { useEffect, useId, useRef } from "react";
 import { NavLink } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
@@ -56,9 +57,9 @@ export function SidebarContent({
           onClick={onToggleCollapse}
           aria-label={collapsed ? "Expand sidebar" : "CampusHub home"}
           title={collapsed ? "Expand sidebar (Ctrl+B)" : "CampusHub PDEU Portal"}
-          className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-accent-gradient text-white shadow-glow-accent transition-transform hover:scale-105"
+          className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-[9px] shadow-glow-accent transition-transform hover:scale-105"
         >
-          <GraduationCap className="h-4.5 w-4.5" aria-hidden />
+          <CampusHubMark className="h-8 w-8" title="" />
         </button>
 
         {!collapsed && (

@@ -20,6 +20,7 @@ import { useAuth } from "@/lib/auth";
 import { formatDateTime, relativeTime } from "@/lib/format";
 
 import { cn, pluralise, roman } from "@/lib/utils";
+import { EnergyGrid } from "@/components/brand/Brand";
 import type {
   CoordinationDomain, FacultyDashboard as Data, FacultyPortfolio, PortfolioStat,
 } from "@/types";
@@ -292,7 +293,7 @@ export function FacultyDashboard() {
     <div className="space-y-6">
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden rounded-2xl bg-brand-gradient text-white shadow-lg animate-in">
-        <div aria-hidden className="hero-grid absolute inset-0 opacity-60" />
+        <EnergyGrid tone="dark" className="absolute inset-y-0 right-0 h-full w-[70%] max-w-[44rem]" />
         <div aria-hidden className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-electric/30 blur-3xl" />
         <div aria-hidden className="absolute -bottom-24 right-1/3 h-56 w-56 rounded-full bg-violet/25 blur-3xl" />
 
