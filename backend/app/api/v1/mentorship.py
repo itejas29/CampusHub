@@ -185,6 +185,8 @@ def decide_meeting(meeting_id: int, payload: MeetingDecision, db: DbSession,
     ):
         raise BusinessRuleError("Provide a date and time when approving a meeting.")
 
+    if meeting.status == MeetingStatus.REQUESTED and meeting.responded_at is None:
+        meeting.responded_at = dt.datetime.now(dt.timezone.utc)
     meeting.status = payload.status
     meeting.scheduled_at = payload.scheduled_at or meeting.proposed_slot
     meeting.location = payload.location or meeting.location

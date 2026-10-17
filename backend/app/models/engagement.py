@@ -70,6 +70,8 @@ class MentorMeeting(PKMixin, TimestampMixin, Base):
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     agenda: Mapped[str | None] = mapped_column(Text)
     requested_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    #: When the mentor first answered the request — what response time is measured from.
+    responded_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
     proposed_slot: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
     scheduled_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
     duration_minutes: Mapped[int] = mapped_column(Integer, default=30, nullable=False)

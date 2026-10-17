@@ -15,6 +15,7 @@ import { Avatar } from "@/components/ui/Misc";
 import { StatGrid, StatTile } from "@/components/ui/StatTile";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
 import { api } from "@/lib/api";
+import { MyScoreCard } from "./PerformanceScore";
 import { useAuth } from "@/lib/auth";
 import { formatDateTime, relativeTime } from "@/lib/format";
 
@@ -538,6 +539,8 @@ export function FacultyDashboard() {
 
         {/* ── Right: schedule and notices ────────────────────────────────── */}
         <div className="min-w-0 space-y-6 lg:col-span-4">
+          <MyScoreCard />
+
           <Card>
             <CardHeader
               title="Meetings"

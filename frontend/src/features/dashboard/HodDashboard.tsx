@@ -15,6 +15,7 @@ import { useAuth } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { humanise } from "@/lib/utils";
 import type { HodDashboard as Data } from "@/types";
+import { DepartmentScoresCard } from "./PerformanceScore";
 
 const STAT_ICONS = {
   faculty: GraduationCap, students: Users, uncovered: AlertTriangle,
@@ -119,6 +120,8 @@ export function HodDashboard() {
               </TBody>
             </TableWrap>
           </Card>
+
+          <DepartmentScoresCard />
 
           <Card>
             <CardHeader

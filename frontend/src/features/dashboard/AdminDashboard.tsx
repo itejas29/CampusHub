@@ -16,6 +16,7 @@ import { useAuth } from "@/lib/auth";
 import { formatDateTime, relativeTime } from "@/lib/format";
 import { humanise } from "@/lib/utils";
 import type { AdminDashboard as Data } from "@/types";
+import { DepartmentScoresCard } from "./PerformanceScore";
 
 const ICONS = {
   students: Users, faculty: GraduationCap, departments: Building2,
@@ -23,7 +24,7 @@ const ICONS = {
 } as const;
 
 export function AdminDashboard() {
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["dashboard", "admin"],
     queryFn: () => api.get<Data>("/dashboard/admin"),
@@ -127,6 +128,9 @@ export function AdminDashboard() {
           </CardBody>
         </Card>
       </div>
+
+      {/* The registrar sees the same table the HoD does (ICT, for now). */}
+      {hasRole("SUPER_ADMIN") && <DepartmentScoresCard />}
 
       <div className="grid gap-5 lg:grid-cols-3">
         <Card className="lg:col-span-2">
