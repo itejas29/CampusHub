@@ -669,6 +669,11 @@ def seed(db: Session) -> None:
     log("Students (ICT — four divisions, full cohort)…")
     students: list[Student] = []
     for name, roll, sem, division, cpi, backlogs, admission in D.generate_cohort(rng):
+        if name == D.REPLACED:
+            # Same draws as a created student, so later values do not shift.
+            rng.randint(100000000, 999999999); rng.randint(100000000, 999999999)
+            rng.randint(1, 90); rng.randint(1, 30)
+            continue
         email = f"{slugify(name, separator='.')}.{roll[-3:]}@campushub.example.com"
         user = make_user(db, name=name, email=email, roles=[Role.STUDENT],
                          phone=f"+91 9{rng.randint(100000000, 999999999)}")
@@ -1042,6 +1047,34 @@ def seed(db: Session) -> None:
             is_active=True,
         ))
     db.flush()
+
+    if D.REAL_STUDENTS:
+        log(f"Real students from seed/private ({len(D.REAL_STUDENTS)})…")
+        for real in D.REAL_STUDENTS:
+            for label in {real["division"]}:
+                if db.scalar(select(ProgramDivision).where(
+                        ProgramDivision.program_id == programs["B.TECH-ICT"].id,
+                        ProgramDivision.admission_year == real["admission_year"],
+                        ProgramDivision.name == label)) is None:
+                    db.add(ProgramDivision(program_id=programs["B.TECH-ICT"].id,
+                                           admission_year=real["admission_year"], name=label))
+                    db.flush()
+            user = make_user(db, name=real["name"],
+                             email=f"{real['roll_number'].lower()}@students.campushub.example.com",
+                             roles=[Role.STUDENT], phone=None)
+            # Real people never sign in to a demo.
+            user.hashed_password = hash_password(secrets.token_urlsafe(32))
+            student = Student(
+                user_id=user.id, roll_number=real["roll_number"],
+                program_id=programs["B.TECH-ICT"].id, department_id=departments["ICT"].id,
+                admission_year=real["admission_year"], current_semester=real["semester"],
+                division=real["division"],
+                batch=f"{real['admission_year']}-{real['admission_year'] + 4}",
+                cpi=None, backlog_count=0,   # not in the list; nothing is invented
+            )
+            db.add(student)
+            db.flush()
+            students.append(student)
 
     log("Internship programmes for the other verified curricula…")
     extra = seed_internship_programs_for_curricula(db, year, semesters, faculty_by_code)

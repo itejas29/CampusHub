@@ -46,3 +46,7 @@ test-results/
 /pdeu_campus.jpg
 *.pptx
 .vercel
+
+# Real student lists — personal data, never committed.
+backend/app/seed/private/
+*.pdf
