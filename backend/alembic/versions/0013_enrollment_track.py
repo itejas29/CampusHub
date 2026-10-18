@@ -1,15 +1,15 @@
 """record the track a student chose (Semester VIII project or industry)
 
-Revision ID: 0012_enrollment_track
-Revises: 0011_meeting_responded_at
+Revision ID: 0013_enrollment_track
+Revises: 0012_two_stage_rounds
 """
 from __future__ import annotations
 
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0012_enrollment_track"
-down_revision = "0011_meeting_responded_at"
+revision = "0013_enrollment_track"
+down_revision = "0012_two_stage_rounds"
 branch_labels = None
 depends_on = None
 

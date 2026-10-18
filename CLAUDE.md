@@ -309,7 +309,7 @@ to the Summer Internship coordinator.
 - **Tracks** are configuration: `config["tracks"]`, each with what registering
   needs (host, its kinds, a supervisor) and the stage codes it runs. Stages
   outside a student's track are SKIPPED and never count as missing.
-  `enrollment.track` records the choice (migration 0012).
+  `enrollment.track` records the choice (migration 0013).
 - **Stages, rubrics, report cadence and the Minor Project's credits are a
   starting point**, listed per programme in
   `config["requires_faculty_confirmation"]` and shown to the coordinator. Do not
