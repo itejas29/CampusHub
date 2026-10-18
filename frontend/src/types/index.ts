@@ -360,11 +360,20 @@ export interface MinorApplication {
   decided_at: string | null; remarks: string | null;
 }
 
+export interface CourseSyllabus {
+  units: { title: string; topics: string[]; hours: number | null }[];
+  outcomes: string[]; references: string[];
+  hours: { lecture: number; tutorial: number; practical: number };
+  file_url: string | null; link: string | null; updated_at: string | null;
+}
+
 export interface MinorPlanSemester {
   semester: number; when: "past" | "current" | "upcoming";
   courses: {
     minor_course_id: number; code: string; title: string; credits: number;
     result: { marks: number | null; grade: string | null; status: "IN_PROGRESS" | "PASSED" | "FAILED" } | null;
+    /** As the offering department publishes it; null until published. */
+    syllabus: CourseSyllabus | null;
   }[];
   fee: { amount: number; due_on: string | null; note: string | null } | null;
   payment: { amount: number; reference: string | null; paid_on: string | null } | null;

@@ -10,6 +10,10 @@ each, the credits they have earned, and the fee for each semester.
 * **Results** are recorded by the minor's coordinator. Marks and grade are
   stored as given — no grading scale is assumed. A PASSED course counts its
   credits towards `credits_completed`.
+* **Syllabus** — each course's units, outcomes and references (and the
+  official PDF), published and revised by the coordinator. A student sees the
+  syllabus of every course, this semester's first. Nothing is shown until the
+  department publishes it; no syllabus text is assumed.
 * **Fees** are a schedule on the minor, `rules["fees"]`
   (`[{"semester", "amount", "due_on", "note"}]`), set by its coordinator, and
   each student's payment recorded by the department with its receipt number.
@@ -63,6 +67,7 @@ def plan(db: Session, enrollment: MinorEnrollment, current_semester: int) -> lis
         by_semester.setdefault(sem, []).append({
             "minor_course_id": course.id, "code": course.course.code,
             "title": course.course.title, "credits": float(course.course.credits),
+            "syllabus": syllabus_out(course.course),
             "result": None if result is None else {
                 "marks": float(result.marks) if result.marks is not None else None,
                 "grade": result.grade, "status": result.status.value,
@@ -234,3 +239,74 @@ def fee_status(db: Session, program: MinorProgram) -> list[dict]:
                           for sem, f in sorted(fees.items())],
         })
     return rows
+
+
+# ── syllabus ──────────────────────────────────────────────────────────────
+def syllabus_out(course) -> dict | None:
+    """The published syllabus of a course, or None when nothing is published."""
+    from app.services.documents import protected_url
+
+    data = dict(course.syllabus or {})
+    if not data and not course.syllabus_file_id and not course.syllabus_url:
+        return None
+    return {
+        "units": data.get("units") or [],
+        "outcomes": data.get("outcomes") or [],
+        "references": data.get("references") or [],
+        "hours": {"lecture": course.lecture_hours, "tutorial": course.tutorial_hours,
+                  "practical": course.practical_hours},
+        "file_url": protected_url(course.syllabus_file_id),
+        "link": course.syllabus_url,
+        "updated_at": course.syllabus_updated_at.isoformat() if course.syllabus_updated_at else None,
+    }
+
+
+def _clean_lines(values, limit: int, what: str) -> list[str]:
+    lines = [str(v).strip() for v in (values or []) if str(v).strip()]
+    if len(lines) > limit:
+        raise ValidationError(f"At most {limit} {what}.")
+    return [line[:500] for line in lines]
+
+
+def set_syllabus(db: Session, program: MinorProgram, minor_course_id: int, data: dict, *,
+                 actor: User) -> dict | None:
+    """Publish (or revise) a minor course's syllabus."""
+    course = _course(program, minor_course_id).course
+    units = []
+    for unit in data.get("units") or []:
+        title = (unit.get("title") or "").strip()
+        if not title:
+            raise ValidationError("Every unit needs a title.")
+        hours = unit.get("hours")
+        if hours is not None and not 0 <= int(hours) <= 100:
+            raise ValidationError(f"“{title}”: hours look wrong.")
+        units.append({"title": title[:200], "topics": _clean_lines(unit.get("topics"), 40, "topics per unit"),
+                      "hours": int(hours) if hours is not None else None})
+    if len(units) > 12:
+        raise ValidationError("At most 12 units.")
+    course.syllabus = {"units": units,
+                       "outcomes": _clean_lines(data.get("outcomes"), 15, "course outcomes"),
+                       "references": _clean_lines(data.get("references"), 20, "references")}
+    link = (data.get("link") or "").strip() or None
+    if link and not link.startswith(("https://", "http://")):
+        raise ValidationError("The syllabus link must be a web address.")
+    course.syllabus_url = link
+    course.syllabus_updated_at = dt.datetime.now(dt.timezone.utc)
+    audit.record(db, action=AuditAction.UPDATE, entity_type="course", entity_id=course.id, actor=actor,
+                 description=f"Syllabus of {course.code} published ({len(units)} units)",
+                 meta={"minor_program_id": program.id, "units": len(units)})
+    db.flush()
+    return syllabus_out(course)
+
+
+def attach_syllabus_file(db: Session, program: MinorProgram, minor_course_id: int, stored, *,
+                         actor: User) -> dict | None:
+    course = _course(program, minor_course_id).course
+    course.syllabus_file_id = stored.id if stored is not None else None
+    course.syllabus_updated_at = dt.datetime.now(dt.timezone.utc)
+    audit.record(db, action=AuditAction.UPLOAD if stored else AuditAction.DELETE,
+                 entity_type="course", entity_id=course.id, actor=actor,
+                 description=f"Syllabus PDF of {course.code} {'uploaded' if stored else 'removed'}")
+    db.flush()
+    return syllabus_out(course)
+

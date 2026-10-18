@@ -268,6 +268,11 @@ class Course(PKMixin, TimestampMixin, Base):
         ForeignKey("files.id", ondelete="SET NULL")
     )
     syllabus_url: Mapped[str | None] = mapped_column(String(500))
+    #: The course's syllabus as the offering department publishes it: units
+    #: (title, topics, hours), course outcomes and references. Revised by the
+    #: coordinator; `syllabus_updated_at` dates the version students see.
+    syllabus: Mapped[dict | None] = mapped_column(JSON)
+    syllabus_updated_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
     # Program-core-elective grouping: "Artificial Intelligence", "Embedded and VLSI", ...
     specialization_area: Mapped[str | None] = mapped_column(String(120), index=True)
     #: The category letter the PDEU course-structure tables print (BSC, ESC,

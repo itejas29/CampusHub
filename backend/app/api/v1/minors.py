@@ -3,15 +3,15 @@ from __future__ import annotations
 import dataclasses
 import datetime as dt
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy import func, select
 
 from app.core.deps import CurrentStudent, CurrentUser, DbSession, require_permission
 from app.core.errors import BusinessRuleError, NotFoundError, PermissionDeniedError
 from app.core.rbac import P, has_permission
 from app.models.enums import (
-    AuditAction, CoordinationDomain, MinorApplicationStatus, MinorEnrollmentStatus,
-    NotificationType,
+    AuditAction, CoordinationDomain, FileCategory, MinorApplicationStatus,
+    MinorEnrollmentStatus, NotificationType,
 )
 from app.models.identity import Faculty, Student, User
 from app.models.minors import (
@@ -23,10 +23,11 @@ from app.schemas.minors import (
     MinorApplyRequest, MinorCourseOut, MinorDecisionRequest, MinorEnrollmentOut,
     MinorProgramCreate, MinorProgramOut, MinorProgramUpdate, RankedApplicantOut,
     RankingCriterion, RankingPolicyUpdate, MinorWorkspace, MinorFeesIn, MinorPaymentIn,
-    MinorResultsIn,
+    MinorResultsIn, MinorSyllabusIn,
 )
 from app.services import audit, minor_portal, minors as minor_service, notifications, scope
 from app.services.eligibility import check_minor_eligibility
+from app.services.files import save_upload
 
 router = APIRouter(prefix="/minors", tags=["minors"])
 
@@ -612,4 +613,42 @@ def clear_fee(enrollment_id: int, semester: int, db: DbSession, user: CurrentUse
     minor_portal.clear_payment(db, enrollment, semester, actor=user)
     db.commit()
     return Message(message=f"Semester {semester} payment removed.")
+
+
+# ── coordinator: syllabus ─────────────────────────────────────────────────
+@router.get("/{program_id}/courses/{minor_course_id}/syllabus")
+def get_syllabus(program_id: int, minor_course_id: int, db: DbSession, user: CurrentUser) -> dict:
+    program = _managed(db, user, program_id)
+    course = minor_portal._course(program, minor_course_id).course
+    return {"code": course.code, "title": course.title,
+            "syllabus": minor_portal.syllabus_out(course), "raw": course.syllabus or {}}
+
+
+@router.put("/{program_id}/courses/{minor_course_id}/syllabus")
+def put_syllabus(program_id: int, minor_course_id: int, payload: MinorSyllabusIn,
+                 db: DbSession, user: CurrentUser) -> dict:
+    program = _managed(db, user, program_id)
+    out = minor_portal.set_syllabus(db, program, minor_course_id, payload.model_dump(), actor=user)
+    db.commit()
+    return {"syllabus": out}
+
+
+@router.post("/{program_id}/courses/{minor_course_id}/syllabus/file")
+async def upload_syllabus(program_id: int, minor_course_id: int, db: DbSession,
+                          user: CurrentUser, file: UploadFile = File(...)) -> dict:
+    program = _managed(db, user, program_id)
+    minor_portal._course(program, minor_course_id)          # 404 before storing anything
+    stored = await save_upload(db, file, category=FileCategory.SYLLABUS, uploaded_by=user)
+    out = minor_portal.attach_syllabus_file(db, program, minor_course_id, stored, actor=user)
+    db.commit()
+    return {"syllabus": out}
+
+
+@router.delete("/{program_id}/courses/{minor_course_id}/syllabus/file")
+def remove_syllabus_file(program_id: int, minor_course_id: int, db: DbSession,
+                         user: CurrentUser) -> dict:
+    program = _managed(db, user, program_id)
+    out = minor_portal.attach_syllabus_file(db, program, minor_course_id, None, actor=user)
+    db.commit()
+    return {"syllabus": out}
 

@@ -131,3 +131,37 @@ def test_application_semesters_default_to_the_first_eligible_one(minor):
     assert minor_service.application_semesters(minor) == [3]
     minor.rules = {**minor.rules, "application_semesters": [3, 5]}
     assert minor_service.application_semesters(minor) == [3, 5]
+
+
+# ── syllabus ──────────────────────────────────────────────────────────────
+PDF = b"%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n"
+SYLLABUS = {"units": [{"title": "Unit 1: Foundations", "topics": ["Sets", "  ", "Logic"], "hours": 6}],
+            "outcomes": ["Reason formally"], "references": ["A textbook"]}
+
+
+def test_a_syllabus_appears_only_once_published(api, db, world, login, minor, seat):
+    student, _enrollment = seat
+    course = next(c for c in minor.courses if c.course.code == "MT-2")
+    plan = lambda: {p["semester"]: p for p in api.get(
+        "/api/v1/minors/workspace", headers=login(student.user.email)).json()["enrollment"]["plan"]}
+    assert plan()[4]["courses"][0]["syllabus"] is None
+    url = f"/api/v1/minors/{minor.id}/courses/{course.id}/syllabus"
+    assert api.put(url, headers=login(world.summer_ict.email), json=SYLLABUS).status_code == 403
+    assert api.put(url, headers=login(student.user.email), json=SYLLABUS).status_code == 403
+    response = api.put(url, headers=login(world.summer_cse.email), json=SYLLABUS)
+    assert response.status_code == 200, response.text
+    published = plan()[4]["courses"][0]["syllabus"]
+    assert published["units"][0]["topics"] == ["Sets", "Logic"] and published["updated_at"]
+
+
+def test_a_published_syllabus_pdf_is_readable_by_students(api, db, world, login, minor, seat):
+    student, _enrollment = seat
+    course = next(c for c in minor.courses if c.course.code == "MT-2")
+    url = f"/api/v1/minors/{minor.id}/courses/{course.id}/syllabus/file"
+    response = api.post(url, headers=login(world.summer_cse.email),
+                        files={"file": ("s.pdf", PDF, "application/pdf")})
+    assert response.status_code == 200, response.text
+    file_url = response.json()["syllabus"]["file_url"]
+    assert api.get(file_url, headers=login(student.user.email)).status_code == 200
+    assert api.get(file_url, headers=login(world.student_b.email)).status_code == 200
+    assert api.get(file_url).status_code == 401

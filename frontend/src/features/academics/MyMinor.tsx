@@ -1,11 +1,14 @@
-import { CheckCircle2, CircleDashed, Clock, IndianRupee, XCircle } from "lucide-react";
+import {
+  BookOpen, CheckCircle2, CircleDashed, Clock, Download, ExternalLink, IndianRupee, XCircle,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/Stepper";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { cn, roman } from "@/lib/utils";
-import type { MinorEnrollment, MinorPlanSemester } from "@/types";
+import { downloadProtectedFile } from "@/lib/api";
+import type { CourseSyllabus, MinorEnrollment, MinorPlanSemester } from "@/types";
 
 /**
  * A minor student's programme, once they hold a seat: what they take each
@@ -63,12 +66,17 @@ export function MyMinor({ enrollment }: { enrollment: MinorEnrollment }) {
               />
               <ul className="divide-y divide-line">
                 {semester.courses.map((course) => (
-                  <li key={course.minor_course_id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-3">
-                    <ResultIcon status={course.result?.status} upcoming={semester.when === "upcoming"} />
-                    <span className="tabular text-xs text-ink-muted">{course.code}</span>
-                    <span className="min-w-0 flex-1 text-sm text-ink">{course.title}</span>
-                    <span className="text-xs text-ink-subtle">{course.credits} cr</span>
-                    <Result result={course.result} upcoming={semester.when === "upcoming"} />
+                  <li key={course.minor_course_id} className="px-5 py-3">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <ResultIcon status={course.result?.status} upcoming={semester.when === "upcoming"} />
+                      <span className="tabular text-xs text-ink-muted">{course.code}</span>
+                      <span className="min-w-0 flex-1 text-sm text-ink">{course.title}</span>
+                      <span className="text-xs text-ink-subtle">{course.credits} cr</span>
+                      <Result result={course.result} upcoming={semester.when === "upcoming"} />
+                    </div>
+                    {/* This semester's syllabus is open; the rest one click away. */}
+                    <Syllabus syllabus={course.syllabus} code={course.code}
+                              defaultOpen={semester.when === "current"} />
                   </li>
                 ))}
                 {semester.courses.length === 0 && (
@@ -137,3 +145,75 @@ function FeeBadge({ semester }: { semester: MinorPlanSemester }) {
     </Badge>
   );
 }
+
+function Syllabus({ syllabus, code, defaultOpen }: {
+  syllabus: CourseSyllabus | null; code: string; defaultOpen: boolean;
+}) {
+  if (!syllabus) {
+    return <p className="mt-1.5 pl-7 text-2xs text-ink-subtle">Syllabus not published yet.</p>;
+  }
+  const hours = syllabus.hours;
+  return (
+    <details className="group mt-2 pl-7" open={defaultOpen}>
+      <summary className="flex cursor-pointer list-none items-center gap-1.5 text-xs font-medium text-accent">
+        <BookOpen className="h-3.5 w-3.5" aria-hidden />
+        <span className="group-open:hidden">Show syllabus</span>
+        <span className="hidden group-open:inline">Syllabus</span>
+        {syllabus.updated_at && (
+          <span className="font-normal text-ink-subtle">· updated {formatDate(syllabus.updated_at)}</span>
+        )}
+      </summary>
+      <div className="mt-2 space-y-3 rounded-lg border border-line bg-surface-muted/30 p-3">
+        <p className="text-2xs text-ink-subtle">
+          L–T–P {hours.lecture}–{hours.tutorial}–{hours.practical} hours a week
+        </p>
+        {syllabus.units.length > 0 && (
+          <ol className="space-y-2">
+            {syllabus.units.map((unit, i) => (
+              <li key={i}>
+                <p className="text-sm font-semibold text-ink">
+                  {unit.title}
+                  {unit.hours !== null && <span className="ml-1.5 text-2xs font-normal text-ink-subtle">{unit.hours} h</span>}
+                </p>
+                {unit.topics.length > 0 && (
+                  <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">{unit.topics.join(" · ")}</p>
+                )}
+              </li>
+            ))}
+          </ol>
+        )}
+        {syllabus.outcomes.length > 0 && (
+          <div>
+            <p className="text-2xs font-semibold uppercase tracking-wide text-ink-subtle">Course outcomes</p>
+            <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-ink-muted">
+              {syllabus.outcomes.map((o, i) => <li key={i}>{o}</li>)}
+            </ul>
+          </div>
+        )}
+        {syllabus.references.length > 0 && (
+          <div>
+            <p className="text-2xs font-semibold uppercase tracking-wide text-ink-subtle">References</p>
+            <ul className="mt-1 list-decimal space-y-0.5 pl-4 text-xs text-ink-muted">
+              {syllabus.references.map((r, i) => <li key={i}>{r}</li>)}
+            </ul>
+          </div>
+        )}
+        <div className="flex flex-wrap gap-3 text-xs">
+          {syllabus.file_url && (
+            <button type="button" className="inline-flex cursor-pointer items-center gap-1 font-medium text-accent hover:underline"
+                    onClick={() => void downloadProtectedFile(syllabus.file_url!, `${code}-syllabus.pdf`)}>
+              <Download className="h-3.5 w-3.5" aria-hidden /> Official syllabus (PDF)
+            </button>
+          )}
+          {syllabus.link && (
+            <a href={syllabus.link} target="_blank" rel="noreferrer"
+               className="inline-flex items-center gap-1 font-medium text-accent hover:underline">
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden /> Department page
+            </a>
+          )}
+        </div>
+      </div>
+    </details>
+  );
+}
+

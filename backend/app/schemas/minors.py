@@ -166,6 +166,19 @@ class MinorPaymentIn(BaseModel):
     paid_on: dt.date | None = None
 
 
+class SyllabusUnitIn(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    topics: list[str] = Field(default_factory=list, max_length=40)
+    hours: int | None = Field(default=None, ge=0, le=100)
+
+
+class MinorSyllabusIn(BaseModel):
+    units: list[SyllabusUnitIn] = Field(default_factory=list, max_length=12)
+    outcomes: list[str] = Field(default_factory=list, max_length=15)
+    references: list[str] = Field(default_factory=list, max_length=20)
+    link: str | None = Field(default=None, max_length=500)
+
+
 class MinorWorkspace(BaseModel):
     is_eligible: bool
     eligibility_notes: list[str] = Field(default_factory=list)

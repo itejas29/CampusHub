@@ -5,14 +5,14 @@ import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
-import { FormField, Input, Select } from "@/components/ui/Form";
+import { FormField, Input, Select, Textarea } from "@/components/ui/Form";
 import { Modal } from "@/components/ui/Modal";
 import { EmptyState, LoadingState } from "@/components/ui/States";
 import { TBody, TD, TH, THead, TR, TableWrap } from "@/components/ui/Table";
 import { ApiError, api } from "@/lib/api";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatDateTime } from "@/lib/format";
 import { roman } from "@/lib/utils";
-import type { MinorProgram } from "@/types";
+import type { CourseSyllabus, MinorProgram } from "@/types";
 
 /**
  * The minor coordinator's records once students hold seats: each course's
@@ -295,5 +295,163 @@ export function MinorFeesTab({ programs }: { programs: MinorProgram[] }) {
         </div>
       </Modal>
     </div>
+  );
+}
+
+type SyllabusResponse = {
+  code: string; title: string; syllabus: CourseSyllabus | null;
+  raw: { units?: { title: string; topics: string[]; hours: number | null }[]; outcomes?: string[]; references?: string[] };
+};
+type UnitRow = { key: string; title: string; topics: string; hours: string };
+
+/**
+ * The coordinator publishes each minor course's syllabus: units (with topics
+ * and hours), course outcomes, references, and the official PDF. Students see
+ * the version published here, dated; nothing is shown until it exists.
+ */
+export function MinorSyllabusTab({ programs }: { programs: MinorProgram[] }) {
+  const queryClient = useQueryClient();
+  const mine = programs.filter((p) => p.can_manage);
+  const [programId, setProgramId] = useState<number | null>(mine[0]?.id ?? null);
+  const program = mine.find((p) => p.id === programId) ?? null;
+  const [courseId, setCourseId] = useState<number | null>(null);
+  useEffect(() => { setCourseId(program?.courses[0]?.id ?? null); }, [program?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [units, setUnits] = useState<UnitRow[]>([]);
+  const [outcomes, setOutcomes] = useState("");
+  const [references, setReferences] = useState("");
+  const [link, setLink] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [banner, setBanner] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
+  const base = `/minors/${programId}/courses/${courseId}/syllabus`;
+
+  const current = useQuery({
+    queryKey: ["minor-syllabus", programId, courseId],
+    queryFn: () => api.get<SyllabusResponse>(base),
+    enabled: Boolean(programId && courseId),
+  });
+  useEffect(() => {
+    const raw = current.data?.raw ?? {};
+    setUnits((raw.units ?? []).map((u, i) => ({ key: `u${i}`, title: u.title, topics: (u.topics ?? []).join("\n"),
+                                                hours: u.hours == null ? "" : String(u.hours) })));
+    setOutcomes((raw.outcomes ?? []).join("\n"));
+    setReferences((raw.references ?? []).join("\n"));
+    setLink(current.data?.syllabus?.link ?? "");
+  }, [current.data]);
+
+  const done = (text: string) => {
+    setBanner({ tone: "success", text });
+    void queryClient.invalidateQueries({ queryKey: ["minor-syllabus"] });
+  };
+  const lines = (text: string) => text.split("\n").map((l) => l.trim()).filter(Boolean);
+  const save = useMutation({
+    mutationFn: () => api.put(base, {
+      units: units.map((u) => ({ title: u.title.trim(), topics: lines(u.topics), hours: u.hours === "" ? null : Number(u.hours) })),
+      outcomes: lines(outcomes), references: lines(references), link: link.trim() || null,
+    }),
+    onSuccess: () => done("Syllabus published. Students see it on their minor page, dated today."),
+    onError: (err) => setBanner({ tone: "danger", text: errorText(err, "Could not publish the syllabus.") }),
+  });
+  const upload = useMutation({
+    mutationFn: () => {
+      const form = new FormData();
+      form.append("file", file!);
+      return api.upload(`${base}/file`, form);
+    },
+    onSuccess: () => { setFile(null); done("Syllabus PDF uploaded."); },
+    onError: (err) => setBanner({ tone: "danger", text: errorText(err, "Could not upload the PDF.") }),
+  });
+  const removeFile = useMutation({
+    mutationFn: () => api.delete(`${base}/file`),
+    onSuccess: () => done("Syllabus PDF removed."),
+    onError: (err) => setBanner({ tone: "danger", text: errorText(err, "Could not remove the PDF.") }),
+  });
+
+  if (!mine.length) {
+    return <Card><EmptyState title="No syllabus to publish" description="You do not coordinate a minor programme." /></Card>;
+  }
+  const published = current.data?.syllabus;
+  return (
+    <Card>
+      <CardHeader title="Syllabus"
+                  description="Publish each course's syllabus for the semester it runs. A revision replaces it and is dated, so students always see the current one."
+                  action={<ProgramPicker programs={mine} value={programId} onChange={setProgramId} />} />
+      <CardBody className="space-y-4">
+        {banner && <Alert variant={banner.tone} onDismiss={() => setBanner(null)}>{banner.text}</Alert>}
+        <Select aria-label="Course" value={courseId ?? ""} onChange={(e) => setCourseId(Number(e.target.value))}>
+          {(program?.courses ?? []).map((c) => (
+            <option key={c.id} value={c.id}>
+              Semester {roman(semesterOf(program!, c.semester_offset))} · {c.course_code} — {c.course_title}
+            </option>
+          ))}
+        </Select>
+        <p className="text-xs text-ink-muted">
+          {published?.updated_at ? `Published ${formatDateTime(published.updated_at)}.` : "Not published yet — students see “Syllabus not published yet”."}
+        </p>
+
+        {current.isLoading ? <LoadingState rows={3} /> : (
+          <>
+            <div className="space-y-2">
+              <h3 className="text-2xs font-semibold uppercase tracking-wide text-ink-subtle">Units</h3>
+              {units.map((u, i) => (
+                <div key={u.key} className="space-y-2 rounded-lg border border-line p-3">
+                  <div className="flex gap-2">
+                    <div className="min-w-0 flex-1">
+                      <Input aria-label={`Unit ${i + 1} title`} placeholder={`Unit ${i + 1} title`} value={u.title} maxLength={200}
+                             onChange={(e) => setUnits((l) => l.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} />
+                    </div>
+                    <div className="w-24 shrink-0">
+                      <Input aria-label={`Unit ${i + 1} hours`} placeholder="Hours" inputMode="numeric" value={u.hours}
+                             onChange={(e) => setUnits((l) => l.map((x, j) => (j === i ? { ...x, hours: e.target.value.replace(/\D/g, "") } : x)))} />
+                    </div>
+                    <Button variant="ghost" size="icon" className="text-danger" aria-label={`Remove unit ${i + 1}`}
+                            icon={<Trash2 className="h-4 w-4" aria-hidden />}
+                            onClick={() => setUnits((l) => l.filter((_, j) => j !== i))} />
+                  </div>
+                  <Textarea aria-label={`Unit ${i + 1} topics, one per line`} rows={3} placeholder="Topics, one per line"
+                            value={u.topics}
+                            onChange={(e) => setUnits((l) => l.map((x, j) => (j === i ? { ...x, topics: e.target.value } : x)))} />
+                </div>
+              ))}
+              <Button variant="secondary" size="sm" icon={<Plus className="h-3.5 w-3.5" aria-hidden />}
+                      disabled={units.length >= 12}
+                      onClick={() => setUnits((l) => [...l, { key: `n${Date.now()}`, title: "", topics: "", hours: "" }])}>
+                Add a unit
+              </Button>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <FormField label="Course outcomes (one per line)" htmlFor="syl-outcomes">
+                <Textarea id="syl-outcomes" rows={4} value={outcomes} onChange={(e) => setOutcomes(e.target.value)} />
+              </FormField>
+              <FormField label="References (one per line)" htmlFor="syl-refs">
+                <Textarea id="syl-refs" rows={4} value={references} onChange={(e) => setReferences(e.target.value)} />
+              </FormField>
+            </div>
+            <FormField label="Department page for this syllabus (optional)" htmlFor="syl-link">
+              <Input id="syl-link" type="url" placeholder="https://" value={link} onChange={(e) => setLink(e.target.value)} />
+            </FormField>
+            <div className="flex justify-end">
+              <Button size="sm" loading={save.isPending} disabled={units.some((u) => !u.title.trim())}
+                      icon={<Save className="h-3.5 w-3.5" aria-hidden />} onClick={() => save.mutate()}>
+                Publish syllabus
+              </Button>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 border-t border-line pt-4">
+              <span className="text-sm text-ink">Official PDF:</span>
+              {published?.file_url ? (
+                <>
+                  <Badge tone="success">Uploaded</Badge>
+                  <Button variant="ghost" size="sm" className="text-danger" loading={removeFile.isPending}
+                          onClick={() => removeFile.mutate()}>Remove</Button>
+                </>
+              ) : <span className="text-xs text-ink-subtle">none</span>}
+              <input type="file" accept="application/pdf" aria-label="Syllabus PDF"
+                     className="text-xs" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+              <Button size="sm" variant="secondary" disabled={!file} loading={upload.isPending}
+                      onClick={() => upload.mutate()}>Upload PDF</Button>
+            </div>
+          </>
+        )}
+      </CardBody>
+    </Card>
   );
 }

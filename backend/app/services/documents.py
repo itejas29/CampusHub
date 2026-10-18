@@ -470,6 +470,13 @@ def assert_can_read_file(db: Session, file_id: int, user: User) -> None:
             "You do not have access to this student's documents."
         )
 
+    # A course's published syllabus is not private: any signed-in student or
+    # staff member may read it (a minor student follows theirs each semester).
+    from app.models.academics import Course
+
+    if db.scalar(select(Course.id).where(Course.syllabus_file_id == file_id)) is not None:
+        return
+
     # Not an internship artefact — academic staff may read it.
     if user.has_role(Role.DEPARTMENT_ADMIN, Role.FACULTY,
                      Role.INTERNSHIP_COORDINATOR):

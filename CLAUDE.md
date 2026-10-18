@@ -150,6 +150,14 @@ says only that minors run from Semester III):
   each semester's courses (`MinorCourse`; semester = `eligible_from_semester +
   semester_offset - 1`), the student's result in each, credits earned, and the
   semester's fee.
+- **Each semester's syllabus**: every minor course carries the syllabus the
+  offering department publishes — units (title, topics, hours), outcomes,
+  references, and the official PDF (`courses.syllabus`, `syllabus_file_id`,
+  migration 0016). The coordinator publishes and revises it (dated, audited);
+  the student sees this semester's open and the rest a click away. No syllabus
+  text is assumed — none is shown until published. A course's published
+  syllabus PDF is readable by any signed-in user; every other file keeps its
+  own authorisation.
 - **Results** (`minor_course_results`) and **payments** (`minor_fee_payments`,
   migration 0015) are recorded by the minor's coordinator only. Marks and
   grade are stored as given — no grading scale is assumed; a PASSED course

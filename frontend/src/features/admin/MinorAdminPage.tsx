@@ -10,7 +10,7 @@ import { Modal } from "@/components/ui/Modal";
 import { DetailList, PageHeader } from "@/components/ui/Misc";
 import { ProgressBar } from "@/components/ui/Stepper";
 import { Tabs } from "@/components/ui/Tabs";
-import { MinorFeesTab, MinorGradebookTab } from "./MinorRecordsTab";
+import { MinorFeesTab, MinorGradebookTab, MinorSyllabusTab } from "./MinorRecordsTab";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
 import { TBody, TD, TH, THead, TR, TableEmpty, TableWrap } from "@/components/ui/Table";
 import { ApiError, api, qs } from "@/lib/api";
@@ -57,6 +57,7 @@ export function MinorAdminPage() {
           { key: "applications", label: "Applications", count: applications.data?.length },
           { key: "allocation", label: "Allocation round" },
           { key: "programs", label: "Minor programmes", count: programs.data?.length },
+          { key: "syllabus", label: "Syllabus" },
           { key: "results", label: "Results" },
           { key: "fees", label: "Fees" },
         ]}
@@ -65,6 +66,7 @@ export function MinorAdminPage() {
         className="mb-5"
       />
 
+      {tab === "syllabus" && <MinorSyllabusTab programs={programs.data ?? []} />}
       {tab === "results" && <MinorGradebookTab programs={programs.data ?? []} />}
       {tab === "fees" && <MinorFeesTab programs={programs.data ?? []} />}
 
