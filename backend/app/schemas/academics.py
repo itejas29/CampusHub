@@ -5,7 +5,7 @@ import datetime as dt
 from pydantic import BaseModel, Field
 
 from app.models.enums import (
-    AllocationStatus, ComponentType, CurriculumStatus, MoocPlatform, MoocStatus,
+    AllocationStatus, ComponentType, CurriculumStatus, MoocOption, MoocPlatform, MoocStatus,
     OfferingStatus, RegistrationWindowStatus, RoundSelectionMode, RoundStage,
     SourceScope, StudentRegistrationState, VerificationStatus,
 )
@@ -614,9 +614,13 @@ class MoocRegistrationOut(ORMModel):
     student_id: int
     student_name: str | None = None
     roll_number: str | None = None
-    course_offering_id: int
+    #: Set for registrations made before rounds; a round's choice names the
+    #: course directly (or nothing, for NCC).
+    course_offering_id: int | None = None
     course_code: str | None = None
     course_title: str | None = None
+    option: MoocOption = MoocOption.NPTEL
+    mooc_round_id: int | None = None
     platform: MoocPlatform
     platform_registration_id: str | None = None
     course_url: str | None = None

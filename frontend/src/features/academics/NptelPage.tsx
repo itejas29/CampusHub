@@ -15,7 +15,10 @@ import { TBody, TD, TH, THead, TR, TableWrap } from "@/components/ui/Table";
 import { API_BASE, ApiError, api, tokenStore } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { roman } from "@/lib/utils";
-import type { CourseOffering, MoocEligibility, MoocRegistration } from "@/types";
+import type {
+  CourseOffering, MoocEligibility, MoocRegistration, StudentMoocStanding,
+} from "@/types";
+import { NptelRoundPanel, NptelStandingBanner } from "./NptelRoundPanel";
 
 export function NptelPage() {
   const queryClient = useQueryClient();
@@ -26,6 +29,12 @@ export function NptelPage() {
   const registrationIdRef = useRef<HTMLInputElement>(null);
   const examDateRef = useRef<HTMLInputElement>(null);
 
+  // The coordinator's round, when one covers this student, replaces the free
+  // catalogue below: choose from the approved list or NCC there.
+  const standing = useQuery({
+    queryKey: ["mooc", "round"],
+    queryFn: () => api.get<StudentMoocStanding>("/mooc/rounds/mine"),
+  });
   const eligibility = useQuery({
     queryKey: ["mooc", "eligibility"],
     queryFn: () => api.get<MoocEligibility>("/mooc/eligibility"),
@@ -96,8 +105,8 @@ export function NptelPage() {
   return (
     <div>
       <PageHeader
-        title="NPTEL / SWAYAM"
-        description="Certified online courses that satisfy your curriculum's MOOC requirement. Eligibility comes from the curriculum, so this page is only actionable in the semester that requires it."
+        title="NPTEL / NCC"
+        description="Your Open Elective as an NPTEL course from the department's approved list, or NCC certification. Choose in your coordinator's round, then submit the certificate here."
         breadcrumbs={[{ label: "Academics" }, { label: "NPTEL / MOOC" }]}
         meta={
           component && (
@@ -118,7 +127,10 @@ export function NptelPage() {
         </Alert>
       )}
 
-      {!eligibility.data?.eligible && (
+      {standing.data && <NptelStandingBanner data={standing.data} />}
+      {standing.data?.round && <NptelRoundPanel round={standing.data.round} />}
+
+      {!eligibility.data?.eligible && !standing.data?.round && (
         <Alert
           variant={component ? "warning" : "info"}
           title={component ? "Not open for you yet" : "Not part of your curriculum"}
@@ -200,8 +212,9 @@ export function NptelPage() {
           )}
         </Card>
 
-        {/* Catalogue */}
-        {eligibility.data?.eligible && (
+        {/* Catalogue — only when no round is running for this student */}
+        {eligibility.data?.eligible && !standing.data?.round
+          && standing.data?.standing !== "CLEARED" && standing.data?.standing !== "BACKLOG" && (
           <Card>
             <CardHeader
               title="Approved course catalogue"

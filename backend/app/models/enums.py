@@ -292,6 +292,43 @@ class MoocStatus(StrEnum):
     VERIFIED = "VERIFIED"
     REJECTED = "REJECTED"
     COMPLETED = "COMPLETED"
+    #: The student reported they did not pass (NPTEL gives no certificate to a
+    #: student who fails). The slot carries over when the semester is closed.
+    FAILED = "FAILED"
+
+
+class MoocOption(StrEnum):
+    """How a student meets the MOOC slot: an approved NPTEL course, or NCC.
+
+    The ICT department offers both for the Semester V Open Elective; NCC needs
+    no course, credits or weeks, but still ends in a certificate.
+    """
+
+    NPTEL = "NPTEL"
+    NCC = "NCC"
+
+
+class MoocRoundStatus(StrEnum):
+    """An NPTEL / NCC round, as the coordinator drives it.
+
+        DRAFT -> OPEN (choosing) -> LOCKED (choices fixed; certificates come in)
+              -> CLOSED (semester closed; every student's outcome recorded)
+    """
+
+    DRAFT = "DRAFT"
+    OPEN = "OPEN"
+    LOCKED = "LOCKED"
+    CLOSED = "CLOSED"
+
+
+class MoocOutcome(StrEnum):
+    """Where a student stands on the slot once a round's semester is closed."""
+
+    CLEARED = "CLEARED"
+    #: Not cleared in the slot's own semester: it is pending in the next one.
+    CARRIED_OVER = "CARRIED_OVER"
+    #: Not cleared in the second semester either.
+    BACKLOG = "BACKLOG"
 
 
 class VerificationStatus(StrEnum):

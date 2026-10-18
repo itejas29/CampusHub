@@ -14,6 +14,7 @@ import { TBody, TD, TH, THead, TR, TableEmpty, TableWrap } from "@/components/ui
 import { ApiError, api, qs } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import type { MoocRegistration } from "@/types";
+import { NptelRoundsPanel } from "./NptelRoundsPanel";
 
 export function NptelAdminPage() {
   const queryClient = useQueryClient();
@@ -34,10 +35,12 @@ export function NptelAdminPage() {
   return (
     <div>
       <PageHeader
-        title="NPTEL verification"
-        description="Verify uploaded course certificates against the platform record before credit is granted."
-        breadcrumbs={[{ label: "Administration" }, { label: "NPTEL Verification" }]}
+        title="NPTEL / NCC"
+        description="Run the semester's NPTEL / NCC choice, then verify the certificates students submit."
+        breadcrumbs={[{ label: "Administration" }, { label: "NPTEL / NCC" }]}
       />
+
+      <NptelRoundsPanel />
 
       {banner && (
         <Alert variant={banner.tone === "success" ? "success" : "danger"} className="mb-4"

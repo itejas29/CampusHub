@@ -52,6 +52,9 @@ def requirement_state(component, *, allocated: bool,
         if mooc_registration is None:
             return ACTION_NEEDED
         status = MoocStatus(mooc_registration.status)
+        if status == MoocStatus.FAILED:
+            # Nothing to do now: the slot carries over when the semester closes.
+            return RequirementState("Not passed — carries over", False)
         # A rejected certificate puts the slot back in the student's hands.
         return RequirementState(status.value, status == MoocStatus.REJECTED)
     if allocated:

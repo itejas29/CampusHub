@@ -4,7 +4,8 @@ from app.models.academics import (
     Course, CourseOffering, CourseSection, Curriculum, CurriculumComponent,
     ElectiveAllocation, ElectivePreference, ElectiveRegistrationWindow,
     ElectiveRoundChoice,
-    ElectiveType, MoocRegistration, Program, ProgramDivision,
+    ElectiveType, MoocRegistration, MoocRound, MoocRoundCourse, MoocRoundOutcome,
+    Program, ProgramDivision,
 )
 from app.models.community import (
     Club, ClubMember, Event, EventInterest, EventRegistration,
@@ -36,7 +37,7 @@ __all__ = [
     "Program", "ProgramDivision", "ElectiveType", "Curriculum", "CurriculumComponent",
     "Course",
     "CourseOffering", "CourseSection", "ElectivePreference", "ElectiveAllocation",
-    "ElectiveRoundChoice",
+    "ElectiveRoundChoice", "MoocRound", "MoocRoundCourse", "MoocRoundOutcome",
     "ElectiveRegistrationWindow",
     "MoocRegistration",
     # minors

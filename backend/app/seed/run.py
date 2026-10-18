@@ -1715,6 +1715,10 @@ def seed_academic_activity(db, components, offerings, courses, students, electiv
         offering.seats_filled += 1
     db.flush()
 
+    log("NPTEL / NCC round (draft, with the department's approved list)…")
+    from app.seed import add_nptel_round
+    add_nptel_round.ensure(db)
+
     log("Minor applications and enrolments…")
     eligible = [s for s in students if s.current_semester >= 3
                 and s.cpi is not None and float(s.cpi) >= 7.0]
