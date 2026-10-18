@@ -1155,66 +1155,81 @@ PROJECT_PROGRAMS = [
 ]
 
 
+def make_project_program(db, spec, year, semesters, departments, faculty_by_code):
+    """One Semester VII / VIII programme, with its stages and rubric."""
+    (code, name, ptype, sem, credits, batches, stages, criteria, (freq, count),
+     tracks, unconfirmed, blurb) = spec
+    config = {"requires_faculty_confirmation": list(unconfirmed),
+              # Rank up to three guides; a seminar is individual, a project
+              # may be done in a team of up to four (or alone).
+              "guide_preferences": 3}
+    if ptype != InternshipType.SEMINAR:
+        config["team_size"] = {"min": 1, "max": 4}
+    early = sem - 1 if tracks else None
+    if early:
+        # Semester VIII registration opens in Semester VII, so an
+        # industry-track student can line up a company ahead of time.
+        config["register_from_semester"] = early
+    if batches:
+        config["admission_years"] = batches
+    if tracks:
+        config["tracks"] = tracks
+    program = InternshipProgram(
+        code=code, name=name, type=ptype, description=blurb,
+        academic_year_id=year.id, semester_id=semesters[sem].id,
+        department_id=departments["ICT"].id, target_semester=sem,
+        # Offered in its own semester only; a student who registered keeps
+        # their record afterwards. Left open-ended, the Semester VII Minor
+        # Project was being offered to Semester VIII students as well.
+        announce_from_semester=early or sem, visible_to_semester=sem, credits=credits,
+        requires_group=False, default_group_size=0,
+        # A track decides for Semester VIII; Semester VII has no host.
+        requires_organization=False, allowed_organization_types=[],
+        report_frequency=freq, expected_report_count=count,
+        requires_industry_mentor=False,
+        registration_opens_at=NOW - dt.timedelta(days=20),
+        registration_closes_at=NOW + dt.timedelta(days=20),
+        start_date=TODAY - dt.timedelta(days=30), end_date=TODAY + dt.timedelta(days=90),
+        status=ProgramStatus.REGISTRATION_OPEN,
+        coordinator_faculty_id=faculty_by_code["ICT-F-103"].id,
+        config=config,
+    )
+    db.add(program)
+    db.flush()
+    for index, (scode, sname, desc, needs_doc, doc_type, owner) in enumerate(stages, 1):
+        db.add(InternshipStage(
+            program_id=program.id, code=scode, name=sname, description=desc,
+            sequence=index, is_mandatory=True, requires_document=needs_doc,
+            document_type=DocumentType(doc_type) if doc_type else None, owner_role=owner))
+    for index, (ccode, cname, desc, max_marks, weight) in enumerate(criteria, 1):
+        db.add(EvaluationCriteria(
+            program_id=program.id, code=ccode, name=cname, description=desc,
+            max_marks=max_marks, weight=weight, sequence=index,
+            evaluator_role=EvaluatorRole.FACULTY_MENTOR))
+    db.flush()
+    return program
+
+
 def seed_project_programs(db, year, semesters, departments, faculty_by_code,
                           students, companies) -> list:
     """Semester VII and VIII projects: rows on the one internship engine."""
-    created = []
-    for (code, name, ptype, sem, credits, batches, stages, criteria, (freq, count),
-         tracks, unconfirmed, blurb) in PROJECT_PROGRAMS:
-        config = {"requires_faculty_confirmation": unconfirmed,
-                  # Rank up to three guides; a seminar is individual, a project
-                  # may be done in a team of up to four (or alone).
-                  "guide_preferences": 3}
-        if ptype != InternshipType.SEMINAR:
-            config["team_size"] = {"min": 1, "max": 4}
-        early = sem - 1 if tracks else None
-        if early:
-            # Semester VIII registration opens in Semester VII, so an
-            # industry-track student can line up a company ahead of time.
-            config["register_from_semester"] = early
-        if batches:
-            config["admission_years"] = batches
-        if tracks:
-            config["tracks"] = tracks
-        program = InternshipProgram(
-            code=code, name=name, type=ptype, description=blurb,
-            academic_year_id=year.id, semester_id=semesters[sem].id,
-            department_id=departments["ICT"].id, target_semester=sem,
-            # Offered in its own semester only; a student who registered keeps
-            # their record afterwards. Left open-ended, the Semester VII Minor
-            # Project was being offered to Semester VIII students as well.
-            announce_from_semester=early or sem, visible_to_semester=sem, credits=credits,
-            requires_group=False, default_group_size=0,
-            # A track decides for Semester VIII; Semester VII has no host.
-            requires_organization=False, allowed_organization_types=[],
-            report_frequency=freq, expected_report_count=count,
-            requires_industry_mentor=False,
-            registration_opens_at=NOW - dt.timedelta(days=20),
-            registration_closes_at=NOW + dt.timedelta(days=20),
-            start_date=TODAY - dt.timedelta(days=30), end_date=TODAY + dt.timedelta(days=90),
-            status=ProgramStatus.REGISTRATION_OPEN,
-            coordinator_faculty_id=faculty_by_code["ICT-F-103"].id,
-            config=config,
-        )
-        db.add(program)
-        db.flush()
-        for index, (scode, sname, desc, needs_doc, doc_type, owner) in enumerate(stages, 1):
-            db.add(InternshipStage(
-                program_id=program.id, code=scode, name=sname, description=desc,
-                sequence=index, is_mandatory=True, requires_document=needs_doc,
-                document_type=DocumentType(doc_type) if doc_type else None, owner_role=owner))
-        for index, (ccode, cname, desc, max_marks, weight) in enumerate(criteria, 1):
-            db.add(EvaluationCriteria(
-                program_id=program.id, code=ccode, name=cname, description=desc,
-                max_marks=max_marks, weight=weight, sequence=index,
-                evaluator_role=EvaluatorRole.FACULTY_MENTOR))
-        db.flush()
-        created.append(program)
+    created = [make_project_program(db, spec, year, semesters, departments, faculty_by_code)
+               for spec in PROJECT_PROGRAMS]
+    minor_project, _seminar, major = created
+    seed_project_samples(db, minor_project, major, departments, faculty_by_code,
+                         students, companies)
+    return created
 
-    # A few fictional students already under way, so the coordinator and guide
-    # screens have something to show. Never a real student (the real Semester
-    # VII cohort gets no invented work), and not the two demo sign-ins left to
-    # register live: Arjun Verma (VII) and Pooja Shah (VIII).
+
+def seed_project_samples(db, minor_project, major, departments, faculty_by_code,
+                         students, companies) -> None:
+    """A few fictional students already under way, so the coordinator and guide
+    screens have something to show.
+
+    Never a real student (the real Semester VII cohort gets no invented work),
+    and not the two demo sign-ins left to register live: Arjun Verma (VII) and
+    Pooja Shah (VIII). Either programme may be None (already present).
+    """
     left_to_register = {"21BIT021", "21BIT081"}
     def generated(semester):
         return [s for s in students
@@ -1223,15 +1238,15 @@ def seed_project_programs(db, year, semesters, departments, faculty_by_code,
                 and "@students." not in s.user.email
                 and s.department_id == departments["ICT"].id]
     guides = [faculty_by_code[c] for c in ("ICT-F-101", "ICT-F-106", "ICT-F-107")]
-    minor_project, _seminar, major = created
-    for index, student in enumerate([s for s in generated(7) if s.admission_year <= 2023][:9]):
-        _seed_project_record(db, minor_project, student, guides[index % 3], index)
-    for index, student in enumerate(generated(8)[:8]):
-        track = "INDUSTRY" if index % 2 else "PROJECT"
-        _seed_project_record(db, major, student, guides[index % 3], index, track=track,
-                             company=companies[index % len(companies)] if track == "INDUSTRY" else None)
+    if minor_project is not None:
+        for index, student in enumerate([s for s in generated(7) if s.admission_year <= 2023][:9]):
+            _seed_project_record(db, minor_project, student, guides[index % 3], index)
+    if major is not None:
+        for index, student in enumerate(generated(8)[:8]):
+            track = "INDUSTRY" if index % 2 else "PROJECT"
+            _seed_project_record(db, major, student, guides[index % 3], index, track=track,
+                                 company=companies[index % len(companies)] if track == "INDUSTRY" else None)
     db.flush()
-    return created
 
 
 def _seed_project_record(db, program, student, guide, index, *, track=None, company=None):
