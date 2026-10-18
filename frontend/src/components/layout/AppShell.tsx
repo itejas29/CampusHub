@@ -2,6 +2,7 @@ import { Suspense, useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { MobileSidebar, Sidebar } from "./Sidebar";
+import { PageErrorBoundary } from "./PageErrorBoundary";
 import { Topbar } from "./Topbar";
 import { slideUp } from "@/lib/motion";
 import { FloatingChatbot } from "@/features/chatbot/FloatingChatbot";
@@ -84,9 +85,11 @@ export function AppShell() {
               animate="shown"
             >
               {/* Routes load on first visit; the skeleton holds their place. */}
-              <Suspense fallback={<LoadingState rows={4} label="Loading page…" />}>
-                <Outlet />
-              </Suspense>
+              <PageErrorBoundary key={location.pathname}>
+                <Suspense fallback={<LoadingState rows={4} label="Loading page…" />}>
+                  <Outlet />
+                </Suspense>
+              </PageErrorBoundary>
             </motion.div>
           </div>
         </main>
