@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import datetime as dt
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.models.enums import MinorApplicationStatus, MinorEnrollmentStatus
+from app.models.enums import MinorApplicationStatus, MinorCourseResultStatus, MinorEnrollmentStatus
 from app.schemas.common import ORMModel
+from app.schemas.fields import Grade, Url, block, identifier, line, optional
 
 
 class MinorCourseOut(ORMModel):
@@ -62,30 +64,30 @@ class MinorProgramOut(ORMModel):
 
 
 class MinorProgramCreate(BaseModel):
-    code: str = Field(max_length=30)
-    name: str = Field(max_length=180)
+    code: identifier(30)
+    name: line(180, min_length=3)
     department_id: int
-    description: str | None = None
+    description: optional(block(5000)) = None
     total_credits: float = Field(default=18, ge=0, le=100)
     capacity: int = Field(default=30, ge=1, le=1000)
     eligible_from_semester: int = Field(default=3, ge=1, le=12)
     min_cpi: float | None = Field(default=None, ge=0, le=10)
     max_backlogs: int | None = Field(default=None, ge=0)
-    allocation_strategy: str = "manual"
+    allocation_strategy: identifier(40) = "manual"
     application_opens_at: dt.datetime | None = None
     application_closes_at: dt.datetime | None = None
     coordinator_faculty_id: int | None = None
 
 
 class MinorProgramUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
+    name: optional(line(180, min_length=3)) = None
+    description: optional(block(5000)) = None
     total_credits: float | None = Field(default=None, ge=0, le=100)
     capacity: int | None = Field(default=None, ge=1, le=1000)
     eligible_from_semester: int | None = Field(default=None, ge=1, le=12)
     min_cpi: float | None = Field(default=None, ge=0, le=10)
     max_backlogs: int | None = Field(default=None, ge=0)
-    allocation_strategy: str | None = None
+    allocation_strategy: optional(identifier(40)) = None
     application_opens_at: dt.datetime | None = None
     application_closes_at: dt.datetime | None = None
     is_active: bool | None = None
@@ -114,12 +116,12 @@ class MinorApplicationOut(ORMModel):
 class MinorApplyRequest(BaseModel):
     preferences: list[int] = Field(min_length=1, max_length=5,
                                    description="Minor program ids, most preferred first")
-    motivation: str | None = Field(default=None, max_length=2000)
+    motivation: optional(block(2000)) = None
 
 
 class MinorDecisionRequest(BaseModel):
     status: MinorApplicationStatus
-    remarks: str | None = None
+    remarks: optional(block(1000)) = None
 
 
 class MinorEnrollmentOut(ORMModel):
@@ -141,8 +143,8 @@ class MinorEnrollmentOut(ORMModel):
 class MinorResultIn(BaseModel):
     enrollment_id: int
     marks: float | None = Field(default=None, ge=0, le=100)
-    grade: str | None = Field(default=None, max_length=4)
-    status: str = "IN_PROGRESS"
+    grade: optional(Grade) = None
+    status: MinorCourseResultStatus = MinorCourseResultStatus.IN_PROGRESS
 
 
 class MinorResultsIn(BaseModel):
@@ -153,7 +155,7 @@ class MinorFeeIn(BaseModel):
     semester: int = Field(ge=1, le=10)
     amount: float = Field(ge=0, le=10_000_000)
     due_on: dt.date | None = None
-    note: str | None = Field(default=None, max_length=300)
+    note: optional(line(300)) = None
 
 
 class MinorFeesIn(BaseModel):
@@ -162,21 +164,21 @@ class MinorFeesIn(BaseModel):
 
 class MinorPaymentIn(BaseModel):
     amount: float = Field(gt=0, le=10_000_000)
-    reference: str | None = Field(default=None, max_length=80)
+    reference: optional(identifier(80)) = None
     paid_on: dt.date | None = None
 
 
 class SyllabusUnitIn(BaseModel):
-    title: str = Field(min_length=1, max_length=200)
-    topics: list[str] = Field(default_factory=list, max_length=40)
+    title: line(200)
+    topics: list[line(300, min_length=0)] = Field(default_factory=list, max_length=40)
     hours: int | None = Field(default=None, ge=0, le=100)
 
 
 class MinorSyllabusIn(BaseModel):
     units: list[SyllabusUnitIn] = Field(default_factory=list, max_length=12)
-    outcomes: list[str] = Field(default_factory=list, max_length=15)
-    references: list[str] = Field(default_factory=list, max_length=20)
-    link: str | None = Field(default=None, max_length=500)
+    outcomes: list[line(300, min_length=0)] = Field(default_factory=list, max_length=15)
+    references: list[line(300, min_length=0)] = Field(default_factory=list, max_length=20)
+    link: optional(Url) = None
 
 
 class MinorWorkspace(BaseModel):
@@ -204,9 +206,9 @@ class RankedApplicantOut(BaseModel):
 
 
 class RankingCriterion(BaseModel):
-    field: str
-    direction: str = "desc"
-    label: str | None = None
+    field: identifier(40)
+    direction: Literal["asc", "desc"] = "desc"
+    label: optional(line(80)) = None
 
 
 class MinorAllocationPreview(BaseModel):

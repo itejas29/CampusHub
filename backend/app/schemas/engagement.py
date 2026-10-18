@@ -9,6 +9,7 @@ from app.models.enums import (
     Priority,
 )
 from app.schemas.common import ORMModel
+from app.schemas.fields import Url, block, line, optional
 
 
 class MentorProfile(BaseModel):
@@ -62,8 +63,8 @@ class MeetingOut(ORMModel):
 
 
 class MeetingRequest(BaseModel):
-    title: str = Field(max_length=200)
-    agenda: str | None = Field(default=None, max_length=2000)
+    title: line(200, min_length=3)
+    agenda: optional(block(2000)) = None
     proposed_slot: dt.datetime | None = None
     duration_minutes: int = Field(default=30, ge=10, le=240)
     mode: MeetingMode = MeetingMode.IN_PERSON
@@ -73,8 +74,8 @@ class MeetingRequest(BaseModel):
 class MeetingDecision(BaseModel):
     status: MeetingStatus
     scheduled_at: dt.datetime | None = None
-    location: str | None = None
-    outcome_notes: str | None = None
+    location: optional(line(200)) = None
+    outcome_notes: optional(block(5000)) = None
 
 
 class AnnouncementOut(ORMModel):
@@ -97,22 +98,22 @@ class AnnouncementOut(ORMModel):
 
 
 class AnnouncementCreate(BaseModel):
-    title: str = Field(max_length=200)
-    body: str = Field(min_length=1)
+    title: line(200, min_length=3)
+    body: block(10000, min_length=1)
     category: AnnouncementCategory = AnnouncementCategory.GENERAL
     priority: Priority = Priority.NORMAL
     audience_type: AudienceType = AudienceType.ALL
     audience_ref_id: int | None = None
-    audience_ref_value: str | None = None
+    audience_ref_value: optional(line(60)) = None
     expires_at: dt.datetime | None = None
     is_pinned: bool = False
     is_published: bool = True
-    link_url: str | None = None
+    link_url: optional(Url) = None
 
 
 class AnnouncementUpdate(BaseModel):
-    title: str | None = None
-    body: str | None = None
+    title: optional(line(200, min_length=3)) = None
+    body: optional(block(10000, min_length=1)) = None
     category: AnnouncementCategory | None = None
     priority: Priority | None = None
     expires_at: dt.datetime | None = None

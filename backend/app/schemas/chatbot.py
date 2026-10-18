@@ -1,8 +1,10 @@
 """Pydantic schemas for the role-aware floating chatbot."""
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 from pydantic import BaseModel, Field
+
+from app.schemas.fields import block
 
 
 class ChatActionLink(BaseModel):
@@ -11,12 +13,12 @@ class ChatActionLink(BaseModel):
 
 
 class ChatMessageItem(BaseModel):
-    role: str = Field(..., description="'user' or 'assistant'")
-    content: str
+    role: Literal["user", "assistant"]
+    content: block(4000, min_length=1)
 
 
 class ChatQueryRequest(BaseModel):
-    query: str = Field(..., min_length=1, max_length=1000)
+    query: block(1000, min_length=1)
     history: list[ChatMessageItem] = Field(default_factory=list)
 
 

@@ -54,7 +54,7 @@ def test_a_cssi_registration_needs_an_organisation(api, db, world, login, cssi):
     student = _student(db, world, "25BIT101")
     response = api.post(f"/api/v1/internships/programs/{cssi.id}/enroll",
                         headers=login(student.user.email),
-                        json={"industry_mentor_name": "Asha", "industry_mentor_phone": "98"})
+                        json={"industry_mentor_name": "Asha Patel", "industry_mentor_phone": "9811111111"})
     assert response.status_code == 422
     assert "organisation" in response.text
 

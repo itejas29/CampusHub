@@ -10,6 +10,7 @@ from app.models.enums import (
     SourceScope, StudentRegistrationState, VerificationStatus,
 )
 from app.schemas.common import ORMModel
+from app.schemas.fields import Url, block, identifier, json_object, line, optional, place
 
 
 class ElectiveTypeOut(ORMModel):
@@ -46,30 +47,30 @@ class CourseOut(ORMModel):
 
 
 class CourseCreate(BaseModel):
-    code: str = Field(max_length=30)
-    title: str = Field(max_length=200)
+    code: identifier(30)
+    title: line(200, min_length=2)
     credits: float = Field(default=3, ge=0, le=30)
     department_id: int | None = None
-    offering_school: str | None = None
+    offering_school: optional(line(120)) = None
     lecture_hours: int = 3
     tutorial_hours: int = 0
     practical_hours: int = 0
-    description: str | None = None
-    prerequisites: str | None = None
-    syllabus_url: str | None = None
-    specialization_area: str | None = None
+    description: optional(block(5000)) = None
+    prerequisites: optional(line(500)) = None
+    syllabus_url: optional(Url) = None
+    specialization_area: optional(line(120)) = None
     platform: MoocPlatform | None = None
-    provider_url: str | None = None
+    provider_url: optional(Url) = None
     duration_weeks: int | None = None
 
 
 class CourseUpdate(BaseModel):
-    title: str | None = None
+    title: optional(line(200, min_length=2)) = None
     credits: float | None = Field(default=None, ge=0, le=30)
-    description: str | None = None
-    prerequisites: str | None = None
-    syllabus_url: str | None = None
-    specialization_area: str | None = None
+    description: optional(block(5000)) = None
+    prerequisites: optional(line(500)) = None
+    syllabus_url: optional(Url) = None
+    specialization_area: optional(line(120)) = None
     is_active: bool | None = None
 
 
@@ -174,39 +175,39 @@ class CurriculumVersionIn(BaseModel):
     """Create or revise a curriculum version."""
 
     program_id: int
-    version: str = Field(min_length=1, max_length=20)
-    name: str = Field(min_length=1, max_length=180)
+    version: identifier(20)
+    name: line(180)
     effective_from_year: int = Field(ge=1990, le=2100)
     effective_to_year: int | None = Field(default=None, ge=1990, le=2100)
     total_credits: int | None = Field(default=None, ge=0, le=400)
-    source_url: str | None = None
-    source_title: str | None = None
-    review_notes: str | None = None
+    source_url: optional(Url) = None
+    source_title: optional(line(300)) = None
+    review_notes: optional(block(5000)) = None
 
 
 class CurriculumComponentIn(BaseModel):
     semester_number: int = Field(ge=1, le=12)
-    code: str = Field(min_length=1, max_length=40)
-    title: str = Field(min_length=1, max_length=180)
+    code: identifier(40)
+    title: line(180)
     component_type: ComponentType
     source_scope: SourceScope = SourceScope.ANY
-    scope_label: str | None = None
+    scope_label: optional(line(120)) = None
     credits: float = Field(default=3, ge=0, le=60)
     sequence: int = 1
     is_elective: bool = True
     elective_type_id: int | None = None
-    selection_mode: str | None = None
-    eligibility: dict = Field(default_factory=dict)
+    selection_mode: optional(identifier(40)) = None
+    eligibility: json_object() = Field(default_factory=dict)
     course_id: int | None = None
-    description: str | None = None
+    description: optional(block(5000)) = None
 
 
 class ProgramDivisionIn(BaseModel):
     program_id: int
     admission_year: int = Field(ge=1990, le=2100)
-    name: str = Field(min_length=1, max_length=10)
+    name: identifier(10)
     capacity: int | None = Field(default=None, ge=1, le=1000)
-    notes: str | None = None
+    notes: optional(block(1000)) = None
 
 
 class SectionOut(ORMModel):
@@ -265,28 +266,28 @@ class CourseOfferingCreate(BaseModel):
     #: 75 for Open Electives (per section); leave null for Core Electives.
     section_capacity: int | None = Field(default=None, ge=1, le=1000)
     allow_multiple_sections: bool = False
-    eligible_divisions: list[str] = Field(default_factory=list)
+    eligible_divisions: list[identifier(10)] = Field(default_factory=list, max_length=20)
     status: OfferingStatus = OfferingStatus.DRAFT
     registration_opens_at: dt.datetime | None = None
     registration_closes_at: dt.datetime | None = None
     coordinator_faculty_id: int | None = None
-    venue: str | None = None
-    schedule_note: str | None = None
-    notes: str | None = None
+    venue: optional(line(120)) = None
+    schedule_note: optional(line(300)) = None
+    notes: optional(block(2000)) = None
 
 
 class CourseOfferingUpdate(BaseModel):
     min_students_to_run: int | None = Field(default=None, ge=0, le=1000)
     section_capacity: int | None = Field(default=None, ge=1, le=1000)
     allow_multiple_sections: bool | None = None
-    eligible_divisions: list[str] | None = None
+    eligible_divisions: list[identifier(10)] | None = Field(default=None, max_length=20)
     status: OfferingStatus | None = None
     registration_opens_at: dt.datetime | None = None
     registration_closes_at: dt.datetime | None = None
     coordinator_faculty_id: int | None = None
-    venue: str | None = None
-    schedule_note: str | None = None
-    notes: str | None = None
+    venue: optional(line(120)) = None
+    schedule_note: optional(line(300)) = None
+    notes: optional(block(2000)) = None
 
 
 class PreferenceItem(BaseModel):
@@ -423,17 +424,17 @@ class FinaliseResult(BaseModel):
 
 
 class SubjectIn(BaseModel):
-    code: str = Field(min_length=1, max_length=30)
-    title: str = Field(min_length=1, max_length=200)
+    code: identifier(30)
+    title: line(200)
     credits: float = Field(default=3, ge=0, le=20)
-    description: str | None = None
+    description: optional(block(5000)) = None
 
 
 class SubjectUpdate(BaseModel):
-    code: str | None = Field(default=None, min_length=1, max_length=30)
-    title: str | None = Field(default=None, min_length=1, max_length=200)
+    code: optional(identifier(30)) = None
+    title: optional(line(200)) = None
     credits: float | None = Field(default=None, ge=0, le=20)
-    description: str | None = None
+    description: optional(block(5000)) = None
 
 
 class SubjectOut(BaseModel):
@@ -524,9 +525,9 @@ class RegistrationWindowOut(ORMModel):
 
 
 class RegistrationWindowIn(BaseModel):
-    code: str = Field(min_length=1, max_length=40)
-    title: str = Field(min_length=1, max_length=180)
-    description: str | None = None
+    code: identifier(40)
+    title: line(180)
+    description: optional(block(5000)) = None
     component_type: ComponentType
     department_id: int | None = None
     academic_year_id: int | None = None
@@ -535,10 +536,10 @@ class RegistrationWindowIn(BaseModel):
     closes_at: dt.datetime | None = None
     eligible_semesters: list[int] = Field(default_factory=list)
     eligible_program_ids: list[int] = Field(default_factory=list)
-    eligible_divisions: list[str] = Field(default_factory=list)
+    eligible_divisions: list[identifier(10)] = Field(default_factory=list, max_length=20)
     min_preferences: int | None = Field(default=None, ge=1, le=20)
     max_preferences: int | None = Field(default=None, ge=1, le=20)
-    notes: str | None = None
+    notes: optional(block(2000)) = None
     selection_mode: RoundSelectionMode = RoundSelectionMode.RANKED
     interest_pick_count: int | None = Field(default=None, ge=1, le=20)
     final_pick_count: int | None = Field(default=None, ge=1, le=20)
@@ -547,16 +548,16 @@ class RegistrationWindowIn(BaseModel):
 
 
 class RegistrationWindowUpdate(BaseModel):
-    title: str | None = None
-    description: str | None = None
+    title: optional(line(180)) = None
+    description: optional(block(5000)) = None
     opens_at: dt.datetime | None = None
     closes_at: dt.datetime | None = None
     eligible_semesters: list[int] | None = None
     eligible_program_ids: list[int] | None = None
-    eligible_divisions: list[str] | None = None
+    eligible_divisions: list[identifier(10)] | None = Field(default=None, max_length=20)
     min_preferences: int | None = Field(default=None, ge=1, le=20)
     max_preferences: int | None = Field(default=None, ge=1, le=20)
-    notes: str | None = None
+    notes: optional(block(2000)) = None
     selection_mode: RoundSelectionMode | None = None
     interest_pick_count: int | None = Field(default=None, ge=1, le=20)
     final_pick_count: int | None = Field(default=None, ge=1, le=20)
@@ -582,12 +583,12 @@ class RunAllocationRequest(BaseModel):
     #: The round being allocated. Needed when two rounds share the slot (one
     #: cohort choosing ahead while another chooses now); inferred otherwise.
     registration_window_id: int | None = None
-    strategy: str = "preference_order"
+    strategy: identifier(60) = "preference_order"
     dry_run: bool = True
     #: Course-wide seat limit for this run. Empty means the course's own
     #: rule: Open Electives open another section, Core Electives have no cap.
     seats_per_course: int | None = Field(default=None, ge=1, le=10_000)
-    config: dict = Field(default_factory=dict)
+    config: json_object() = Field(default_factory=dict)
 
 
 class AllocationRunResult(BaseModel):
@@ -604,7 +605,7 @@ class ManualAllocationRequest(BaseModel):
     student_id: int
     curriculum_component_id: int
     course_offering_id: int
-    remarks: str | None = None
+    remarks: optional(block(1000)) = None
 
 
 # ── MOOC / NPTEL ──────────────────────────────────────────────────────────
@@ -634,26 +635,26 @@ class MoocRegistrationOut(ORMModel):
 
 class MoocRegisterRequest(BaseModel):
     course_offering_id: int
-    platform_registration_id: str | None = Field(default=None, max_length=80)
+    platform_registration_id: optional(identifier(80)) = None
     exam_date: dt.date | None = None
-    exam_city: str | None = None
+    exam_city: optional(place()) = None
 
 
 class MoocUpdateRequest(BaseModel):
-    platform_registration_id: str | None = None
+    platform_registration_id: optional(identifier(80)) = None
     exam_date: dt.date | None = None
-    exam_city: str | None = None
+    exam_city: optional(place()) = None
     exam_fee_paid: bool | None = None
-    exam_fee_reference: str | None = None
+    exam_fee_reference: optional(identifier(80)) = None
     # No final_score: the score is recorded by the verifier from the
     # certificate. Students could set their own here before.
 
 
 class MoocVerifyRequest(BaseModel):
     verification_status: VerificationStatus
-    grade: str | None = Field(default=None, max_length=10)
+    grade: optional(line(30)) = None
     final_score: float | None = Field(default=None, ge=0, le=100)
-    remarks: str | None = None
+    remarks: optional(block(1000)) = None
 
 
 # ── sections and viability ────────────────────────────────────────────────
@@ -677,26 +678,26 @@ class ViabilityOut(BaseModel):
 
 
 class SectionCreate(BaseModel):
-    name: str | None = Field(default=None, max_length=40)
+    name: optional(line(40)) = None
     capacity: int | None = Field(default=None, ge=1, le=1000)
     faculty_id: int | None = None
-    venue: str | None = None
-    schedule_note: str | None = None
+    venue: optional(line(120)) = None
+    schedule_note: optional(line(300)) = None
 
 
 class SectionUpdate(BaseModel):
-    name: str | None = Field(default=None, max_length=40)
+    name: optional(line(40)) = None
     capacity: int | None = Field(default=None, ge=1, le=1000)
     faculty_id: int | None = None
-    venue: str | None = None
-    schedule_note: str | None = None
+    venue: optional(line(120)) = None
+    schedule_note: optional(line(300)) = None
     is_active: bool | None = None
 
 
 class MoveStudentRequest(BaseModel):
     allocation_id: int
     section_id: int
-    reason: str | None = Field(default=None, max_length=300)
+    reason: optional(line(300)) = None
 
 
 class DistributeResult(BaseModel):

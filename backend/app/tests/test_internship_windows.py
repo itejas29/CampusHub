@@ -126,7 +126,7 @@ def test_a_semester_two_student_registers_the_ngo_and_its_supervisor(api, db, wo
     assert response.status_code == 201, response.text
     enrollment = db.query(InternshipEnrollment).filter_by(student_id=student.id).one()
     assert (enrollment.industry_mentor_name, enrollment.industry_mentor_phone) == (
-        "Asha Patel", "9800000000")
+        "Asha Patel", "+91 98000 00000")
 
 
 def test_the_supervisors_name_and_number_are_required(api, db, world, login, cssi):

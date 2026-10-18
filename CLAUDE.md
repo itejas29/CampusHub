@@ -474,6 +474,10 @@ sign-in shortcuts in `frontend/src/features/auth/LoginPage.tsx` afterwards.
   `native_enum=False`, so values can be added in a plain migration.
 - Frontend tables live inside a scroll container; the page body never scrolls
   sideways.
+- Request schemas type every free-text string with `schemas/fields.py`
+  (`Phone`, `PersonName`, `Url`, `line(n)`, `block(n)`, `identifier(n)`,
+  `optional(...)`), never a bare `str` (passwords and tokens excepted). Forms mirror them from `frontend/src/lib/validation.ts`;
+  the server is the one that decides. CSV export cells go through `csv_safe`.
 - Tests are named for the behaviour they protect, not the function they call.
 
 ## Before you claim something works

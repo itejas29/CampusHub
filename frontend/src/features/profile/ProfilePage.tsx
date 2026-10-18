@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 import { formatDateTime } from "@/lib/format";
 import { humanise, roman } from "@/lib/utils";
+import { personNameError, phoneError, textError } from "@/lib/validation";
 
 export function ProfilePage() {
   const { user, refresh } = useAuth();
@@ -29,6 +30,14 @@ export function ProfilePage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState<ApiError | null>(null);
+
+  const problems = {
+    fullName: personNameError(fullName),
+    phone: phoneError(phone),
+    cabin: textError(cabin),
+    specialization: textError(specialization),
+  };
+  const hasProblem = Object.values(problems).some(Boolean);
 
   const saveProfile = useMutation({
     mutationFn: () =>
@@ -100,24 +109,24 @@ export function ProfilePage() {
                 onSubmit={(e) => { e.preventDefault(); saveProfile.mutate(); }}
               >
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <FormField label="Full name">
+                  <FormField label="Full name" error={problems.fullName}>
                     <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
                   </FormField>
-                  <FormField label="Phone">
+                  <FormField label="Phone" error={problems.phone}>
                     <Input value={phone} onChange={(e) => setPhone(e.target.value)}
-                           placeholder="+91 …" />
+                           type="tel" inputMode="tel" maxLength={25} placeholder="98765 43210" />
                   </FormField>
                 </div>
 
                 {user?.faculty && (
                   <>
                     <div className="grid gap-4 sm:grid-cols-2">
-                      <FormField label="Cabin"
+                      <FormField label="Cabin" error={problems.cabin}
                                  hint="Shown to your mentees and internship students.">
                         <Input value={cabin} onChange={(e) => setCabin(e.target.value)}
                                placeholder={user.faculty.cabin ?? "e.g. 6-201 B"} />
                       </FormField>
-                      <FormField label="Specialisation">
+                      <FormField label="Specialisation" error={problems.specialization}>
                         <Input value={specialization}
                                onChange={(e) => setSpecialization(e.target.value)}
                                placeholder="Research interests" />
@@ -130,7 +139,7 @@ export function ProfilePage() {
                 )}
 
                 <FormActions>
-                  <Button type="submit" size="sm" loading={saveProfile.isPending}
+                  <Button type="submit" size="sm" loading={saveProfile.isPending} disabled={hasProblem}
                           icon={<Save className="h-3.5 w-3.5" aria-hidden />}>
                     Save changes
                   </Button>

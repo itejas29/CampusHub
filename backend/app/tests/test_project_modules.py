@@ -151,7 +151,7 @@ def test_the_in_house_track_needs_no_host_and_skips_industry_stages(api, db, wor
 @pytest.mark.parametrize("body", [
     {},                                                                    # no host
     {"new_organization": {"name": "Seva", "type": "NGO"},                  # wrong kind
-     "industry_mentor_name": "A", "industry_mentor_phone": "9"},
+     "industry_mentor_name": "Asha Patel", "industry_mentor_phone": "9811111111"},
     {"new_organization": {"name": "Zeta", "type": "STARTUP"}},             # no supervisor
 ])
 def test_the_industry_track_needs_a_company_and_its_supervisor(api, db, world, login, major, finalist, body):

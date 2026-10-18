@@ -66,6 +66,43 @@ def _envelope(code: str, message: str, details: Any = None) -> dict[str, Any]:
     return body
 
 
+#: What a form calls a field, where its name says something else.
+_FIELD_LABELS = {
+    "industry_mentor_name": "Supervisor's name",
+    "industry_mentor_phone": "Supervisor's phone",
+    "industry_mentor_email": "Supervisor's email",
+    "industry_mentor_designation": "Supervisor's designation",
+    "guardian_phone": "Guardian's phone",
+    "guardian_name": "Guardian's name",
+    "public_phone": "Public phone",
+    "public_email": "Public email",
+}
+
+
+def _field_label(loc: tuple) -> str:
+    names = [str(p) for p in loc[1:] if isinstance(p, str) and "[" not in p]
+    if not names:
+        return "This field"
+    last = names[-1]
+    return _FIELD_LABELS.get(last) or last.replace("_", " ").capitalize()
+
+
+def _human(msg: str) -> str:
+    # pydantic prefixes the validators' own messages; they are written for people.
+    return msg.removeprefix("Value error, ")
+
+
+def validation_message(errors: list[dict]) -> str:
+    """One sentence a person can act on: which field, and what to type."""
+    if not errors:
+        return "The submitted data is invalid."
+    first = errors[0]
+    text = f"{_field_label(tuple(first['loc']))}: {_human(first['msg'])}"
+    if len(errors) > 1:
+        text += f" (and {len(errors) - 1} more)"
+    return text
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     async def _app_error(_: Request, exc: AppError) -> JSONResponse:
@@ -88,14 +125,15 @@ def register_exception_handlers(app: FastAPI) -> None:
         fields = [
             {
                 "field": ".".join(str(p) for p in err["loc"][1:]) or str(err["loc"][-1]),
-                "message": err["msg"],
+                "message": _human(err["msg"]),
             }
             for err in exc.errors()
         ]
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            content=_envelope("validation_error", "The submitted data is invalid.", fields),
+            content=_envelope("validation_error", validation_message(exc.errors()), fields),
         )
+
 
     @app.exception_handler(IntegrityError)
     async def _integrity_error(_: Request, exc: IntegrityError) -> JSONResponse:

@@ -34,6 +34,7 @@ from app.models.enums import (
 from app.models.identity import (
     AcademicYear, Department, Faculty, Semester, Student, User,
 )
+from app.schemas.fields import csv_safe
 from app.schemas.academics import (
     AllocationOut, AllocationRunResult, AllocationStrategyOut, CurriculumComponentOut,
     DistributeResult, ElectiveWorkspace, FinaliseRequest, FinaliseResult,
@@ -634,7 +635,8 @@ def export_allocations_csv(
         dept = student.department.name if student and student.department else ""
         offering = a.course_offering
         course = offering.course if offering else None
-        writer.writerow([
+        # Typed text (names, organisations) must not run as a spreadsheet formula.
+        writer.writerow([csv_safe(cell) for cell in [
             student.roll_number if student else "",
             student_user.full_name if student_user else "",
             student.division if student else "",
@@ -649,7 +651,7 @@ def export_allocations_csv(
             a.preference_order_granted or "",
             a.strategy or "",
             a.allocated_at.isoformat() if a.allocated_at else "",
-        ])
+        ]])
 
     csv_data = output.getvalue()
     code_slug = component.code.replace(" ", "_")
