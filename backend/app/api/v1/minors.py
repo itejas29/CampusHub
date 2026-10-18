@@ -3,15 +3,15 @@ from __future__ import annotations
 import dataclasses
 import datetime as dt
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy import func, select
 
 from app.core.deps import CurrentStudent, CurrentUser, DbSession, require_permission
 from app.core.errors import BusinessRuleError, NotFoundError, PermissionDeniedError
 from app.core.rbac import P, has_permission
 from app.models.enums import (
-    AuditAction, CoordinationDomain, MinorApplicationStatus, MinorEnrollmentStatus,
-    NotificationType,
+    AuditAction, CoordinationDomain, FileCategory, MinorApplicationStatus,
+    MinorEnrollmentStatus, NotificationType,
 )
 from app.models.identity import Faculty, Student, User
 from app.models.minors import (
@@ -22,10 +22,12 @@ from app.schemas.minors import (
     MinorAllocationPreview, MinorAllocationResult, MinorApplicationOut,
     MinorApplyRequest, MinorCourseOut, MinorDecisionRequest, MinorEnrollmentOut,
     MinorProgramCreate, MinorProgramOut, MinorProgramUpdate, RankedApplicantOut,
-    RankingCriterion, RankingPolicyUpdate, MinorWorkspace,
+    RankingCriterion, RankingPolicyUpdate, MinorWorkspace, MinorFeesIn, MinorPaymentIn,
+    MinorResultsIn, MinorSyllabusIn,
 )
-from app.services import audit, minors as minor_service, notifications, scope
+from app.services import audit, minor_portal, minors as minor_service, notifications, scope
 from app.services.eligibility import check_minor_eligibility
+from app.services.files import save_upload
 
 router = APIRouter(prefix="/minors", tags=["minors"])
 
@@ -75,6 +77,8 @@ def _program_out(db, program: MinorProgram, student: Student | None = None,
         coordinator_name=coordinator.user.full_name if coordinator else None,
         is_active=program.is_active,
         courses=[_course_out(c) for c in program.courses],
+        application_semesters=minor_service.application_semesters(program),
+        fees=(program.rules or {}).get("fees") or [],
         continuation_rule=rules.get("continuation_rule"),
         rule_source=rules.get("source"),
         rule_source_url=rules.get("source_url"),
@@ -171,7 +175,10 @@ def workspace(db: DbSession, student: CurrentStudent) -> MinorWorkspace:
         programs=[_program_out(db, p, student, status_by_program.get(p.id))
                   for p in programs],
         applications=[_application_out(db, a) for a in my_apps],
-        enrollment=_enrollment_out(enrollment) if enrollment else None,
+        enrollment=(_enrollment_out(enrollment).model_copy(update={
+            "plan": minor_portal.plan(db, enrollment, student.current_semester),
+            "current_semester": student.current_semester,
+        }) if enrollment else None),
     )
 
 
@@ -272,12 +279,16 @@ def withdraw(db: DbSession, student: CurrentStudent, user: CurrentUser) -> Messa
 
 # ── admin ─────────────────────────────────────────────────────────────────
 @router.get("", response_model=list[MinorProgramOut])
-def list_programs(db: DbSession, _: CurrentUser,
+def list_programs(db: DbSession, user: CurrentUser,
                   department_id: int | None = None) -> list[MinorProgramOut]:
     stmt = select(MinorProgram).order_by(MinorProgram.name)
     if department_id:
         stmt = stmt.where(MinorProgram.department_id == department_id)
-    return [_program_out(db, p) for p in db.scalars(stmt)]
+    # Which of them this person runs, so a screen lists only those.
+    return [_program_out(db, p).model_copy(update={
+                "can_manage": user.has_role(*scope.UNSCOPED_ROLES)
+                or scope.can_manage_minor(db, user, p)})
+            for p in db.scalars(stmt)]
 
 
 @router.post("", response_model=MinorProgramOut, status_code=201)
@@ -536,3 +547,108 @@ def run_allocation(
         waitlisted=len(ranked) - granted, seats_filled=program.seats_filled,
         ranking=[_ranked_out(r) for r in ranked],
     )
+
+
+# ── coordinator: results and fees ─────────────────────────────────────────
+def _managed(db, user, program_id: int) -> MinorProgram:
+    program = db.get(MinorProgram, program_id)
+    if program is None:
+        raise NotFoundError("Minor programme not found.")
+    _assert_manages(db, user, program)
+    return program
+
+
+@router.get("/{program_id}/gradebook")
+def gradebook(program_id: int, minor_course_id: int, db: DbSession, user: CurrentUser) -> list[dict]:
+    """Every enrolled student's result in one of the minor's courses."""
+    return minor_portal.gradebook(db, _managed(db, user, program_id), minor_course_id)
+
+
+@router.put("/{program_id}/courses/{minor_course_id}/results")
+def save_results(program_id: int, minor_course_id: int, payload: MinorResultsIn,
+                 db: DbSession, user: CurrentUser) -> list[dict]:
+    program = _managed(db, user, program_id)
+    minor_portal.record_results(db, program, minor_course_id,
+                                [r.model_dump() for r in payload.results], actor=user)
+    db.commit()
+    return minor_portal.gradebook(db, program, minor_course_id)
+
+
+@router.put("/{program_id}/fees", response_model=MinorProgramOut)
+def save_fees(program_id: int, payload: MinorFeesIn, db: DbSession,
+              user: CurrentUser) -> MinorProgramOut:
+    program = _managed(db, user, program_id)
+    minor_portal.set_fee_schedule(db, program, [f.model_dump() for f in payload.fees], actor=user)
+    db.commit()
+    db.refresh(program)
+    return _program_out(db, program)
+
+
+@router.get("/{program_id}/fee-status")
+def fee_status(program_id: int, db: DbSession, user: CurrentUser) -> list[dict]:
+    return minor_portal.fee_status(db, _managed(db, user, program_id))
+
+
+def _managed_enrollment(db, user, enrollment_id: int) -> MinorEnrollment:
+    enrollment = db.get(MinorEnrollment, enrollment_id)
+    if enrollment is None:
+        raise NotFoundError("Minor enrolment not found.")
+    _assert_manages(db, user, enrollment.minor_program)
+    return enrollment
+
+
+@router.put("/enrollments/{enrollment_id}/fees/{semester}", response_model=Message)
+def record_fee(enrollment_id: int, semester: int, payload: MinorPaymentIn, db: DbSession,
+               user: CurrentUser) -> Message:
+    enrollment = _managed_enrollment(db, user, enrollment_id)
+    minor_portal.record_payment(db, enrollment, semester, amount=payload.amount,
+                                reference=payload.reference, paid_on=payload.paid_on, actor=user)
+    db.commit()
+    return Message(message=f"Semester {semester} fee recorded as paid.")
+
+
+@router.delete("/enrollments/{enrollment_id}/fees/{semester}", response_model=Message)
+def clear_fee(enrollment_id: int, semester: int, db: DbSession, user: CurrentUser) -> Message:
+    enrollment = _managed_enrollment(db, user, enrollment_id)
+    minor_portal.clear_payment(db, enrollment, semester, actor=user)
+    db.commit()
+    return Message(message=f"Semester {semester} payment removed.")
+
+
+# ── coordinator: syllabus ─────────────────────────────────────────────────
+@router.get("/{program_id}/courses/{minor_course_id}/syllabus")
+def get_syllabus(program_id: int, minor_course_id: int, db: DbSession, user: CurrentUser) -> dict:
+    program = _managed(db, user, program_id)
+    course = minor_portal._course(program, minor_course_id).course
+    return {"code": course.code, "title": course.title,
+            "syllabus": minor_portal.syllabus_out(course), "raw": course.syllabus or {}}
+
+
+@router.put("/{program_id}/courses/{minor_course_id}/syllabus")
+def put_syllabus(program_id: int, minor_course_id: int, payload: MinorSyllabusIn,
+                 db: DbSession, user: CurrentUser) -> dict:
+    program = _managed(db, user, program_id)
+    out = minor_portal.set_syllabus(db, program, minor_course_id, payload.model_dump(), actor=user)
+    db.commit()
+    return {"syllabus": out}
+
+
+@router.post("/{program_id}/courses/{minor_course_id}/syllabus/file")
+async def upload_syllabus(program_id: int, minor_course_id: int, db: DbSession,
+                          user: CurrentUser, file: UploadFile = File(...)) -> dict:
+    program = _managed(db, user, program_id)
+    minor_portal._course(program, minor_course_id)          # 404 before storing anything
+    stored = await save_upload(db, file, category=FileCategory.SYLLABUS, uploaded_by=user)
+    out = minor_portal.attach_syllabus_file(db, program, minor_course_id, stored, actor=user)
+    db.commit()
+    return {"syllabus": out}
+
+
+@router.delete("/{program_id}/courses/{minor_course_id}/syllabus/file")
+def remove_syllabus_file(program_id: int, minor_course_id: int, db: DbSession,
+                         user: CurrentUser) -> dict:
+    program = _managed(db, user, program_id)
+    out = minor_portal.attach_syllabus_file(db, program, minor_course_id, None, actor=user)
+    db.commit()
+    return {"syllabus": out}
+

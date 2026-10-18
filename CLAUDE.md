@@ -137,6 +137,33 @@ question; capacity is a room question. Academic merit governs Minor eligibility
 and ranking only — and that is official policy (Academic Rules, Annexure II),
 not an assumption. Tests assert zero CPI references in the elective path.
 
+### Minor: apply in Semester III, then follow it as a programme
+
+How the ICT department runs it, as described to the project team (Annexure II
+says only that minors run from Semester III):
+
+- **Applications are made in Semester III** (`minors.application_semesters`,
+  default `[eligible_from_semester]`, override `rules["application_semesters"]`).
+  A later student who never applied neither sees the minor nor can apply; one
+  who applied keeps it, whatever the outcome.
+- **A seat turns the page into "My minor"** (`services/minor_portal.py`):
+  each semester's courses (`MinorCourse`; semester = `eligible_from_semester +
+  semester_offset - 1`), the student's result in each, credits earned, and the
+  semester's fee.
+- **Each semester's syllabus**: every minor course carries the syllabus the
+  offering department publishes — units (title, topics, hours), outcomes,
+  references, and the official PDF (`courses.syllabus`, `syllabus_file_id`,
+  migration 0016). The coordinator publishes and revises it (dated, audited);
+  the student sees this semester's open and the rest a click away. No syllabus
+  text is assumed — none is shown until published. A course's published
+  syllabus PDF is readable by any signed-in user; every other file keeps its
+  own authorisation.
+- **Results** (`minor_course_results`) and **payments** (`minor_fee_payments`,
+  migration 0015) are recorded by the minor's coordinator only. Marks and
+  grade are stored as given — no grading scale is assumed; a PASSED course
+  counts its credits. **Fees** are `rules["fees"]`, set by the coordinator;
+  no amount is assumed, and none is shown until set.
+
 ### Divisions are programme data
 
 Not A/B/C/D. `program_divisions` is keyed on programme × admission batch:

@@ -34,7 +34,7 @@ from app.models.engagement import (
     Announcement, MentorAssignment, MentorMeeting, Notification,
 )
 from app.models.enums import (
-    INTERNSHIP_DOMAINS,
+    INTERNSHIP_DOMAINS, MinorCourseResultStatus,
     AllocationStatus, CurriculumStatus, RegistrationWindowStatus,
     SourceConfidence, AnnouncementCategory, AudienceType, AuditAction, ClubCategory,
     ClubMemberRole, ComponentType, CoordinationDomain, DocumentType, EnrollmentStatus,
@@ -56,7 +56,7 @@ from app.models.internships import (
     InternshipProject, InternshipReport, InternshipStage, InternshipWindow, Organization,
 )
 from app.models.minors import (
-    MinorApplication, MinorCourse, MinorEnrollment, MinorProgram,
+    MinorApplication, MinorCourse, MinorCourseResult, MinorEnrollment, MinorProgram,
 )
 from app.models.system import AuditLog, StoredFile
 from app.storage import get_storage
@@ -1723,7 +1723,11 @@ def seed_academic_activity(db, components, offerings, courses, students, electiv
     # One minor is deliberately over-subscribed so a coordinator can see a real
     # cut-off when running an allocation round: more applicants than seats.
     contested = minor_list[0]
-    contenders = [s for s in eligible if s.department_id != contested.department_id]
+    # Applications are made in Semester III, so the open round's applicants are
+    # the Semester III cohort; the students already holding a seat applied when
+    # they were in Semester III and have moved on since.
+    contenders = [s for s in eligible if s.current_semester == 3
+                  and s.department_id != contested.department_id]
     contenders = contenders[: contested.capacity + 18]
 
     for index, student in enumerate(contenders):
@@ -1741,7 +1745,9 @@ def seed_academic_activity(db, components, offerings, courses, students, electiv
 
     # A handful of already-settled records on the other minors, so the student
     # view shows an active enrolment as well as pending preferences.
-    settled = [s for s in eligible if s not in contenders][:6]
+    named = {roll for _n, roll, *_ in D.NAMED_STUDENTS}
+    settled = [s for s in eligible if s not in contenders and s.current_semester >= 4
+               and s.roll_number not in named][:6]
     for index, student in enumerate(settled):
         choices = [m for m in minor_list[1:] if m.department_id != student.department_id]
         if not choices:
@@ -1756,7 +1762,7 @@ def seed_academic_activity(db, components, offerings, courses, students, electiv
                         else MinorApplicationStatus.SUBMITTED),
                 cpi_at_application=student.cpi,
                 backlogs_at_application=student.backlog_count,
-                semester_at_application=student.current_semester,
+                semester_at_application=3,
                 motivation="I want to broaden my technical base beyond ICT and apply "
                            "these skills in my final-year project.",
                 submitted_at=NOW - dt.timedelta(days=10 - index),
@@ -1767,13 +1773,73 @@ def seed_academic_activity(db, components, offerings, courses, students, electiv
             db.flush()
             if allocated:
                 minor.seats_filled += 1
-                db.add(MinorEnrollment(
+                enrollment = MinorEnrollment(
                     student_id=student.id, minor_program_id=minor.id,
                     application_id=application.id, status=MinorEnrollmentStatus.ACTIVE,
-                    started_semester=student.current_semester,
-                    credits_completed=rng.choice([3, 6]),
-                ))
+                    started_semester=3,
+                )
+                db.add(enrollment)
+                db.flush()
+                seed_minor_results(db, enrollment, student, rng)
+
+    # Seats that show the minor as a programme. Ananya Menon (a demo sign-in)
+    # applied in Semester III and is now in Semester IV; a generated CSE
+    # student does the same in ICT's own IoT minor, so its coordinator has a
+    # student to grade and to record fees for.
+    ananya = next((s for s in students if s.roll_number == "23BIT911"), None)
+    iot = minors.get("MIN-IOT")
+    # `students` is the ICT cohort; the IoT minor is ICT's, so its student
+    # comes from another department.
+    cse_student = db.scalar(select(Student).where(
+        Student.department_id != iot.department_id, Student.current_semester == 4,
+        Student.cpi >= 7.5, Student.backlog_count == 0).order_by(Student.roll_number)
+    ) if iot else None
+    for student, minor in ((ananya, minors.get("MIN-CDS")), (cse_student, iot)):
+        if student is None or minor is None or minor.department_id == student.department_id:
+            continue
+        application = MinorApplication(
+            student_id=student.id, minor_program_id=minor.id, academic_year_id=minor.academic_year_id,
+            preference_order=1, status=MinorApplicationStatus.ALLOCATED,
+            cpi_at_application=student.cpi, backlogs_at_application=student.backlog_count,
+            semester_at_application=3, submitted_at=NOW - dt.timedelta(days=150),
+            decided_at=NOW - dt.timedelta(days=140), reviewed_by_user_id=admin_user.id,
+            motivation="To add a second specialisation alongside my programme.")
+        db.add(application)
+        db.flush()
+        minor.seats_filled += 1
+        enrollment = MinorEnrollment(student_id=student.id, minor_program_id=minor.id,
+                                     application_id=application.id,
+                                     status=MinorEnrollmentStatus.ACTIVE, started_semester=3)
+        db.add(enrollment)
+        db.flush()
+        seed_minor_results(db, enrollment, student, rng)
     db.flush()
+
+
+#: Fictional results for demo students: a grade for every course of a finished
+#: semester, and this semester's courses still in progress.
+DEMO_GRADES = [("A", 84), ("B+", 76), ("A+", 91), ("B", 68)]
+
+
+def seed_minor_results(db, enrollment, student, rng) -> None:
+    from app.services import minor_portal
+
+    program = enrollment.minor_program
+    for course in program.courses:
+        sem = minor_portal.course_semester(program, course)
+        if sem > student.current_semester:
+            continue
+        if sem == student.current_semester:
+            db.add(MinorCourseResult(enrollment_id=enrollment.id, minor_course_id=course.id,
+                                     status=MinorCourseResultStatus.IN_PROGRESS))
+            continue
+        grade, marks = rng.choice(DEMO_GRADES)
+        db.add(MinorCourseResult(enrollment_id=enrollment.id, minor_course_id=course.id,
+                                 grade=grade, marks=marks, status=MinorCourseResultStatus.PASSED,
+                                 recorded_at=NOW - dt.timedelta(days=60)))
+    db.flush()
+    db.refresh(enrollment)
+    minor_portal._recount(db, enrollment)
 
 
 def seed_community(db, students, faculty_by_code, club_admin_user) -> None:

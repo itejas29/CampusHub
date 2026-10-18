@@ -1,7 +1,8 @@
 import {
-  createContext, useCallback, useContext, useEffect, useMemo, useState,
+  createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
   type ReactNode,
 } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { api, tokenStore } from "@/lib/api";
 import type {
   AuthResponse, CoordinationDomain, CurrentUser, Role,
@@ -12,6 +13,12 @@ interface AuthValue {
   status: "loading" | "authenticated" | "anonymous";
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => void;
+  /**
+   * Who the last session belonged to, and whether it ended by signing out.
+   * The sign-in page returns someone to the page they were on only when it
+   * was their own session that lapsed — never the next person at the desk.
+   */
+  lastSession: () => { userId: number | null; signedOut: boolean };
   refresh: () => Promise<void>;
   /** Mirrors the backend permission matrix served by /auth/me. */
   can: (permission: string) => boolean;
@@ -33,6 +40,12 @@ const ADMIN_ROLES: Role[] = [
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [status, setStatus] = useState<AuthValue["status"]>("loading");
+  // Cached server data belongs to whoever fetched it. Left in place, the next
+  // person signing in on this browser was briefly shown the last account's
+  // lists and figures until each query refreshed.
+  const queryClient = useQueryClient();
+  const lastSessionRef = useRef<{ userId: number | null; signedOut: boolean }>(
+    { userId: null, signedOut: false });
 
   const load = useCallback(async () => {
     if (!tokenStore.access()) {
@@ -42,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     try {
       const me = await api.get<CurrentUser>("/auth/me");
+      lastSessionRef.current = { userId: me.id, signedOut: false };
       setUser(me);
       setStatus("authenticated");
     } catch {
@@ -66,15 +80,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(async (email: string, password: string) => {
     const response = await api.post<AuthResponse>("/auth/login", { email, password });
     tokenStore.set(response.tokens.access_token, response.tokens.refresh_token);
+    queryClient.clear();
+    lastSessionRef.current = { userId: response.user.id, signedOut: false };
     setUser(response.user);
     setStatus("authenticated");
-  }, []);
+  }, [queryClient]);
 
   const signOut = useCallback(() => {
+    // A deliberate sign-out leaves nothing to return to: whoever signs in next
+    // starts on their own dashboard, not the page the last person had open.
+    lastSessionRef.current = { userId: null, signedOut: true };
     tokenStore.clear();
+    queryClient.clear();
     setUser(null);
     setStatus("anonymous");
-  }, []);
+  }, [queryClient]);
 
   const value = useMemo<AuthValue>(() => {
     const permissions = new Set(user?.permissions ?? []);
@@ -88,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status,
       signIn,
       signOut,
+      lastSession: () => lastSessionRef.current,
       refresh: load,
       can: (permission) => permissions.has("*") || permissions.has(permission),
       hasRole: (...list) => list.some((role) => roles.has(role)),

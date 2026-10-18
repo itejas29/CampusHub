@@ -80,9 +80,9 @@ def test_a_student_with_no_semester_recorded_sees_nothing_speculative():
 
 
 # ── minors: the registration round decides visibility ─────────────────────
-def minor(opens=None, closes=None, from_semester=3):
+def minor(opens=None, closes=None, from_semester=3, rules=None):
     return SimpleNamespace(
-        eligible_from_semester=from_semester,
+        eligible_from_semester=from_semester, rules=rules or {},
         application_opens_at=opens, application_closes_at=closes,
     )
 
@@ -120,6 +120,20 @@ def test_minor_disappears_for_a_student_who_did_not_register():
     m = minor(opens=NOW - dt.timedelta(days=30), closes=NOW - dt.timedelta(days=1))
     assert student_can_see_minor(
         m, student(3), has_application=False, now=NOW) is False
+
+
+@pytest.mark.parametrize("semester", [4, 6])
+def test_a_later_student_who_never_applied_does_not_see_an_open_round(semester):
+    """Applications are made in Semester III; the minor is not offered later."""
+    m = minor(opens=NOW - dt.timedelta(days=5), closes=NOW + dt.timedelta(days=5))
+    assert student_can_see_minor(
+        m, student(semester), has_application=False, now=NOW) is False
+
+
+def test_a_minor_can_take_applications_in_other_semesters_when_configured():
+    m = minor(opens=NOW - dt.timedelta(days=5), closes=NOW + dt.timedelta(days=5),
+              rules={"application_semesters": [3, 5]})
+    assert student_can_see_minor(m, student(5), has_application=False, now=NOW) is True
 
 
 def test_minor_stays_visible_to_the_student_who_registered():

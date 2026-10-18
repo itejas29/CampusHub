@@ -321,6 +321,8 @@ def minor(db, world):
 
 
 def test_withdrawing_then_applying_again_works(api, db, world, login, minor):
+    world.student_a.student.current_semester = 3      # applications are made in Semester III
+    db.flush()
     headers = login(world.student_a.email)
     assert api.post("/api/v1/minors/apply", headers=headers,
                     json={"preferences": [minor.id]}).status_code == 201

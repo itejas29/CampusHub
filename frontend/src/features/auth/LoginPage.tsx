@@ -186,7 +186,7 @@ const inputClass =
   "hover:border-ink-subtle/60 focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/15";
 
 export function LoginPage() {
-  const { signIn, status } = useAuth();
+  const { signIn, status, user } = useAuth();
   const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -197,8 +197,12 @@ export function LoginPage() {
   const [demoCategory, setDemoCategory] = useState<DemoCategory>("coordinators");
 
   if (status === "authenticated") {
-    const from = (location.state as { from?: string } | null)?.from ?? "/";
-    return <Navigate to={from} replace />;
+    const state = location.state as { from?: string; forUser?: number | null } | null;
+    // A page saved from someone else's session is not this person's to open:
+    // a student signing in after a faculty member landed on the faculty page
+    // and was told they had no access.
+    const theirs = state?.forUser == null || state.forUser === user?.id;
+    return <Navigate to={(theirs && state?.from) || "/"} replace />;
   }
 
   async function onSubmit(event: FormEvent) {

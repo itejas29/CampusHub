@@ -342,6 +342,12 @@ export interface MinorProgram {
   continuation_rule: string | null; rule_source: string | null;
   rule_source_url: string | null; offered_semesters: number[];
   window_open: boolean;
+  /** Whether the signed-in person coordinates this minor. */
+  can_manage?: boolean;
+  /** Semesters in which students apply (the first eligible one by default). */
+  application_semesters?: number[];
+  /** Fee per semester, set by the coordinator; empty until announced. */
+  fees?: { semester: number; amount: number; due_on: string | null; note: string | null }[];
 }
 
 export interface MinorApplication {
@@ -354,11 +360,33 @@ export interface MinorApplication {
   decided_at: string | null; remarks: string | null;
 }
 
+export interface CourseSyllabus {
+  units: { title: string; topics: string[]; hours: number | null }[];
+  outcomes: string[]; references: string[];
+  hours: { lecture: number; tutorial: number; practical: number };
+  file_url: string | null; link: string | null; updated_at: string | null;
+}
+
+export interface MinorPlanSemester {
+  semester: number; when: "past" | "current" | "upcoming";
+  courses: {
+    minor_course_id: number; code: string; title: string; credits: number;
+    result: { marks: number | null; grade: string | null; status: "IN_PROGRESS" | "PASSED" | "FAILED" } | null;
+    /** As the offering department publishes it; null until published. */
+    syllabus: CourseSyllabus | null;
+  }[];
+  fee: { amount: number; due_on: string | null; note: string | null } | null;
+  payment: { amount: number; reference: string | null; paid_on: string | null } | null;
+}
+
 export interface MinorEnrollment {
   id: number; minor_program_id: number; minor_name: string | null;
   minor_department: string | null; status: string; started_semester: number | null;
   credits_completed: number; total_credits: number | null; progress_percent: number;
   courses: MinorCourse[];
+  /** Semester by semester: courses with results, and that semester's fee. */
+  plan?: MinorPlanSemester[];
+  current_semester?: number | null;
 }
 
 export interface MinorWorkspace {

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  CheckCircle2, GraduationCap, Sparkles, Users, X,
+  GraduationCap, Sparkles, Users, X,
 } from "lucide-react";
 import { useState } from "react";
 import { Alert } from "@/components/ui/Alert";
@@ -10,7 +10,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { FormField, Textarea } from "@/components/ui/Form";
 import { ConfirmDialog, Modal } from "@/components/ui/Modal";
 import { DetailList, PageHeader } from "@/components/ui/Misc";
-import { ProgressBar } from "@/components/ui/Stepper";
+import { MyMinor } from "./MyMinor";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
 import { ApiError, api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
@@ -74,6 +74,26 @@ export function MinorsPage() {
   const pending = data.applications.filter((a) => a.status === "SUBMITTED");
   const canApply = data.is_eligible && !enrolled && pending.length === 0;
 
+  // Holding a seat, the minor is a programme to follow, not a form to fill.
+  if (enrolled) {
+    return (
+      <div>
+        <PageHeader
+          title="My minor"
+          description="Your minor semester by semester: the courses, your results, and the fees."
+          breadcrumbs={[{ label: "Academics" }, { label: "Minor Specialisation" }]}
+        />
+        {banner && (
+          <Alert variant={banner.tone === "success" ? "success" : "danger"} className="mb-4"
+                 onDismiss={() => setBanner(null)}>
+            {banner.text}
+          </Alert>
+        )}
+        <MyMinor enrollment={enrolled} />
+      </div>
+    );
+  }
+
   function toggle(id: number) {
     setSelected((current) =>
       current.includes(id)
@@ -108,55 +128,6 @@ export function MinorsPage() {
             {data.eligibility_notes.map((note) => <li key={note}>{note}</li>)}
           </ul>
         </Alert>
-      )}
-
-      {/* Enrolled state */}
-      {enrolled && (
-        <Card className="mb-5 border-success/40">
-          <CardHeader
-            title="Your minor"
-            description={enrolled.minor_department ?? undefined}
-            icon={<CheckCircle2 className="h-4 w-4 text-success" aria-hidden />}
-            action={<StatusBadge status={enrolled.status} />}
-          />
-          <CardBody>
-            <h3 className="font-heading text-lg font-semibold text-ink">
-              {enrolled.minor_name}
-            </h3>
-            <ProgressBar
-              className="mt-4 max-w-md"
-              label="Credits completed"
-              value={enrolled.credits_completed}
-              max={enrolled.total_credits ?? 1}
-              tone="success"
-            />
-            {enrolled.courses.length > 0 && (
-              <div className="mt-5">
-                <h4 className="text-2xs font-semibold uppercase tracking-wide text-ink-subtle">
-                  Course sequence
-                </h4>
-                <ol className="mt-2 space-y-1.5">
-                  {enrolled.courses.map((course) => (
-                    <li
-                      key={course.id}
-                      className="flex items-center gap-2.5 rounded border border-line px-3 py-2"
-                    >
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-surface-muted text-2xs font-semibold text-ink-muted">
-                        {course.sequence}
-                      </span>
-                      <span className="tabular text-ink-muted">{course.course_code}</span>
-                      <span className="min-w-0 flex-1 text-sm text-ink">{course.course_title}</span>
-                      <span className="shrink-0 text-xs text-ink-muted">
-                        {course.credits} cr
-                      </span>
-                      {course.is_completed && <Badge tone="success">Done</Badge>}
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            )}
-          </CardBody>
-        </Card>
       )}
 
       {/* Pending applications */}

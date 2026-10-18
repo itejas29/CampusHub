@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth";
 import type { CoordinationDomain, Role } from "@/types";
 
 export function RequireAuth({ children }: { children: ReactNode }) {
-  const { status } = useAuth();
+  const { status, lastSession } = useAuth();
   const location = useLocation();
 
   if (status === "loading") {
@@ -20,7 +20,15 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     );
   }
   if (status === "anonymous") {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+    const last = lastSession();
+    // After signing out there is nothing to come back to. Otherwise (a lapsed
+    // session, a link opened before signing in) the page is remembered along
+    // with whose it was, and only that person is sent back to it.
+    if (last.signedOut) return <Navigate to="/login" replace />;
+    return (
+      <Navigate to="/login" replace
+                state={{ from: location.pathname + location.search, forUser: last.userId }} />
+    );
   }
   return <>{children}</>;
 }

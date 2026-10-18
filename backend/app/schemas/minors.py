@@ -40,6 +40,12 @@ class MinorProgramOut(ORMModel):
     coordinator_name: str | None = None
     is_active: bool
     courses: list[MinorCourseOut] = Field(default_factory=list)
+    #: Whether the person asking coordinates this minor.
+    can_manage: bool = False
+    #: The semesters in which students apply (by default the first eligible one).
+    application_semesters: list[int] = Field(default_factory=list)
+    #: Fee per semester, set by the coordinator; empty until announced.
+    fees: list[dict] = Field(default_factory=list)
     # Published rules, read from the programme's `rules` JSON. These were
     # already recorded against the official source but never reached the client,
     # so a student could not see the conditions they were signing up to.
@@ -127,6 +133,50 @@ class MinorEnrollmentOut(ORMModel):
     total_credits: float | None = None
     progress_percent: int = 0
     courses: list[MinorCourseOut] = Field(default_factory=list)
+    #: Semester by semester: courses with this student's results, and the fee.
+    plan: list[dict] = Field(default_factory=list)
+    current_semester: int | None = None
+
+
+class MinorResultIn(BaseModel):
+    enrollment_id: int
+    marks: float | None = Field(default=None, ge=0, le=100)
+    grade: str | None = Field(default=None, max_length=4)
+    status: str = "IN_PROGRESS"
+
+
+class MinorResultsIn(BaseModel):
+    results: list[MinorResultIn] = Field(min_length=1, max_length=500)
+
+
+class MinorFeeIn(BaseModel):
+    semester: int = Field(ge=1, le=10)
+    amount: float = Field(ge=0, le=10_000_000)
+    due_on: dt.date | None = None
+    note: str | None = Field(default=None, max_length=300)
+
+
+class MinorFeesIn(BaseModel):
+    fees: list[MinorFeeIn] = Field(default_factory=list, max_length=10)
+
+
+class MinorPaymentIn(BaseModel):
+    amount: float = Field(gt=0, le=10_000_000)
+    reference: str | None = Field(default=None, max_length=80)
+    paid_on: dt.date | None = None
+
+
+class SyllabusUnitIn(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    topics: list[str] = Field(default_factory=list, max_length=40)
+    hours: int | None = Field(default=None, ge=0, le=100)
+
+
+class MinorSyllabusIn(BaseModel):
+    units: list[SyllabusUnitIn] = Field(default_factory=list, max_length=12)
+    outcomes: list[str] = Field(default_factory=list, max_length=15)
+    references: list[str] = Field(default_factory=list, max_length=20)
+    link: str | None = Field(default=None, max_length=500)
 
 
 class MinorWorkspace(BaseModel):
