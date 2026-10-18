@@ -82,7 +82,8 @@ def offering_out(
 def component_out(
     component: CurriculumComponent, *, is_unlocked: bool | None = None,
     status_label: str | None = None, allocated_course: str | None = None,
-    offering_count: int | None = None,
+    offering_count: int | None = None, round_id: int | None = None,
+    round_two_stage: bool | None = None,
 ) -> CurriculumComponentOut:
     return CurriculumComponentOut(
         id=component.id, curriculum_id=component.curriculum_id,
@@ -107,7 +108,8 @@ def component_out(
         source_note=component.source_note,
         is_unlocked=is_unlocked,
         status_label=status_label, allocated_course=allocated_course,
-        offering_count=offering_count,
+        offering_count=offering_count, round_id=round_id,
+        round_two_stage=round_two_stage,
     )
 
 

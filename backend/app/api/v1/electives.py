@@ -29,18 +29,23 @@ from app.models.academics import (
 from app.models.enums import (
     AllocationStatus, AuditAction, ComponentType, CoordinationDomain,
     CurriculumStatus, NotificationType, OfferingStatus, PreferenceStatus,
-    RegistrationWindowStatus, Role,
+    RegistrationWindowStatus, Role, RoundStage, StudentRegistrationState,
 )
-from app.models.identity import Department, Faculty, Student, User
+from app.models.identity import (
+    AcademicYear, Department, Faculty, Semester, Student, User,
+)
 from app.schemas.academics import (
     AllocationOut, AllocationRunResult, AllocationStrategyOut, CurriculumComponentOut,
-    DistributeResult, ElectiveWorkspace, ManualAllocationRequest, MoveStudentRequest,
-    PreferenceOut, PreferenceSubmit, RegistrationWindowIn, RegistrationWindowOut,
-    RegistrationWindowUpdate, RunAllocationRequest, SectionCreate, SectionOut,
-    SectionUpdate, ViabilityOut, WindowOfferingLink,
+    DistributeResult, ElectiveWorkspace, FinaliseRequest, FinaliseResult,
+    FinalSubjectOut, InterestTallyOut, InterestTallyRow, ManualAllocationRequest,
+    MoveStudentRequest, PreferenceOut, PreferenceSubmit, RegistrationWindowIn,
+    RegistrationWindowOut, RegistrationWindowUpdate, RoundChoiceSubmit,
+    RoundSubjectOut, RunAllocationRequest, SectionCreate, SectionOut, SectionUpdate,
+    ShortlistRequest, StudentRoundOut, SubjectIn, SubjectOut, SubjectUpdate,
+    ViabilityOut, WindowOfferingLink,
 )
 from app.schemas.common import Message
-from app.services import audit, notifications, registration, scope, sections
+from app.services import audit, notifications, registration, scope, sections, two_stage
 from app.services.allocation import Candidate, SeatPool, available_strategies, get_strategy
 from app.services.eligibility import (
     components_for_semester, offering_allowed, offering_window_open,
@@ -254,25 +259,61 @@ def my_elective_components(
             label = allocation.status.value.title()
         elif not unlocked:
             label = "Upcoming"
-        elif pref_counts.get(component.id):
-            label = "Preferences submitted"
-        elif component.semester_number < student.current_semester:
-            # Past-semester slot with no allocation record — already handled
-            # outside the portal (or before it existed).
-            label = "Completed"
         else:
-            label = "Not started"
+            label = _list_label(db, component, student,
+                                submitted=bool(pref_counts.get(component.id)))
         offerings = _eligible_offerings(db, student, component)
+        governing = registration.window_for(db, component, student)
+        if governing is not None and governing.status == RegistrationWindowStatus.DRAFT:
+            governing = None
         out.append(component_out(
             component, is_unlocked=unlocked, status_label=label,
+            round_id=governing.id if governing else None,
+            round_two_stage=governing.is_two_stage if governing else None,
             allocated_course=(
                 f"{allocation.course_offering.course.code} · "
                 f"{allocation.course_offering.course.title}"
                 if allocation and allocation.course_offering else None
             ),
-            offering_count=len(offerings),
+            # Subjects, not offerings: next year's run of a course is the same subject.
+            offering_count=len({o.course_id for o in offerings}),
         ))
     return out
+
+
+def _list_label(db, component: CurriculumComponent, student: Student, *,
+                submitted: bool) -> str:
+    """The state a slot's card shows, from the same rule as its workspace.
+
+    The card used to say "Not started" whenever the student had not ranked
+    anything — even while a round was open and the dashboard and notification
+    said choice filling had begun, and even after they had ticked subjects in a
+    two-stage round (which are not rankings). It now reads the round.
+    """
+    reg = registration.status_for(db, component, student)
+    window = reg.window
+    if window is None:
+        if submitted:
+            return "Preferences submitted"
+        if component.semester_number < student.current_semester:
+            # Past-semester slot with no allocation record — already handled
+            # outside the portal (or before it existed).
+            return "Completed"
+        return "Choice filling open" if reg.can_submit else "Not open yet"
+    two = window.is_two_stage
+    stage = ("Final round" if window.stage == RoundStage.FINAL else "Interest round")
+    if reg.state == StudentRegistrationState.SUBMITTED:
+        return "Choice submitted" if two else "Preferences submitted"
+    if reg.state == StudentRegistrationState.OPEN:
+        return f"{stage} open" if two else "Choice filling open"
+    if reg.state == StudentRegistrationState.NOT_OPEN:
+        return "Not open yet"
+    if reg.state == StudentRegistrationState.LOCKED:
+        # Locked after they chose: what they need to know is that it counted.
+        if reg.preference_count:
+            return "Choice submitted" if two else "Preferences submitted"
+        return "Choices locked"
+    return "Closed"
 
 
 @router.get("/components/{component_id}/workspace", response_model=ElectiveWorkspace)
@@ -323,7 +364,69 @@ def component_workspace(component_id: int, db: DbSession,
         ],
         my_preferences=[_preference_out(p) for p in my_prefs],
         my_allocation=_allocation_out(db, allocation) if allocation else None,
+        round=(_student_round_out(db, reg.window, student)
+               if reg.window is not None and reg.window.is_two_stage
+               and reg.window.status != RegistrationWindowStatus.DRAFT else None),
     )
+
+
+def _student_round_out(db, window: ElectiveRegistrationWindow,
+                       student: Student) -> StudentRoundOut:
+    now = utcnow()
+    stage = window.stage or RoundStage.INTEREST
+    mine = two_stage.choices(db, window, stage, student.id)
+    if window.is_open_at(now):
+        can_submit, reason = True, None
+    elif window.status == RegistrationWindowStatus.OPEN and window.opens_at_utc \
+            and now < window.opens_at_utc:
+        can_submit, reason = False, f"Opens on {registration._when(window.opens_at_utc)}."
+    elif window.status in (RegistrationWindowStatus.OPEN, RegistrationWindowStatus.LOCKED):
+        can_submit = False
+        reason = ("The interest round has closed. The coordinator will shortlist "
+                  "subjects for the final round." if stage == RoundStage.INTEREST
+                  else "Choices are closed while the department finalises the electives.")
+    else:
+        can_submit, reason = False, "This round is closed."
+    interest = ([c.course_id for c in two_stage.choices(
+        db, window, RoundStage.INTEREST, student.id)] if stage == RoundStage.FINAL else [])
+    slots = sorted(registration.round_components(db, window),
+                   key=lambda c: (c.semester_number, c.sequence, c.code))
+    return StudentRoundOut(
+        id=window.id, title=window.title, stage=stage, pick_count=window.pick_count or 0,
+        opens_at=window.opens_at, closes_at=window.closes_at,
+        can_submit=can_submit, reason=reason,
+        subjects=[RoundSubjectOut(course_id=c.id, code=c.code, title=c.title,
+                                  credits=float(c.credits) if c.credits is not None else None)
+                  for c in two_stage.subjects(db, window)],
+        my_course_ids=[c.course_id for c in mine],
+        submitted_at=max((c.submitted_at for c in mine), default=None),
+        my_interest_course_ids=interest,
+        slot_codes=[c.code for c in slots], slot_titles=[c.title for c in slots],
+    )
+
+
+@router.put("/rounds/{window_id}/choices", response_model=StudentRoundOut)
+def submit_round_choices(window_id: int, payload: RoundChoiceSubmit, db: DbSession,
+                         student: CurrentStudent, user: CurrentUser) -> StudentRoundOut:
+    """Tick subjects in a two-stage round. Replaces earlier ticks for this stage."""
+    window = db.get(ElectiveRegistrationWindow, window_id)
+    if window is None or window.status == RegistrationWindowStatus.DRAFT:
+        raise NotFoundError("Registration round not found.")
+    made = two_stage.submit_choices(db, window, student, payload.course_ids)
+    stage = window.stage or RoundStage.INTEREST
+    notifications.notify(
+        db, user_id=user.id, type=NotificationType.REGISTRATION_CONFIRMED,
+        title=f"{window.title}: "
+              + ("interest recorded" if stage == RoundStage.INTEREST else "choice recorded"),
+        message=f"{len(made)} subject(s) recorded. You can change them until the deadline.",
+        link=_round_link(db, window),
+    )
+    audit.record(db, action=AuditAction.CREATE, entity_type="elective_round_choice",
+                 entity_id=window.id, actor=user,
+                 description=f"Ticked {len(made)} subject(s) in {window.code} ({stage.value})",
+                 meta={"course_ids": payload.course_ids, "stage": stage.value})
+    db.commit()
+    return _student_round_out(db, window, student)
 
 
 @router.post("/preferences", response_model=list[PreferenceOut])
@@ -340,6 +443,9 @@ def submit_preferences(payload: PreferenceSubmit, db: DbSession,
     # The registration round decides, not the browser. A stale tab, a skewed
     # clock or a hand-written request is refused here with the real reason.
     reg = registration.assert_can_submit(db, component, student)
+    if reg.window is not None and reg.window.is_two_stage:
+        raise BusinessRuleError(
+            "This round is chosen by ticking subjects, not by ranking courses.")
 
     orders = [p.preference_order for p in payload.preferences]
     if len(set(orders)) != len(orders):
@@ -615,6 +721,10 @@ def run_allocation(
         )
 
     window = _round_to_allocate(db, user, component, payload)
+    if window is not None and window.is_two_stage:
+        raise BusinessRuleError(
+            f"{window.title} is a two-stage round. Finalise it from Registration "
+            "Rounds instead of running an allocation strategy.")
     offerings = list(db.scalars(
         select(CourseOffering).where(
             CourseOffering.curriculum_component_id == component.id,
@@ -1102,10 +1212,13 @@ def _window_out(db, window: ElectiveRegistrationWindow,
             CourseOffering.registration_window_id == window.id))
     ]
     eligible_count = registration.count_students_in_window(db, window)
-    submitted = db.scalar(
-        select(func.count(func.distinct(ElectivePreference.student_id)))
-        .where(ElectivePreference.course_offering_id.in_(offering_ids or [0]))
-    ) or 0
+    if window.is_two_stage:
+        submitted = two_stage.submitted_count(db, window)
+    else:
+        submitted = db.scalar(
+            select(func.count(func.distinct(ElectivePreference.student_id)))
+            .where(ElectivePreference.course_offering_id.in_(offering_ids or [0]))
+        ) or 0
     allocated = db.scalar(
         select(func.count(ElectiveAllocation.id)).where(
             ElectiveAllocation.course_offering_id.in_(offering_ids or [0]),
@@ -1138,6 +1251,12 @@ def _window_out(db, window: ElectiveRegistrationWindow,
                 "curriculum_id": c.curriculum_id} for c in components],
         slot_semester=(next(iter(slot_semesters)) if len(slot_semesters) == 1 else None),
         can_manage=bool(user and _can_manage_window(db, user, window)),
+        selection_mode=window.selection_mode, stage=window.stage,
+        interest_pick_count=window.interest_pick_count,
+        final_pick_count=window.final_pick_count,
+        min_students_to_run=window.min_students_to_run,
+        section_capacity=window.section_capacity,
+        interest_closed_at=window.interest_closed_at,
     )
 
 
@@ -1165,6 +1284,15 @@ def round_slots(
     ).all()
 
     divisions: dict[int, list[str]] = {}
+    # The same course is offered again each year, so the form says which year,
+    # and whether students already hold seats in it.
+    year_of = {sid: label for sid, label in db.execute(
+        select(Semester.id, AcademicYear.label)
+        .join(AcademicYear, AcademicYear.id == Semester.academic_year_id))}
+    seats_in = {oid: n for oid, n in db.execute(
+        select(ElectiveAllocation.course_offering_id, func.count(ElectiveAllocation.id))
+        .where(ElectiveAllocation.status != AllocationStatus.DROPPED)
+        .group_by(ElectiveAllocation.course_offering_id))}
     out = []
     for component, curriculum, program in rows:
         if not (user.has_role(Role.SUPER_ADMIN) or scope.coordinates(
@@ -1199,7 +1327,9 @@ def round_slots(
                  "course_title": o.course.title,
                  "department_code": (o.course.department.code
                                      if o.course.department else None),
-                 "registration_window_id": o.registration_window_id}
+                 "registration_window_id": o.registration_window_id,
+                 "academic_year": year_of.get(o.semester_id),
+                 "seats_taken": int(seats_in.get(o.id, 0))}
                 for o in offerings
             ],
         })
@@ -1253,6 +1383,8 @@ def create_window(
         )
     window = ElectiveRegistrationWindow(**payload.model_dump(),
                                         status=RegistrationWindowStatus.DRAFT)
+    if window.is_two_stage:
+        window.stage = RoundStage.INTEREST
     _assert_manages_window(db, user, window)
     registration.validate_round(db, window)
     db.add(window)
@@ -1281,9 +1413,21 @@ def update_window(
             "be changed. Students have already been allocated against them."
         )
     changes = payload.model_dump(exclude_unset=True)
+    if ("selection_mode" in changes and changes["selection_mode"] is not None
+            and changes["selection_mode"] != window.selection_mode
+            and window.status != RegistrationWindowStatus.DRAFT):
+        raise BusinessRuleError(
+            "How students choose can only be changed while the round is a draft.")
+    if changes.get("selection_mode") is None:
+        changes.pop("selection_mode", None)
     previous_closes = window.closes_at_utc
     for field, value in changes.items():
         setattr(window, field, value)
+    if window.is_two_stage and window.stage is None:
+        window.stage = RoundStage.INTEREST
+    elif not window.is_two_stage:
+        window.stage = None
+    two_stage.apply_course_rules(db, window)
     if window.opens_at and window.closes_at and window.closes_at_utc <= window.opens_at_utc:
         raise ValidationError("The closing time must be after the opening time.")
     if (window.min_preferences and window.max_preferences
@@ -1349,6 +1493,7 @@ def set_window_offerings(
             )
         offering.registration_window_id = window.id
     db.flush()
+    two_stage.apply_course_rules(db, window)
     registration.validate_round(db, window)
     audit.record(db, action=AuditAction.UPDATE, entity_type="registration_window",
                  entity_id=window.id, actor=user,
@@ -1411,6 +1556,12 @@ def move_window(
     _assert_manages_window(db, user, window)
 
     previous = window.status
+    if window.is_two_stage and target == RegistrationWindowStatus.ALLOCATED:
+        raise BusinessRuleError(
+            "A two-stage round is allocated by finalising it, which seats every student.")
+    if window.is_two_stage and target == RegistrationWindowStatus.LOCKED \
+            and window.stage == RoundStage.INTEREST:
+        window.interest_closed_at = utcnow()
     going_live = (target == RegistrationWindowStatus.OPEN
                   and previous in (RegistrationWindowStatus.DRAFT,
                                    RegistrationWindowStatus.LOCKED))
@@ -1449,27 +1600,32 @@ def _notify_allocation_published(db, window: ElectiveRegistrationWindow) -> int:
     ]
     if not offering_ids:
         return 0
-    allocations = {
-        a.student_id: a for a in db.scalars(select(ElectiveAllocation).where(
+    allocations: dict[int, list[ElectiveAllocation]] = {}
+    for a in db.scalars(select(ElectiveAllocation).where(
             ElectiveAllocation.course_offering_id.in_(offering_ids),
-            ElectiveAllocation.status != AllocationStatus.DROPPED))
-    }
+            ElectiveAllocation.status != AllocationStatus.DROPPED)
+            .order_by(ElectiveAllocation.id)):
+        allocations.setdefault(a.student_id, []).append(a)
     applicants = {
         row for (row,) in db.execute(
             select(ElectivePreference.student_id).where(
                 ElectivePreference.course_offering_id.in_(offering_ids)).distinct())
     }
+    if window.is_two_stage:
+        # Everyone the round covered hears, chooser or not.
+        applicants |= {s.id for s in registration.students_in_window(db, window)}
     sent = 0
     for student_id in applicants | set(allocations):
         student = db.get(Student, student_id)
         if student is None:
             continue
-        allocation = allocations.get(student_id)
-        if allocation and allocation.course_offering:
-            course = allocation.course_offering.course
-            section = allocation.section.name if allocation.section else None
-            message = (f"You have been allocated {course.code} — {course.title}"
-                       + (f" ({section})." if section else "."))
+        seats = [a for a in allocations.get(student_id, []) if a.course_offering]
+        if seats:
+            def describe(a: ElectiveAllocation) -> str:
+                course = a.course_offering.course
+                section = a.section.name if a.section else None
+                return f"{course.code} — {course.title}" + (f" ({section})" if section else "")
+            message = "You have been allocated " + "; ".join(describe(a) for a in seats) + "."
         else:
             message = ("No seat could be allocated from your preferences. "
                        "Contact the coordinator for the next step.")
@@ -1481,6 +1637,242 @@ def _notify_allocation_published(db, window: ElectiveRegistrationWindow) -> int:
         )
         sent += 1
     return sent
+
+
+def _two_stage_window(db, window_id: int) -> ElectiveRegistrationWindow:
+    window = db.get(ElectiveRegistrationWindow, window_id)
+    if window is None:
+        raise NotFoundError("Registration round not found.")
+    if not window.is_two_stage:
+        raise BusinessRuleError("This round is not a two-stage round.")
+    return window
+
+
+@router.get("/admin/windows/{window_id}/interest", response_model=InterestTallyOut)
+def interest_results(window_id: int, db: DbSession,
+                     user: User = Depends(_views_electives)) -> InterestTallyOut:
+    """The interest round's votes, most first. For the coordinator and the HoD."""
+    window = _two_stage_window(db, window_id)
+    _assert_can_view_window(db, user, window)
+    in_round = {c.id for c in two_stage.subjects(db, window)}
+    return InterestTallyOut(
+        stage=window.stage or RoundStage.INTEREST,
+        voters=two_stage.submitted_count(db, window, RoundStage.INTEREST),
+        eligible_student_count=registration.count_students_in_window(db, window),
+        interest_pick_count=window.interest_pick_count,
+        slot_count=len(registration.round_components(db, window)),
+        subjects=[InterestTallyRow(course_id=t.course.id, code=t.course.code,
+                                   title=t.course.title, votes=t.votes,
+                                   in_round=t.course.id in in_round)
+                  for t in two_stage.interest_tally(db, window)],
+    )
+
+
+@router.post("/admin/windows/{window_id}/shortlist", response_model=RegistrationWindowOut)
+def shortlist_round(window_id: int, payload: ShortlistRequest, db: DbSession,
+                    user: User = Depends(_manages_electives)) -> RegistrationWindowOut:
+    """Keep the chosen subjects and open the final round to the same students."""
+    window = _two_stage_window(db, window_id)
+    _assert_manages_window(db, user, window)
+    dropped = two_stage.start_final(
+        db, window, keep_course_ids=payload.course_ids,
+        final_pick_count=payload.final_pick_count,
+        opens_at=payload.opens_at, closes_at=payload.closes_at)
+    registration.validate_round(db, window, opening=True)
+    kept = ", ".join(c.code for c in two_stage.subjects(db, window))
+    notified = _students_of(db, window)
+    notifications.notify_many(
+        db, user_ids=notified, type=NotificationType.ELECTIVE_DEADLINE,
+        title=f"{window.title}: final round is open",
+        message=(f"Choose {window.final_pick_count} of the shortlisted subjects ({kept}) "
+                 f"before {registration._when(window.closes_at_utc)}."),
+        link=_round_link(db, window),
+    )
+    audit.record(db, action=AuditAction.STATUS_CHANGE, entity_type="registration_window",
+                 entity_id=window.id, actor=user,
+                 description=f"{window.code}: shortlisted {len(payload.course_ids)} subject(s), "
+                             "final round opened",
+                 meta={"kept_course_ids": payload.course_ids,
+                       "dropped": [c.code for c in dropped],
+                       "final_pick_count": payload.final_pick_count,
+                       "notified": len(notified)})
+    db.commit()
+    return _window_out(db, window, user)
+
+
+@router.post("/admin/windows/{window_id}/finalise", response_model=FinaliseResult)
+def finalise_round(window_id: int, payload: FinaliseRequest, db: DbSession,
+                   request_ctx=Depends(request_context),
+                   user: User = Depends(_manages_electives)) -> FinaliseResult:
+    """Decide which subjects run and seat every student. Dry run by default."""
+    window = _two_stage_window(db, window_id)
+    _assert_manages_window(db, user, window)
+    if not payload.dry_run and window.status != RegistrationWindowStatus.LOCKED:
+        raise BusinessRuleError(
+            f"{window.title} is {window.status.value.lower()}. Lock the final round "
+            "before finalising, so no one is still changing their choice.")
+    plan = two_stage.plan_final(db, window, minimum=payload.min_students_to_run,
+                                run_course_ids=payload.run_course_ids)
+    written = 0
+    if not payload.dry_run:
+        if not plan.placements:
+            raise BusinessRuleError(plan.notes[0] if plan.notes
+                                    else "Nobody could be seated from this round.")
+        written = two_stage.apply_final(db, window, plan, actor_user_id=user.id)
+        if payload.min_students_to_run:
+            window.min_students_to_run = payload.min_students_to_run
+        registration.transition(window, RegistrationWindowStatus.ALLOCATED)
+        audit.record(db, action=AuditAction.ALLOCATION_RUN,
+                     entity_type="registration_window", entity_id=window.id, actor=user,
+                     description=f"Finalised {window.code}: {written} seat(s)",
+                     meta={"minimum": plan.minimum,
+                           "running": [r.course.code for r in plan.subjects if r.runs],
+                           "withdrawn": [r.course.code for r in plan.subjects if not r.runs],
+                           "unplaced": len(plan.unplaced_student_ids)},
+                     **request_ctx)
+        db.commit()
+    return FinaliseResult(
+        dry_run=payload.dry_run, minimum=plan.minimum, pick_count=plan.pick_count,
+        subjects=[FinalSubjectOut(course_id=r.course.id, code=r.course.code,
+                                  title=r.course.title, demand=r.demand, runs=r.runs,
+                                  seated=r.seated)
+                  for r in sorted(plan.subjects, key=lambda r: (-r.demand, r.course.code))],
+        students_placed=len({p.student_id for p in plan.placements}),
+        by_choice=plan.count(two_stage.REASON_CHOSEN),
+        replaced_withdrawn=plan.count(two_stage.REASON_WITHDRAWN),
+        placed_no_submission=plan.count(two_stage.REASON_NO_CHOICE),
+        unplaced=len(plan.unplaced_student_ids), seats_written=written, notes=plan.notes,
+    )
+
+
+# ── subjects: the coordinator adds, edits and removes them ────────────────
+def _subject_out(offering: CourseOffering) -> SubjectOut:
+    c = offering.course
+    return SubjectOut(offering_id=offering.id, course_id=c.id, code=c.code, title=c.title,
+                      credits=float(c.credits) if c.credits is not None else None,
+                      description=c.description,
+                      component_id=offering.curriculum_component_id,
+                      registration_window_id=offering.registration_window_id)
+
+
+def _assert_subject_editable(db, offering: CourseOffering) -> None:
+    if offering.registration_window_id is None:
+        return
+    window = db.get(ElectiveRegistrationWindow, offering.registration_window_id)
+    if window and window.status in (RegistrationWindowStatus.ALLOCATED,
+                                    RegistrationWindowStatus.PUBLISHED,
+                                    RegistrationWindowStatus.CLOSED):
+        raise BusinessRuleError(
+            f"{offering.course.code} has been allocated in “{window.title}”, so it can no "
+            "longer be changed.")
+
+
+@router.post("/admin/slots/{component_id}/subjects", response_model=SubjectOut,
+             status_code=201)
+def add_subject(component_id: int, payload: SubjectIn, db: DbSession,
+                user: User = Depends(_manages_electives)) -> SubjectOut:
+    """Offer a subject in this slot — a new course, or one already in the catalogue."""
+    component = _managed_component(db, user, component_id)
+    code = payload.code.strip().upper()
+    course = db.scalar(select(Course).where(func.upper(Course.code) == code))
+    if course is None:
+        course = Course(code=code, title=payload.title.strip(), credits=payload.credits,
+                        description=payload.description,
+                        department_id=_component_department_id(db, component))
+        db.add(course)
+        db.flush()
+    siblings = list(db.scalars(select(CourseOffering).where(
+        CourseOffering.curriculum_component_id == component.id)
+        .order_by(CourseOffering.id.desc())))
+    template = next((o for o in siblings if o.registration_window_id is None),
+                    siblings[0] if siblings else None)
+    semester_id = template.semester_id if template else None
+    if semester_id is None:
+        semester_id = db.scalar(select(Semester.id).order_by(Semester.id.desc()))
+    if semester_id is None:
+        raise BusinessRuleError("No academic semester exists to offer the subject in.")
+    if db.scalar(select(CourseOffering).where(
+            CourseOffering.course_id == course.id,
+            CourseOffering.semester_id == semester_id,
+            CourseOffering.curriculum_component_id == component.id)):
+        raise ConflictError(f"{course.code} is already offered in {component.title}.")
+    offering = CourseOffering(
+        course_id=course.id, semester_id=semester_id, curriculum_component_id=component.id,
+        elective_type_id=template.elective_type_id if template else None,
+        coordinator_faculty_id=template.coordinator_faculty_id if template else None,
+        min_students_to_run=template.min_students_to_run if template else 40,
+        section_capacity=template.section_capacity if template else None,
+        allow_multiple_sections=template.allow_multiple_sections if template else False,
+        eligible_divisions=list(template.eligible_divisions or []) if template else [],
+        status=template.status if template else OfferingStatus.OPEN,
+        eligibility=dict(template.eligibility or {}) if template else {},
+    )
+    db.add(offering)
+    db.flush()
+    audit.record(db, action=AuditAction.CREATE, entity_type="course_offering",
+                 entity_id=offering.id, actor=user,
+                 description=f"Added {course.code} to {component.code}")
+    db.commit()
+    db.refresh(offering)
+    return _subject_out(offering)
+
+
+@router.patch("/admin/subjects/{offering_id}", response_model=SubjectOut)
+def edit_subject(offering_id: int, payload: SubjectUpdate, db: DbSession,
+                 user: User = Depends(_manages_electives)) -> SubjectOut:
+    """Edit a subject's code, name or credits. The course changes everywhere it
+    is offered — that is what the department asked for."""
+    offering = _managed_offering(db, user, offering_id)
+    _assert_subject_editable(db, offering)
+    course = offering.course
+    changes = payload.model_dump(exclude_unset=True)
+    before = {"code": course.code, "title": course.title, "credits": float(course.credits)}
+    if changes.get("code"):
+        code = changes["code"].strip().upper()
+        clash = db.scalar(select(Course).where(func.upper(Course.code) == code,
+                                               Course.id != course.id))
+        if clash:
+            raise ConflictError(f"Another course already uses the code {code}.")
+        course.code = code
+    if changes.get("title"):
+        course.title = changes["title"].strip()
+    if changes.get("credits") is not None:
+        course.credits = changes["credits"]
+    if "description" in changes:
+        course.description = changes["description"]
+    audit.record(db, action=AuditAction.UPDATE, entity_type="course", entity_id=course.id,
+                 actor=user, description=f"Edited subject {course.code}",
+                 meta={"before": before, "changes": changes})
+    db.commit()
+    db.refresh(offering)
+    return _subject_out(offering)
+
+
+@router.delete("/admin/subjects/{offering_id}", response_model=Message)
+def remove_subject(offering_id: int, db: DbSession,
+                   user: User = Depends(_manages_electives)) -> Message:
+    """Take a subject out of this slot. The course stays in the catalogue."""
+    offering = _managed_offering(db, user, offering_id)
+    _assert_subject_editable(db, offering)
+    if db.scalar(select(func.count(ElectiveAllocation.id)).where(
+            ElectiveAllocation.course_offering_id == offering.id)):
+        raise BusinessRuleError(
+            f"Students hold seats in {offering.course.code}, so it cannot be removed.")
+    if offering.registration_window_id is not None:
+        window = db.get(ElectiveRegistrationWindow, offering.registration_window_id)
+        if window and window.status != RegistrationWindowStatus.DRAFT:
+            raise BusinessRuleError(
+                f"{offering.course.code} is in the live round “{window.title}”. Remove it "
+                "while the round is a draft, or shortlist it out of a two-stage round.")
+    code = offering.course.code
+    for pref in db.scalars(select(ElectivePreference).where(
+            ElectivePreference.course_offering_id == offering.id)):
+        db.delete(pref)
+    db.delete(offering)
+    audit.record(db, action=AuditAction.DELETE, entity_type="course_offering",
+                 entity_id=offering_id, actor=user, description=f"Removed {code} from its slot")
+    db.commit()
+    return Message(message=f"{code} removed from the slot.")
 
 
 @router.get("/admin/windows/{window_id}", response_model=RegistrationWindowOut)

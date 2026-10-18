@@ -205,6 +205,29 @@ class RegistrationWindowStatus(StrEnum):
     CLOSED = "CLOSED"
 
 
+class RoundSelectionMode(StrEnum):
+    """How students choose in a registration round.
+
+    RANKED is the original flow: each student ranks the courses of a slot and
+    an allocation strategy seats them. TWO_STAGE is how the ICT department runs
+    its Semester VII electives: an interest round in which every student ticks a
+    set number of subjects, a shortlist the coordinator draws from the votes,
+    and a final round in which each student ticks the subjects they will take.
+    """
+
+    RANKED = "RANKED"
+    TWO_STAGE = "TWO_STAGE"
+
+
+class RoundStage(StrEnum):
+    """Which half of a two-stage round is running."""
+
+    #: Students tick subjects they are interested in; nobody is seated.
+    INTEREST = "INTEREST"
+    #: Students tick, from the shortlist, the subjects they will take.
+    FINAL = "FINAL"
+
+
 class StudentRegistrationState(StrEnum):
     """What one student may do in a round right now.
 

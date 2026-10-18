@@ -29,7 +29,7 @@ from sqlalchemy.orm import Session
 from app.core.errors import BusinessRuleError, ValidationError
 from app.models.academics import (
     CourseOffering, CurriculumComponent, ElectiveAllocation, ElectivePreference,
-    ElectiveRegistrationWindow,
+    ElectiveRegistrationWindow, ElectiveRoundChoice,
 )
 from app.models.enums import (
     REGISTRATION_STATE_LABEL, AllocationStatus, PreferenceStatus,
@@ -129,11 +129,21 @@ def status_for(db: Session, component: CurriculumComponent, student: Student,
     now = now or utcnow()
     window = window_for(db, component, student)
 
-    preference_count = db.scalar(
-        select(func.count(ElectivePreference.id)).where(
-            ElectivePreference.student_id == student.id,
-            ElectivePreference.curriculum_component_id == component.id)
-    ) or 0
+    if window is not None and window.is_two_stage:
+        # Ticks in the stage now running; a tick in the interest round is not
+        # a final choice.
+        preference_count = db.scalar(
+            select(func.count(ElectiveRoundChoice.id)).where(
+                ElectiveRoundChoice.registration_window_id == window.id,
+                ElectiveRoundChoice.stage == window.stage,
+                ElectiveRoundChoice.student_id == student.id)
+        ) or 0
+    else:
+        preference_count = db.scalar(
+            select(func.count(ElectivePreference.id)).where(
+                ElectivePreference.student_id == student.id,
+                ElectivePreference.curriculum_component_id == component.id)
+        ) or 0
 
     allocation = db.scalar(select(ElectiveAllocation).where(
         ElectiveAllocation.student_id == student.id,
@@ -146,6 +156,8 @@ def status_for(db: Session, component: CurriculumComponent, student: Student,
                else (etype.min_preferences if etype else 1))
     maximum = (window.max_preferences if window and window.max_preferences
                else (etype.max_preferences if etype else 5))
+    if window is not None and window.is_two_stage and window.pick_count:
+        minimum = maximum = window.pick_count
 
     base = dict(window=window, preference_count=preference_count,
                 min_preferences=minimum, max_preferences=maximum,
@@ -342,6 +354,11 @@ def delete_round(db: Session, window: ElectiveRegistrationWindow) -> DeletedRoun
             if window.status != RegistrationWindowStatus.DRAFT else [])
     removed = 0
     choosers: set[int] = set()
+    for tick in db.scalars(select(ElectiveRoundChoice).where(
+            ElectiveRoundChoice.registration_window_id == window.id)):
+        choosers.add(tick.student_id)
+        db.delete(tick)
+        removed += 1
     if offering_ids:
         for pref in db.scalars(select(ElectivePreference).where(
                 ElectivePreference.course_offering_id.in_(offering_ids))):
@@ -467,6 +484,12 @@ def early_rounds(db: Session, student: Student) -> list[
 
 
 def has_submitted(db: Session, student: Student, component: CurriculumComponent) -> bool:
+    window = window_for(db, component, student)
+    if window is not None and window.is_two_stage:
+        return bool(db.scalar(select(func.count(ElectiveRoundChoice.id)).where(
+            ElectiveRoundChoice.registration_window_id == window.id,
+            ElectiveRoundChoice.stage == window.stage,
+            ElectiveRoundChoice.student_id == student.id)))
     return bool(db.scalar(select(func.count(ElectivePreference.id)).where(
         ElectivePreference.student_id == student.id,
         ElectivePreference.curriculum_component_id == component.id,
@@ -501,8 +524,11 @@ def validate_round(db: Session, window: ElectiveRegistrationWindow, *,
     `opening` — at the moment it goes live, which is the last point a mistake
     can be caught before students are told.
     """
+    from app.services import two_stage
+
     now = now or utcnow()
     components = round_components(db, window)
+    two_stage.validate_settings(db, window, opening=opening)
 
     wrong_family = [c for c in components if c.component_type != window.component_type]
     if wrong_family:

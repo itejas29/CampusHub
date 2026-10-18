@@ -58,7 +58,9 @@ const STATUS_TONES: Record<string, Tone> = {
   // student-facing computed labels
   "Action needed": "warning", Upcoming: "neutral", "Not started": "neutral",
   "Preferences submitted": "info", Core: "brand", Allocated: "success",
-  Completed: "success",
+  Completed: "success", "Choice filling open": "success", "Interest round open": "success",
+  "Final round open": "success", "Choice submitted": "info", "Choices locked": "neutral",
+  "Not open yet": "neutral", Closed: "neutral",
 };
 
 export function StatusBadge({

@@ -18,7 +18,8 @@ from app.db.base import Base, PKMixin, TimestampMixin
 from app.models.enums import (
     AllocationStatus, ComponentType, CourseCategory, CurriculumStatus, DeliveryMode,
     MoocPlatform, MoocStatus, OfferingStatus, PreferenceStatus,
-    RegistrationWindowStatus, SourceConfidence, SourceScope, VerificationStatus,
+    RegistrationWindowStatus, RoundSelectionMode, RoundStage, SourceConfidence,
+    SourceScope, VerificationStatus,
 )
 
 
@@ -345,10 +346,41 @@ class ElectiveRegistrationWindow(PKMixin, TimestampMixin, Base):
     allocated_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
     published_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
     notes: Mapped[str | None] = mapped_column(Text)
+    # ── how students choose, and the coordinator's numbers for this round ──
+    # None of these is a university constant: the department changes them year
+    # to year, so each round carries its own.
+    selection_mode: Mapped[RoundSelectionMode] = mapped_column(
+        _enum(RoundSelectionMode, "round_selection_mode", 20),
+        default=RoundSelectionMode.RANKED, nullable=False,
+    )
+    #: Two-stage rounds only: INTEREST, then FINAL once the shortlist is set.
+    stage: Mapped[RoundStage | None] = mapped_column(_enum(RoundStage, "round_stage", 20))
+    #: Exactly how many subjects each student ticks in the interest round.
+    interest_pick_count: Mapped[int | None] = mapped_column(Integer)
+    #: Exactly how many shortlisted subjects each student takes.
+    final_pick_count: Mapped[int | None] = mapped_column(Integer)
+    #: Fewest students a course needs to run. Copied to the round's courses.
+    min_students_to_run: Mapped[int | None] = mapped_column(Integer)
+    #: Most students in one section (Open Electives split into sections).
+    section_capacity: Mapped[int | None] = mapped_column(Integer)
+    #: When the interest round closed, kept once the final round reuses the dates.
+    interest_closed_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
 
     offerings: Mapped[list["CourseOffering"]] = relationship(
         back_populates="registration_window"
     )
+
+    @property
+    def is_two_stage(self) -> bool:
+        return self.selection_mode == RoundSelectionMode.TWO_STAGE
+
+    @property
+    def pick_count(self) -> int | None:
+        """How many subjects a student ticks in the stage now running."""
+        if not self.is_two_stage:
+            return None
+        return (self.final_pick_count if self.stage == RoundStage.FINAL
+                else self.interest_pick_count)
 
     def is_open_at(self, now: dt.datetime) -> bool:
         """Open *and* inside its time window. Both halves must hold."""
@@ -526,6 +558,38 @@ class CourseSection(PKMixin, TimestampMixin, Base):
     @property
     def is_full(self) -> bool:
         return self.capacity is not None and self.seats_filled >= self.capacity
+
+
+class ElectiveRoundChoice(PKMixin, TimestampMixin, Base):
+    """A subject a student ticked in one stage of a two-stage round.
+
+    Unranked by design: in the interest round a tick is a vote, and in the
+    final round it is a subject the student will take. A subject is a course,
+    not an offering, because one course can be offered in several of the
+    round's slots (Program Elective 4 and 5 share a basket).
+    """
+
+    __tablename__ = "elective_round_choices"
+    __table_args__ = (
+        UniqueConstraint("registration_window_id", "stage", "student_id", "course_id",
+                         name="uq_elective_round_choices_window_stage_student_course"),
+        Index("ix_elective_round_choices_window_stage", "registration_window_id", "stage"),
+    )
+
+    registration_window_id: Mapped[int] = mapped_column(
+        ForeignKey("elective_registration_windows.id", ondelete="CASCADE"), nullable=False
+    )
+    stage: Mapped[RoundStage] = mapped_column(_enum(RoundStage, "round_choice_stage", 20),
+                                              nullable=False)
+    student_id: Mapped[int] = mapped_column(
+        ForeignKey("students.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    course_id: Mapped[int] = mapped_column(
+        ForeignKey("courses.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    submitted_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    course: Mapped["Course"] = relationship(lazy="joined")
 
 
 class ElectivePreference(PKMixin, TimestampMixin, Base):

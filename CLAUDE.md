@@ -113,10 +113,16 @@ any remain.
 These were verified against official PDEU documents. Changing one silently
 changes university policy.
 
+The elective minimum and section size below are **defaults**, not fixed
+policy: the department changes them year to year, so a registration round
+carries its own (`min_students_to_run`, `section_capacity`), set by the
+coordinator and copied onto the round's courses. What stays fixed is *how* they
+are applied — per section, combined across divisions.
+
 | Rule | Value | Where |
 |---|---|---|
-| Open Elective minimum to run | **40** | `services/sections.py` |
-| Open Elective section capacity | **75 per section**, not course-wide | `services/sections.py` |
+| Open Elective minimum to run | **40** by default; the round's own when set | `services/sections.py` |
+| Open Elective section capacity | **75 per section** by default, not course-wide | `services/sections.py` |
 | Open Elective 90 / 150 / 151 | `[75,15]` / `[75,75]` / `[75,75,1]` | `test_sections.py` |
 | Core Elective minimum | **40 combined across divisions**, never per division | `services/sections.py` |
 | Core Elective ceiling | **none** — one combined class however large | `services/sections.py` |
@@ -203,6 +209,39 @@ described its practice to the project team; it is not from a written rule.)
   filled in it are removed, and students who were told it opened are told it
   was withdrawn. From Allocated on — or once a run has committed seats — it is
   refused: students hold seats from it.
+
+### Two-stage rounds: interest, shortlist, final (`services/two_stage.py`)
+
+How the ICT department chooses its Semester VII electives (its written
+*Guidelines and Procedure for Elective Course Offering*). A round's
+`selection_mode` is `RANKED` (the original flow) or `TWO_STAGE`:
+
+1. **Interest** (`stage = INTEREST`): each student ticks **exactly**
+   `interest_pick_count` subjects (`ElectiveRoundChoice`, unranked). Only the
+   coordinator and the HoD see the votes.
+2. **Shortlist** (`POST .../shortlist`, interest round LOCKED): the coordinator
+   keeps whichever subjects they choose — never a fixed "top N". The others
+   leave the round (free for another); their votes stay on record. The final
+   round opens to **every** covered student, voter or not, with new dates.
+3. **Final** (`stage = FINAL`): each student ticks exactly `final_pick_count`
+   shortlisted subjects — at most one per slot the round covers (PE4 + PE5 → 2).
+4. **Finalise** (`POST .../finalise`, final round LOCKED; dry run by default):
+   a subject runs with at least the round's minimum, or as the coordinator
+   decides (`run_course_ids`). A student whose pick was withdrawn, and one who
+   never submitted, is placed at random (seeded, so preview = run) in running
+   subjects; one seat per slot, creating the slot's offering if it lacks one.
+   The round becomes ALLOCATED; students hear on Publish. A two-stage round is
+   never allocated by `/admin/allocate` or moved to ALLOCATED by hand.
+
+A subject is a **course**, not an offering: one course can be offered in each
+of the round's slots. Every number above is the coordinator's, per round —
+none is a constant. Ranking (`/preferences`) is refused in a two-stage round.
+
+**Subjects** (`/admin/slots/{id}/subjects`, `/admin/subjects/{offering_id}`):
+the slot's coordinator adds a subject (a new course, or an existing one by
+code), edits a course's code/name/credits **everywhere it is offered**, or
+removes it from the slot (refused once it holds seats or sits in a live round;
+the course stays in the catalogue).
 
 ### Allocation is per round, and first come, first served
 

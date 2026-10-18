@@ -490,7 +490,7 @@ def seed(db: Session) -> None:
     db.add(upcoming)
     db.flush()
     next_semesters: dict[int, Semester] = {}
-    for number in (4, 5):
+    for number in (4, 5, 7):
         term = SemesterTerm.ODD if number % 2 else SemesterTerm.EVEN
         semester = Semester(
             academic_year_id=upcoming.id, number=number, term=term,
@@ -833,6 +833,8 @@ def seed(db: Session) -> None:
     # courses for the *next* cohort are put on offer here and left in no round:
     #   · Open Elective 1  — for the Open Elective coordinator to open to Sem III
     #   · Program Elective 1 — for the Core Elective coordinator to open to Sem IV
+    #   · Program Electives 4 and 5 — for a two-stage round (interest, shortlist,
+    #     final) opened to Sem VI, as the department runs its Sem VII electives
     # They are next year's offerings (2026-27): a course is offered once per
     # slot per term, and belongs to one round at a time.
     offerings["OE1-NEXT"] = [
@@ -845,6 +847,12 @@ def seed(db: Session) -> None:
                       coordinator=core_coordinator, **CORE_ELECTIVE_RULES)
         for course in handbook_basket("PE1")
     ]
+    for pe_code in ("PE4", "PE5"):
+        offerings[f"{pe_code}-NEXT"] = [
+            make_offering(db, course, next_semesters[7], components[pe_code],
+                          coordinator=core_coordinator, **CORE_ELECTIVE_RULES)
+            for course in handbook_basket(pe_code)
+        ]
     for window in windows.values():
         registration_service.validate_round(db, window)
     db.flush()
