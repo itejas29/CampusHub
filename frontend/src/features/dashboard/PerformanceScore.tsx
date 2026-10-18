@@ -47,7 +47,7 @@ const percent = (rate: number | null) => (rate === null ? "—" : `${Math.round(
 function RateRing({ score, size = 112 }: { score: FacultyScore; size?: number }) {
   const r = 42;
   const circumference = 2 * Math.PI * r;
-  const rate = score.on_time_rate ?? 0;
+  const rate = (score.score ?? 0) / 100;
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" aria-hidden>
@@ -60,8 +60,8 @@ function RateRing({ score, size = 112 }: { score: FacultyScore; size?: number })
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="tabular text-xl font-semibold text-ink">{percent(score.on_time_rate)}</span>
-        <span className="text-2xs text-ink-subtle">on time</span>
+        <span className="tabular text-xl font-semibold text-ink">{score.score ?? "—"}</span>
+        <span className="text-2xs text-ink-subtle">out of 100</span>
       </div>
     </div>
   );
@@ -168,10 +168,11 @@ function HowItsScored({ policy }: { policy: ScorePolicy }) {
       </ul>
       <p className="flex gap-2 text-xs text-ink-muted">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-        Covers the last {p.period_days} days. Work is credited to whoever did it; work still
-        waiting counts against the student's mentor. The on-time rate compares faculty fairly
-        whatever their number of students. These weights are the department's choice, not a
-        PDEU rule.
+        The score out of 100 places each item between the worst outcome of its kind (0) and the
+        best (100) and averages them, so it compares faculty fairly whatever their number of
+        students. Covers the last {p.period_days} days. Work is credited to whoever did it; work
+        still waiting counts against the student's mentor. These weights are the department's
+        choice, not a PDEU rule.
       </p>
     </div>
   );
@@ -193,10 +194,10 @@ function ScoreSummary({ score }: { score: FacultyScore }) {
         <div className="min-w-0 space-y-1.5">
           <Badge tone={BAND_TONE[score.band]}>{score.band}</Badge>
           <p className="tabular text-2xl font-semibold tracking-tight text-ink">
-            {signed(score.points)} <span className="text-sm font-normal text-ink-muted">points</span>
+            {percent(score.on_time_rate)} <span className="text-sm font-normal text-ink-muted">on time</span>
           </p>
           <p className="text-xs text-ink-muted">
-            {score.scored} scored item{score.scored === 1 ? "" : "s"}
+            {score.scored} scored item{score.scored === 1 ? "" : "s"} · {signed(score.points)} points
           </p>
         </div>
       </div>
@@ -283,7 +284,7 @@ export function DepartmentScoresCard() {
     <Card>
       <CardHeader
         title="Faculty performance"
-        description="On-time rate of reviews, marks and meeting replies. Select a row for the itemised record."
+        description="Score out of 100 for reviews, marks and meeting replies. Select a row for the itemised record."
         icon={<Gauge className="h-4 w-4 text-ink-subtle" aria-hidden />}
         action={attention > 0 ? <Badge tone="warning">{attention} need attention</Badge> : undefined}
       />
@@ -305,8 +306,8 @@ export function DepartmentScoresCard() {
         <TableWrap>
           <THead>
             <TH>Faculty</TH>
+            <TH width="12%" align="right">Score</TH>
             <TH width="16%" align="right">On time</TH>
-            <TH width="12%" align="right">Points</TH>
             <TH width="16%" align="right">Late / missed</TH>
             <TH width="18%">Standing</TH>
           </THead>
@@ -321,13 +322,13 @@ export function DepartmentScoresCard() {
                 </TD>
                 {row.is_scored ? (
                   <>
+                <TD align="right" className="tabular font-semibold text-ink">
+                  {row.score ?? "—"}
+                  <span className="ml-0.5 text-2xs font-normal text-ink-subtle">/100</span>
+                </TD>
                 <TD align="right" className="tabular">
                   {percent(row.on_time_rate)}
                   <span className="ml-1 text-2xs text-ink-subtle">({row.on_time}/{row.scored})</span>
-                </TD>
-                <TD align="right" className={cn("tabular font-semibold",
-                  row.points > 0 ? "text-success" : row.points < 0 ? "text-danger" : "text-ink-subtle")}>
-                  {signed(row.points)}
                 </TD>
                 <TD align="right" className="tabular text-ink-muted">
                   {row.late + row.overdue} / {row.missed}

@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarPlus, Mail, MapPin, MessageSquare, Phone, UserSquare2, Users2,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Alert } from "@/components/ui/Alert";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -25,8 +26,17 @@ export function MentorshipPage() {
   const [decide, setDecide] = useState<Meeting | null>(null);
   const [banner, setBanner] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
   const [menteeSearch, setMenteeSearch] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const isStudent = Boolean(user?.student);
+
+  // "?request=1" (the assistant's "Request a meeting") opens the form directly.
+  useEffect(() => {
+    if (isStudent && searchParams.get("request") === "1") {
+      setRequestOpen(true);
+      setSearchParams((params) => { params.delete("request"); return params; }, { replace: true });
+    }
+  }, [isStudent, searchParams, setSearchParams]);
 
   const mentor = useQuery({
     queryKey: ["my-mentor"],

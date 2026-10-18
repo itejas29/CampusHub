@@ -13,8 +13,12 @@ What is scored, and only for the faculty member it belongs to:
   not scored on marks.
 * **Meeting requests** — how quickly the mentor answers.
 
-Two figures come out: the points total, and the **on-time rate**, which is fair
-across different workloads (forty mentees and four are compared by rate).
+The headline is a **score out of 100**: each item is placed on its own scale
+from the worst outcome its category allows (0) to the best (100) — a review in
+three days is 100, in a week 75, late 25, left waiting 0 — and the score is the
+average. Forty mentees and four are compared fairly, because more work means
+more items, not a bigger number. The points total and the on-time rate are
+shown beside it.
 
 The weights below are the department's choice, NOT a PDEU rule
 (REQUIRES_FACULTY_CONFIRMATION). They live here and nowhere else.
@@ -56,9 +60,19 @@ POLICY = {
     "period_days": 180,           # the window the score covers by default
 }
 
-#: Rate bands. A faculty member with fewer scored items is shown as such.
-BANDS = [(0.9, "Excellent"), (0.75, "Good"), (0.5, "Needs attention"), (0.0, "At risk")]
+#: Score bands (out of 100). A faculty member with fewer scored items is shown as such.
+BANDS = [(90, "Excellent"), (75, "Good"), (50, "Needs attention"), (0, "At risk")]
 MIN_ITEMS_FOR_BAND = 3
+
+
+def point_range(category: str) -> tuple[int, int]:
+    """(worst, best) points one item of `category` can earn under POLICY."""
+    p = POLICY
+    return {
+        "REVIEW": (p["review_overdue"], p["review_fast"]),
+        "MARKS": (p["marks_missed"], p["marks_on_time"]),
+        "MEETING": (p["meeting_overdue"], p["meeting_fast"]),
+    }[category]
 
 
 def utcnow() -> dt.datetime:
@@ -90,10 +104,13 @@ class Score:
     overdue: int = 0       # still waiting past the limit (reviews, meetings)
     missed: int = 0        # marks missing at the deadline
     pending: int = 0       # waiting, still within the limit — not scored yet
+    quality: float = 0.0   # sum over items of where each fell, worst 0 … best 1
     by_category: dict = field(default_factory=lambda: defaultdict(int))
     entries: list[Entry] = field(default_factory=list)
 
     def add(self, entry: Entry) -> None:
+        worst, best = point_range(entry.category)
+        self.quality += (entry.points - worst) / (best - worst)
         self.points += entry.points
         self.by_category[entry.category] += entry.points
         if entry.outcome == "ON_TIME":
@@ -115,11 +132,16 @@ class Score:
         return self.on_time / self.scored if self.scored else None
 
     @property
+    def score(self) -> int | None:
+        """Out of 100: the average item, worst 0 to best 100."""
+        return round(100 * self.quality / self.scored) if self.scored else None
+
+    @property
     def band(self) -> str:
         if self.scored < MIN_ITEMS_FOR_BAND:
             return "Not enough activity"
-        rate = self.on_time_rate or 0.0
-        return next(label for floor, label in BANDS if rate >= floor)
+        return next(label for floor, label in BANDS if (self.score or 0) >= floor)
+
 
 
 # ── scoring rules ─────────────────────────────────────────────────────────

@@ -1318,6 +1318,9 @@ def seed_internship_records(db, cssi, summer, cssi_groups, students, ngos, compa
         )
         db.add(enrollment)
         db.flush()
+        # The student's own mentor approves their milestones. Crediting one
+        # coordinator with every approval gave that person ~900 scored reviews.
+        reviewer_user_id = db.get(Faculty, group.faculty_id).user_id if group.faculty_id else None
 
         for position, stage in enumerate(cssi_stages):
             if position < reached - 1:
@@ -1333,8 +1336,8 @@ def seed_internship_records(db, cssi, summer, cssi_groups, students, ngos, compa
                               else None),
                 reviewed_at=(NOW - dt.timedelta(days=18 - position)
                              if status == StageStatus.APPROVED else None),
-                reviewed_by_user_id=(faculty_by_code["ICT-F-101"].user_id
-                                     if status == StageStatus.APPROVED else None),
+                reviewed_by_user_id=(reviewer_user_id if status == StageStatus.APPROVED else None),
+
             ))
         enrollment.current_stage_id = cssi_stages[min(reached - 1,
                                                       len(cssi_stages) - 1)].id

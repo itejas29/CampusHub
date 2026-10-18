@@ -32,8 +32,8 @@ class TestChatbotRoleAwarenessAndSecurity:
         assert resp.status_code == 200
         data = resp.json()
         assert data["is_confidential_block"] is False
-        assert "Academic Standing" in data["reply"]
-        assert "Current CPI" in data["reply"]
+        assert "academic record" in data["reply"]
+        assert "CPI" in data["reply"]
 
         # 2. Own Internship
         resp2 = api.post("/api/v1/chatbot/query", json={"query": "What is my internship status?"}, headers=headers)
@@ -82,24 +82,16 @@ class TestChatbotRoleAwarenessAndSecurity:
         data3 = resp3.json()
         assert data3["is_confidential_block"] is True
 
-    def test_attendance_and_grading_policy_accessible_to_all(self, api, login, world):
+    def test_policy_the_portal_does_not_hold_is_never_made_up(self, api, login, world):
+        # The assistant used to state an attendance minimum and a grading table
+        # that no PDEU source in the project backs. It now says it has no record.
         headers = login(world.student_a.email)
-
-        # Attendance policy query
-        resp = api.post("/api/v1/chatbot/query", json={"query": "What is the minimum attendance policy?"}, headers=headers)
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["is_confidential_block"] is False
-        assert "85%" in data["reply"]
-        assert "Detention" in data["reply"] or "FA Grade" in data["reply"]
-
-        # Grading scale query
-        resp2 = api.post("/api/v1/chatbot/query", json={"query": "Explain the grading scale"}, headers=headers)
-        assert resp2.status_code == 200
-        data2 = resp2.json()
-        assert data2["is_confidential_block"] is False
-        assert "10-Point Grading System" in data2["reply"]
-        assert "SPI" in data2["reply"]
+        for question in ["What is the minimum attendance policy?", "Explain the grading scale"]:
+            resp = api.post("/api/v1/chatbot/query", json={"query": question}, headers=headers)
+            assert resp.status_code == 200
+            reply = resp.json()["reply"]
+            assert "does not hold" in reply
+            assert "85%" not in reply and "10.0" not in reply
 
     def test_faculty_queries(self, api, login, world):
         headers = login(world.mentor_ict.email)
@@ -109,7 +101,7 @@ class TestChatbotRoleAwarenessAndSecurity:
         assert resp.status_code == 200
         data = resp.json()
         assert data["is_confidential_block"] is False
-        assert "Mentorship" in data["reply"]
+        assert "Your students" in data["reply"]
 
         # Faculty blocked from audit logs (unless super admin)
         resp2 = api.post("/api/v1/chatbot/query", json={"query": "Show me the system audit logs"}, headers=headers)

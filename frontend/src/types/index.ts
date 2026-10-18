@@ -1074,6 +1074,8 @@ export interface FacultyScore {
   faculty_id: number; name: string; designation: string | null; is_demo: boolean;
   /** False for real faculty until the department switches scoring on. */
   is_scored: boolean;
+  /** Out of 100: the average item, worst outcome 0 to best 100. */
+  score: number | null;
   points: number; on_time: number; late: number; overdue: number; missed: number;
   /** Waiting, still within time — not scored yet. */
   pending: number; scored: number;

@@ -4,19 +4,25 @@ from __future__ import annotations
 import datetime as dt
 import re
 from typing import Any
+from zoneinfo import ZoneInfo
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models.academics import Course, CourseOffering, ElectiveRegistrationWindow
-from app.models.engagement import Announcement, MentorMeeting
+from app.models.academics import ElectiveRegistrationWindow, MoocRegistration
+from app.models.engagement import MentorAssignment, MentorMeeting, Notification
 from app.models.enums import (
-    AllocationStatus, AssignedRole, CoordinationDomain, EnrollmentStatus,
-    MeetingStatus, RegistrationStatus, Role, SubmissionStatus,
+    EnrollmentStatus, MeetingStatus, RegistrationWindowStatus, Role, StageStatus, SubmissionStatus,
 )
 from app.models.identity import Department, Faculty, FacultyRoleAssignment, Student, User
-from app.models.internships import InternshipEnrollment, InternshipReport
-from app.models.minors import MinorProgram
+from app.models.internships import (
+    EnrollmentStageProgress, InternshipDocument, InternshipEnrollment, InternshipReport,
+    InternshipStage,
+)
+from app.models.minors import MinorApplication, MinorEnrollment, MinorProgram
+from app.services import faculty_scoring as scoring
+from app.services import minors as minors_service
+from app.services.faculty_scoring import _aware
 from app.schemas.chatbot import ChatActionLink, ChatMessageItem, ChatQueryResponse
 
 
@@ -165,336 +171,430 @@ def get_user_role_context(user: User, db: Session) -> dict[str, Any]:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Context-Aware Knowledge & Live Data Answering Engine
+# Answering engine
+#
+# Every answer is read from the asker's own records at the moment they ask —
+# nothing is canned except the "what I can do" help. Two rules:
+#
+# * No university rule is stated that the portal does not hold. Where a
+#   question is about policy the portal has no record of (attendance,
+#   grading), the answer says so and points to the official source.
+# * Every link is a route the app has (App.tsx).
 # ─────────────────────────────────────────────────────────────────────────────
 
-def answer_query_contextually(
-    user: User,
-    query: str,
-    context: dict[str, Any],
-    db: Session,
-) -> tuple[str, list[ChatActionLink], list[str]]:
-    """Generate high-fidelity, role-appropriate responses with live DB context and navigation actions."""
-    q_lower = query.lower()
-    links: list[ChatActionLink] = []
-    suggestions: list[str] = []
+Answer = tuple[str, list[ChatActionLink], list[str]]
+IST = ZoneInfo("Asia/Kolkata")
 
-    # 1. Greetings & Capabilities
-    if any(q_lower.strip() in (g, g + "!", g + ".") for g in ["hi", "hello", "hey", "hola", "greetings", "good morning", "good afternoon"]):
-        name = user.full_name
-        if user.has_role(Role.STUDENT):
-            return (
-                f"Hello **{name}**! 👋 I am your CampusHub Academic Assistant.\n\n"
-                f"I can help you check your **internship weekly report status**, **assigned mentor**, "
-                f"**CPI & credit requirements**, **elective registration rounds**, or institutional policies.\n\n"
-                f"How may I assist you today?",
-                [
-                    ChatActionLink(title="My Internships", path="/internships/my-internship"),
-                    ChatActionLink(title="Electives", path="/electives"),
-                    ChatActionLink(title="Academic Progress", path="/progress"),
-                ],
-                [
-                    "What is my internship status?",
-                    "Who is my assigned mentor?",
-                    "What is the minimum attendance policy?",
-                    "Are elective registrations open?",
-                ],
-            )
-        elif user.has_role(Role.FACULTY, Role.HOD):
-            faculty_info = context.get("faculty") or {}
-            dept_name = faculty_info.get("department_name", "your department")
-            badge = context.get("role_badge", "Faculty")
-            return (
-                f"Hello **{name}** ({badge})! 👋\n\n"
-                f"I can assist you with mentee weekly report reviews, internship coordination, "
-                f"meeting schedules, and departmental guidance for {dept_name}.\n\n"
-                f"What would you like to check?",
-                [
-                    ChatActionLink(title="My Mentees", path="/internships/my-students"),
-                    ChatActionLink(title="Mentorship Meetings", path="/mentorship"),
-                ],
-                [
-                    "How many weekly reports need my review?",
-                    "Show my assigned mentees",
-                    "List departmental registration rounds",
-                ],
-            )
+STUDENT_SUGGESTIONS = ["What is my name and roll number?", "Who is my mentor?",
+                       "Show my meeting requests", "What is my internship status?",
+                       "Are elective registrations open?"]
+FACULTY_SUGGESTIONS = ["Show pending meeting requests", "Show my mentees",
+                       "What needs my review?", "What is my performance score?"]
+ADMIN_SUGGESTIONS = ["Who am I signed in as?", "Show a portal summary"]
+
+
+def _has(q: str, *phrases: str) -> bool:
+    """Whole-word match for any phrase — "mentor" does not match "mentorship"
+    unless asked for, "rank" does not match "frank"."""
+    return any(re.search(rf"\b{re.escape(p)}\b", q) for p in phrases)
+
+
+def _when(moment: dt.datetime | None) -> str:
+    if moment is None:
+        return "not set"
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=dt.timezone.utc)
+    return moment.astimezone(IST).strftime("%d %b %Y, %I:%M %p")
+
+
+def _human(value: Any) -> str:
+    return str(getattr(value, "value", value)).replace("_", " ").capitalize()
+
+
+def _suggest(user: User) -> list[str]:
+    if user.has_role(Role.STUDENT):
+        return STUDENT_SUGGESTIONS
+    if user.has_role(Role.FACULTY, Role.HOD):
+        return FACULTY_SUGGESTIONS
+    return ADMIN_SUGGESTIONS
+
+
+# ── shared answers ────────────────────────────────────────────────────────
+def _greeting(user: User, context: dict[str, Any]) -> Answer:
+    if user.has_role(Role.STUDENT):
+        what = ("your details, your mentor and meeting requests, your internship, open "
+                "elective rounds, your minor and your NPTEL courses")
+    elif user.has_role(Role.FACULTY, Role.HOD):
+        what = ("your meeting requests, your mentees, work waiting for your review, your "
+                "roles and your performance score")
+    else:
+        what = "who you are signed in as and a summary of the portal"
+    return (f"Hello **{user.full_name}**! I answer from your own CampusHub records — {what}.\n\n"
+            "What would you like to know?", [], _suggest(user))
+
+
+def _identity(user: User, context: dict[str, Any], db: Session) -> Answer:
+    lines = [f"- **Name:** {user.full_name}", f"- **Signed in as:** {user.email}",
+             f"- **Role:** {context['role_badge']}"]
+    s = context.get("student")
+    f = context.get("faculty")
+    if s:
+        student = db.get(Student, s["id"])
+        lines[2:2] = [f"- **Roll number:** `{s['roll_number']}`"]
+        lines += [f"- **Programme:** {student.program.name if student.program else '—'}",
+                  f"- **Department:** {s['department_name']}",
+                  f"- **Semester:** {s['semester']}"
+                  + (f" · Division {student.division}" if student.division else ""),
+                  f"- **Admission year:** {student.admission_year}"]
+    elif f:
+        lines += [f"- **Designation:** {f['designation']}",
+                  f"- **Department:** {f['department_name']}"]
+    return ("### Your details\n\n" + "\n".join(lines),
+            [ChatActionLink(title="My profile", path="/profile")], _suggest(user))
+
+
+def _no_policy_record(topic: str) -> Answer:
+    return (f"CampusHub does not hold the official **{topic}** rules, so I won't state them — "
+            "a wrong figure here could mislead you.\n\n"
+            "Please check PDEU's Academic Rules and Regulations, or ask your department office "
+            "or mentor.",
+            [ChatActionLink(title="Curriculum", path="/academics/curriculum")],
+            ["Who is my mentor?", "What is my internship status?"])
+
+
+def _fallback(user: User, query: str) -> Answer:
+    return (f"I couldn't match “{query.strip()[:120]}” to anything I can look up.\n\n"
+            "I answer from your own records — try one of the questions below, or ask it "
+            "with a key word such as *mentor*, *meeting*, *internship*, *elective*, *minor* "
+            "or *NPTEL*.",
+            [ChatActionLink(title="Dashboard", path="/")], _suggest(user))
+
+
+def _notifications(user: User, db: Session) -> Answer:
+    unread = list(db.scalars(select(Notification).where(
+        Notification.user_id == user.id, Notification.is_read.is_(False))
+        .order_by(Notification.created_at.desc()).limit(5)))
+    if not unread:
+        return "You have no unread notifications.", [], _suggest(user)
+    lines = "\n".join(f"- **{n.title}** — {n.message[:140]}" for n in unread)
+    return (f"### Unread notifications\n\n{lines}", [], _suggest(user))
+
+
+# ── students ──────────────────────────────────────────────────────────────
+def _student_mentor(db: Session, student: Student) -> Faculty | None:
+    assignment = db.scalar(select(MentorAssignment).where(
+        MentorAssignment.student_id == student.id, MentorAssignment.is_active.is_(True))
+        .order_by(MentorAssignment.id.desc()))
+    return assignment.faculty if assignment else None
+
+
+def _mentor(db: Session, student: Student) -> Answer:
+    mentor = _student_mentor(db, student)
+    if mentor is None:
+        return ("You have no mentor assigned yet. Your department assigns one; until then "
+                "you cannot request a mentor meeting.",
+                [ChatActionLink(title="Mentor–Mentee", path="/mentorship")],
+                ["What is my internship status?"])
+    lines = [f"- **Name:** {mentor.user.full_name}", f"- **Designation:** {mentor.designation}"]
+    if mentor.cabin:
+        lines.append(f"- **Cabin:** {mentor.cabin}")
+    lines.append(f"- **Email:** {mentor.public_email or mentor.user.email}")
+    if mentor.public_phone:
+        lines.append(f"- **Phone:** {mentor.public_phone}")
+    return ("### Your mentor\n\n" + "\n".join(lines),
+            [ChatActionLink(title="Request a meeting", path="/mentorship?request=1")],
+            ["Show my meeting requests", "How do I request a meeting?"])
+
+
+def _student_meetings(db: Session, student: Student, q: str) -> Answer:
+    mentor = _student_mentor(db, student)
+    meetings = list(db.scalars(select(MentorMeeting).where(MentorMeeting.student_id == student.id)
+                               .order_by(MentorMeeting.created_at.desc()).limit(5)))
+    wants_new = _has(q, "request", "book", "schedule", "arrange", "set up", "want", "need", "how")
+    parts = []
+    if wants_new or not meetings:
+        if mentor is None:
+            parts.append("You have no mentor assigned yet, so a meeting cannot be requested.")
         else:
-            return (
-                f"Hello **{name}** (Administrator)! 👋\n\n"
-                f"I can provide live statistics on student enrollments, registration rounds, "
-                f"department coordinators, and platform status.",
-                [
-                    ChatActionLink(title="Admin Dashboard", path="/dashboard"),
-                    ChatActionLink(title="Registration Rounds", path="/admin/rounds"),
-                ],
-                [
-                    "Show department summary",
-                    "What registration rounds are active?",
-                    "List all coordinators",
-                ],
-            )
+            parts.append(f"To request a meeting with **{mentor.user.full_name}**, press **Request a "
+                         "meeting** below, give a subject and, if you like, an agenda, a preferred "
+                         "slot, duration and mode. Your mentor is notified and confirms or "
+                         "proposes another time.")
+    if meetings:
+        rows = []
+        for m in meetings:
+            when = (f"scheduled {_when(m.scheduled_at)}" if m.scheduled_at
+                    else f"proposed {_when(m.proposed_slot)}" if m.proposed_slot
+                    else f"requested {_when(m.requested_at)}")
+            rows.append(f"- **{m.title}** — {_human(m.status)}, {when}"
+                        + (f" · {m.location}" if m.location else ""))
+        parts.append("### Your meeting requests\n\n" + "\n".join(rows))
+    elif not wants_new:
+        parts.append("You have not requested any meetings yet.")
+    links = [ChatActionLink(title="Request a meeting", path="/mentorship?request=1")] if mentor else []
+    links.append(ChatActionLink(title="Mentor–Mentee", path="/mentorship"))
+    return "\n\n".join(parts), links, ["Who is my mentor?", "What is my internship status?"]
 
-    # 2. Student-Specific Live Context Queries
-    if user.has_role(Role.STUDENT) and context.get("student"):
-        s_data = context["student"]
-        student_id = s_data["id"]
 
-        # A. CPI / Grades / Academic Standing
-        if any(k in q_lower for k in ["my cpi", "my cgpa", "my grade", "my marks", "my performance"]):
-            cpi_val = s_data["cpi"] if s_data["cpi"] is not None else "N/A"
-            backlogs = s_data["backlog_count"]
-            status_text = "Good Standing" if backlogs == 0 else f"{backlogs} Active Backlog(s)"
-            return (
-                f"### 🎓 Your Academic Standing\n\n"
-                f"- **Roll Number:** `{s_data['roll_number']}`\n"
-                f"- **Department:** {s_data['department_name']} (Semester {s_data['semester']})\n"
-                f"- **Current CPI:** **{cpi_val}**\n"
-                f"- **Backlog Status:** {status_text}\n\n"
-                f"> **Note:** A minimum CPI of **7.00** and zero active backlogs are required to be eligible for Minor Specialisation programmes.",
-                [ChatActionLink(title="View Full Profile", path="/profile")],
-                ["Am I eligible for minor?", "What is my internship status?", "Attendance policy"],
-            )
+def _student_internships(db: Session, student: Student) -> Answer:
+    enrollments = list(db.scalars(select(InternshipEnrollment).where(
+        InternshipEnrollment.student_id == student.id,
+        InternshipEnrollment.status != EnrollmentStatus.WITHDRAWN)))
+    if not enrollments:
+        return ("You are not registered for any internship or project right now. When your "
+                "coordinator opens registration, it appears on the Internships page.",
+                [ChatActionLink(title="Internships", path="/internships")],
+                ["Who is my mentor?", "Are elective registrations open?"])
+    blocks = []
+    for e in enrollments:
+        stage = db.get(InternshipStage, e.current_stage_id) if e.current_stage_id else None
+        reports = list(db.scalars(select(InternshipReport.status).where(
+            InternshipReport.enrollment_id == e.id)))
+        lines = [f"- **Status:** {_human(e.status)}",
+                 f"- **Mentor:** {e.mentor.user.full_name if e.mentor else 'not assigned yet'}"]
+        if e.organization:
+            lines.append(f"- **Host:** {e.organization.name}")
+        if stage:
+            lines.append(f"- **Current stage:** {stage.name}")
+        if reports:
+            waiting = sum(1 for r in reports if r == SubmissionStatus.SUBMITTED)
+            lines.append(f"- **Reports:** {len(reports)} submitted, {waiting} waiting for review")
+        blocks.append(f"### {e.program.name if e.program else 'Internship'}\n\n" + "\n".join(lines))
+    return ("\n\n".join(blocks),
+            [ChatActionLink(title="My internship", path="/internships")],
+            ["Who is my mentor?", "Show my meeting requests"])
 
-        # B. Internship Status & Assigned Mentor
-        if any(k in q_lower for k in ["internship", "weekly report", "daily log", "mentor"]):
-            enrollment = db.scalar(
-                select(InternshipEnrollment).where(
-                    InternshipEnrollment.student_id == student_id,
-                    InternshipEnrollment.status != EnrollmentStatus.WITHDRAWN,
-                )
-            )
-            if not enrollment:
-                return (
-                    f"You do not have an active internship enrollment at this moment.\n\n"
-                    f"If you are registering for Summer Internship or CSSI, please visit the Internships portal to view available openings and program guidelines.",
-                    [ChatActionLink(title="Internships Portal", path="/internships")],
-                    ["Who is my mentor?", "Are elective registrations open?"],
-                )
 
-            mentor_name = "Not Assigned"
-            mentor_dept = ""
-            if enrollment.mentor and enrollment.mentor.user:
-                mentor_name = enrollment.mentor.user.full_name
-                if enrollment.mentor.department:
-                    mentor_dept = f" ({enrollment.mentor.department.code})"
+def _student_electives(db: Session, student: Student) -> Answer:
+    now = dt.datetime.now(dt.timezone.utc)
+    rounds = [w for w in db.scalars(select(ElectiveRegistrationWindow).where(
+                  ElectiveRegistrationWindow.status == RegistrationWindowStatus.OPEN))
+              if w.accepts_students_from(student.program_id, student.current_semester, student.division)
+              and (w.closes_at is None or _aware(w.closes_at) > now)]
+    links = [ChatActionLink(title="Open Electives", path="/academics/open-electives"),
+             ChatActionLink(title="Core Electives", path="/academics/core-electives")]
+    if not rounds:
+        return ("No elective registration round is open for you right now. Your coordinator "
+                "opens one before choice filling starts, and you are notified when it does.",
+                links, ["What is my internship status?", "Who is my mentor?"])
+    lines = "\n".join(f"- **{w.title}** — open until {_when(w.closes_at)}" for w in rounds)
+    return (f"### Open for you now\n\n{lines}\n\nFill in your choices before the deadline.",
+            links, ["What is my internship status?"])
 
-            reports = db.scalars(
-                select(InternshipReport).where(InternshipReport.enrollment_id == enrollment.id)
-            ).all()
-            approved_count = sum(1 for r in reports if r.status == SubmissionStatus.APPROVED)
-            submitted_count = sum(1 for r in reports if r.status == SubmissionStatus.SUBMITTED)
 
-            report_summary = (
-                f"- **Total Weekly Reports Submitted:** {len(reports)}\n"
-                f"- **Approved Reports:** {approved_count}\n"
-                f"- **Pending Mentor Review:** {submitted_count}"
-            )
+def _student_minor(db: Session, student: Student) -> Answer:
+    link = [ChatActionLink(title="Minor Specialisation", path="/academics/minors")]
+    seat = db.scalar(select(MinorEnrollment).where(MinorEnrollment.student_id == student.id))
+    if seat:
+        return (f"You hold a seat in **{seat.minor_program.name}** ({_human(seat.status)}), with "
+                f"{float(seat.credits_completed):g} credits completed so far. This semester's "
+                "courses, your results, fees and syllabus are on your minor page.", link, [])
+    applications = list(db.scalars(select(MinorApplication).where(
+        MinorApplication.student_id == student.id)))
+    if applications:
+        lines = "\n".join(f"- **{a.minor_program.name}** — {_human(a.status)}" for a in applications)
+        return f"### Your minor applications\n\n{lines}", link, []
+    open_now = [m for m in db.scalars(select(MinorProgram).where(MinorProgram.is_active.is_(True)))
+                if m.department_id != student.department_id
+                and student.current_semester in minors_service.application_semesters(m)]
+    if not open_now:
+        return ("You have not applied for a minor. Minor applications are made in the "
+                "semester each minor names (Semester III by default), so there is nothing "
+                "to apply for now.", link, [])
+    lines = "\n".join(f"- **{m.name}** — CPI ≥ {float(m.min_cpi):g}, at most {m.max_backlogs} "
+                      f"backlog(s), {m.capacity} seats" for m in open_now if m.min_cpi is not None)
+    return (f"### Minors you can apply for this semester\n\n{lines}\n\n"
+            "Eligibility is checked against your record when you apply.", link, [])
 
-            return (
-                f"### 💼 Active Internship Record\n\n"
-                f"- **Program:** {enrollment.program.name if enrollment.program else 'Internship'}\n"
-                f"- **Company / Host Org:** {enrollment.organization.name if enrollment.organization else 'PDEU Internal'}\n"
-                f"- **Assigned Faculty Mentor:** **{mentor_name}**{mentor_dept}\n"
-                f"- **Enrollment Status:** `{enrollment.status.value}`\n\n"
-                f"#### 📝 Weekly Reports Overview\n"
-                f"{report_summary}\n\n"
-                f"Remember to submit your weekly logs by Sunday 23:59 each week for your mentor to evaluate.",
-                [
-                    ChatActionLink(title="Open My Internship", path="/internships/my-internship"),
-                    ChatActionLink(title="Submit Report", path="/internships/my-internship?tab=reports"),
-                ],
-                ["What electives can I choose?", "Attendance policy", "My CPI"],
-            )
 
-        # C. Elective Registration & Rounds
-        if any(k in q_lower for k in ["elective", "registration round", "open elective", "core elective"]):
-            windows = db.scalars(
-                select(ElectiveRegistrationWindow).where(
-                    ElectiveRegistrationWindow.target_semester == s_data["semester"],
-                    ElectiveRegistrationWindow.status == RegistrationStatus.OPEN,
-                )
-            ).all()
+def _student_nptel(db: Session, student: Student) -> Answer:
+    regs = list(db.scalars(select(MoocRegistration).where(MoocRegistration.student_id == student.id)))
+    link = [ChatActionLink(title="NPTEL", path="/academics/nptel")]
+    if not regs:
+        return ("You have no NPTEL registrations. Register for a course on the NPTEL page; once "
+                "you pass, upload the certificate there and the NPTEL coordinator verifies it.",
+                link, [])
+    lines = "\n".join(f"- **{r.course_offering.course.title if r.course_offering else 'Course'}** — "
+                      f"{_human(r.status)}" for r in regs)
+    return f"### Your NPTEL courses\n\n{lines}", link, []
 
-            if windows:
-                round_lines = "\n".join(
-                    f"- **{w.name}** (Type: `{w.elective_type.value}`): Open until {w.closes_at.strftime('%Y-%m-%d %H:%M') if w.closes_at else 'TBD'}"
-                    for w in windows
-                )
-                return (
-                    f"### 📚 Active Elective Registration Rounds\n\n"
-                    f"The following registration round(s) are currently **OPEN** for your semester ({s_data['semester']}):\n\n"
-                    f"{round_lines}\n\n"
-                    f"Make sure to submit and rank your preferences before the closing deadline. Allocations use Gale-Shapley matching based on your preference order and CPI ranking.",
-                    [ChatActionLink(title="Go to Electives", path="/electives")],
-                    ["Am I eligible for minor?", "What is my internship status?"],
-                )
-            else:
-                return (
-                    f"### 📚 Elective Registration Status\n\n"
-                    f"There are currently **no open elective registration windows** for Semester {s_data['semester']}.\n\n"
-                    f"You can view past allocations, syllabus details, or check back when the coordinator opens the next registration round.",
-                    [ChatActionLink(title="View Electives", path="/electives")],
-                    ["What is my internship status?", "Am I eligible for minor?"],
-                )
 
-        # D. Minor Specialisation
-        if any(k in q_lower for k in ["minor", "specialisation", "specialization"]):
-            minors = db.scalars(
-                select(MinorProgram).where(
-                    MinorProgram.department_id != s_data["department_id"],
-                    MinorProgram.is_active.is_(True),
-                )
-            ).all()
+def _student_standing(student: Student) -> Answer:
+    cpi = f"{float(student.cpi):.2f}" if student.cpi is not None else "not recorded"
+    return (f"### Your academic record\n\n- **CPI:** {cpi}\n- **Backlogs:** {student.backlog_count}\n"
+            f"- **Semester:** {student.current_semester}",
+            [ChatActionLink(title="My profile", path="/profile")], ["Am I eligible for a minor?"])
 
-            minor_names = [f"- **{m.name}** (Offered by {m.department.name if m.department else 'Other Dept'})" for m in minors]
-            cpi = s_data["cpi"] or 0.0
-            eligible = (cpi >= 7.0 and s_data["backlog_count"] == 0)
-            elig_status = "✅ **Eligible**" if eligible else "❌ **Ineligible** (Requires CPI ≥ 7.00 and 0 active backlogs)"
 
-            return (
-                f"### 🎯 Minor Specialisation Guidelines\n\n"
-                f"- **Your Eligibility:** {elig_status} (Your CPI: {s_data['cpi']}, Backlogs: {s_data['backlog_count']})\n"
-                f"- **Key Rule:** Under PDEU rules, you cannot take a minor offered by your own department ({s_data['department_name']}). You must choose an inter-departmental minor.\n\n"
-                f"#### Available Minors:\n"
-                f"{(chr(10).join(minor_names)) if minor_names else 'No active external minors registered.'}\n\n"
-                f"Completing a minor requires 18–20 additional credits across Semesters 4 to 8.",
-                [ChatActionLink(title="Explore Minors", path="/minors")],
-                ["What is my CPI?", "Are elective registrations open?"],
-            )
+def _answer_student(q: str, user: User, context: dict, db: Session) -> Answer | None:
+    student = db.get(Student, context["student"]["id"])
+    if _has(q, "meeting", "meetings", "appointment", "meet my mentor"):
+        return _student_meetings(db, student, q)
+    if _has(q, "internship", "cssi", "report", "reports", "project", "seminar", "stage", "ngo"):
+        return _student_internships(db, student)
+    if _has(q, "mentor", "guide", "advisor"):
+        return _mentor(db, student)
+    if _has(q, "elective", "electives", "choice filling", "registration round"):
+        return _student_electives(db, student)
+    if _has(q, "minor", "specialisation", "specialization"):
+        return _student_minor(db, student)
+    if _has(q, "nptel", "mooc", "swayam"):
+        return _student_nptel(db, student)
+    if _has(q, "cpi", "cgpa", "backlog", "backlogs", "standing"):
+        return _student_standing(student)
+    return None
 
-    # 3. Faculty / Mentor / Coordinator Live Context Queries
-    if user.has_role(Role.FACULTY, Role.HOD) and context.get("faculty"):
-        f_data = context["faculty"]
-        faculty_id = f_data["id"]
 
-        # A. Assigned Mentees & Pending Reviews
-        if any(k in q_lower for k in ["mentee", "my student", "weekly report", "review", "submission"]):
-            mentees = db.scalars(
-                select(InternshipEnrollment).where(
-                    InternshipEnrollment.mentor_faculty_id == faculty_id,
-                    InternshipEnrollment.status != EnrollmentStatus.WITHDRAWN,
-                )
-            ).all()
+# ── faculty ───────────────────────────────────────────────────────────────
+def _faculty_meetings(db: Session, faculty: Faculty) -> Answer:
+    waiting = list(db.scalars(select(MentorMeeting).where(
+        MentorMeeting.faculty_id == faculty.id, MentorMeeting.status == MeetingStatus.REQUESTED)
+        .order_by(MentorMeeting.requested_at)))
+    upcoming = list(db.scalars(select(MentorMeeting).where(
+        MentorMeeting.faculty_id == faculty.id, MentorMeeting.status == MeetingStatus.APPROVED,
+        MentorMeeting.scheduled_at >= dt.datetime.now(dt.timezone.utc))
+        .order_by(MentorMeeting.scheduled_at).limit(5)))
+    parts = []
+    if waiting:
+        parts.append(f"### Waiting for your reply ({len(waiting)})\n\n" + "\n".join(
+            f"- **{m.student.user.full_name}** (`{m.student.roll_number}`) — {m.title}, "
+            f"requested {_when(m.requested_at)}" for m in waiting[:8]))
+    else:
+        parts.append("No meeting requests are waiting for your reply.")
+    if upcoming:
+        parts.append("### Coming up\n\n" + "\n".join(
+            f"- **{m.student.user.full_name}** — {m.title}, {_when(m.scheduled_at)}" for m in upcoming))
+    return ("\n\n".join(parts), [ChatActionLink(title="Meetings", path="/mentorship")],
+            ["Show my mentees", "What needs my review?"])
 
-            pending_reports = db.scalars(
-                select(InternshipReport)
-                .join(InternshipEnrollment)
-                .where(
-                    InternshipEnrollment.mentor_faculty_id == faculty_id,
-                    InternshipReport.status == SubmissionStatus.SUBMITTED,
-                )
-            ).all()
 
-            mentee_lines = [
-                f"- **{m.student.user.full_name}** (`{m.student.roll_number}`) · {m.organization.name if m.organization else 'PDEU Internal'}"
-                for m in mentees[:5] if m.student and m.student.user
-            ]
-            if len(mentees) > 5:
-                mentee_lines.append(f"- *...and {len(mentees) - 5} more mentees*")
+def _faculty_mentees(db: Session, faculty: Faculty) -> Answer:
+    mentees = [a.student for a in db.scalars(select(MentorAssignment).where(
+        MentorAssignment.faculty_id == faculty.id, MentorAssignment.is_active.is_(True)))]
+    interns = list(db.scalars(select(InternshipEnrollment).where(
+        InternshipEnrollment.mentor_faculty_id == faculty.id,
+        InternshipEnrollment.status != EnrollmentStatus.WITHDRAWN)))
+    lines = [f"- **Mentees:** {len(mentees)}", f"- **Internship / project students:** {len(interns)}"]
+    names = sorted(mentees, key=lambda s: s.roll_number)[:8]
+    body = "### Your students\n\n" + "\n".join(lines)
+    if names:
+        body += "\n\n" + "\n".join(f"- {s.user.full_name} (`{s.roll_number}`)" for s in names)
+        if len(mentees) > len(names):
+            body += f"\n- …and {len(mentees) - len(names)} more"
+    return (body, [ChatActionLink(title="My mentees", path="/mentorship/mentees"),
+                   ChatActionLink(title="Internship students", path="/internships/my-students")],
+            ["What needs my review?", "Show pending meeting requests"])
 
-            return (
-                f"### 👥 Mentorship & Review Summary\n\n"
-                f"- **Total Assigned Mentees:** {len(mentees)}\n"
-                f"- **Weekly Reports Pending Review:** **{len(pending_reports)}**\n\n"
-                f"#### Active Mentees:\n"
-                f"{(chr(10).join(mentee_lines)) if mentee_lines else 'No mentees currently assigned to you.'}\n\n"
-                f"You can review submitted reports, score daily logs, and provide feedback directly in the Mentee portal.",
-                [
-                    ChatActionLink(title="Review Mentees", path="/internships/my-students"),
-                    ChatActionLink(title="Mentorship Meetings", path="/mentorship"),
-                ],
-                ["Show department registration rounds", "List departmental coordinators"],
-            )
 
-        # B. HOD-Specific Queries
-        if f_data.get("is_hod") and any(k in q_lower for k in ["coordinator", "hod", "department", "summary"]):
-            dept_id = f_data["department_id"]
-            coordinators = db.scalars(
-                select(FacultyRoleAssignment).where(
-                    FacultyRoleAssignment.department_id == dept_id,
-                    FacultyRoleAssignment.is_active.is_(True),
-                )
-            ).all()
+def _faculty_reviews(db: Session, faculty: Faculty) -> Answer:
+    mine = select(InternshipEnrollment.id).where(InternshipEnrollment.mentor_faculty_id == faculty.id)
+    stages = db.scalar(select(func.count(EnrollmentStageProgress.id)).where(
+        EnrollmentStageProgress.enrollment_id.in_(mine),
+        EnrollmentStageProgress.status == StageStatus.SUBMITTED)) or 0
+    reports = db.scalar(select(func.count(InternshipReport.id)).where(
+        InternshipReport.enrollment_id.in_(mine),
+        InternshipReport.status == SubmissionStatus.SUBMITTED)) or 0
+    documents = db.scalar(select(func.count(InternshipDocument.id)).where(
+        InternshipDocument.enrollment_id.in_(mine),
+        InternshipDocument.status == SubmissionStatus.SUBMITTED)) or 0
+    total = stages + reports + documents
+    text = ("Nothing is waiting for your review." if not total else
+            f"### Waiting for your review ({total})\n\n- **Milestones:** {stages}\n"
+            f"- **Reports:** {reports}\n- **Documents:** {documents}")
+    return (text, [ChatActionLink(title="Review queue", path="/internships/review")],
+            ["What is my performance score?", "Show pending meeting requests"])
 
-            coord_lines = [
-                f"- **{c.faculty.user.full_name if c.faculty and c.faculty.user else 'Faculty'}**: `{c.domain.value}` ({c.role.value})"
-                for c in coordinators
-            ]
 
-            return (
-                f"### 🏛️ Department Coordination Roster ({f_data['department_code']})\n\n"
-                f"- **Department:** {f_data['department_name']}\n"
-                f"- **Active Department Coordinators:** {len(coordinators)}\n\n"
-                f"#### Appointed Coordinators:\n"
-                f"{(chr(10).join(coord_lines)) if coord_lines else 'No active coordinator assignments in this department.'}\n\n"
-                f"As HOD, you can assign faculty as coordinators for Summer Internship, CSSI, Electives, and Minors from the Administration panel.",
-                [ChatActionLink(title="Manage Coordinators", path="/admin/coordinators")],
-                ["How many reports need review?", "Show active registration rounds"],
-            )
+def _faculty_score(db: Session, faculty: Faculty) -> Answer:
+    if not scoring.is_scorable(faculty):
+        return ("You are not scored yet — scoring of real faculty starts once the portal runs "
+                "on real activity.", [], [])
+    s = scoring.faculty_score(db, faculty)
+    if s.score is None:
+        return ("Nothing has been scored for you yet. Points appear as you review work, enter "
+                "marks and answer meeting requests.", [ChatActionLink(title="Dashboard", path="/")], [])
+    return (f"### Your performance score\n\n- **Score:** {s.score} / 100 ({s.band})\n"
+            f"- **On time:** {s.on_time} of {s.scored}\n- **Late or overdue:** {s.late + s.overdue}\n"
+            f"- **Waiting, still in time:** {s.pending}",
+            [ChatActionLink(title="Itemised record", path="/")], ["What needs my review?"])
 
-    # 4. Institutional Policies & Academic FAQs (Available to all roles)
-    if any(k in q_lower for k in ["attendance", "minimum attendance", "attendance policy", "85%"]):
-        return (
-            f"### 📋 PDEU Academic Attendance Regulations\n\n"
-            f"- **Standard Minimum:** **85%** cumulative attendance is mandatory in each enrolled course to be eligible for end-semester examinations.\n"
-            f"- **Medical / Condonation Range (75%–84%):** Allowed only with valid documentation (Medical Certificate / official Dean approval) submitted within 3 working days.\n"
-            f"- **Below 75% Attendance:** Results in strict **Detention (FA Grade)** in the course. The student must repeat the course in a subsequent semester.\n\n"
-            f"> Faculty record attendance on CampusHub, and low attendance notices are dispatched at 80% and 75% thresholds.",
-            [ChatActionLink(title="View Academic Regulations", path="/curriculum")],
-            ["What is the grading system?", "What is the minor policy?"],
-        )
 
-    if any(k in q_lower for k in ["grading", "grade scale", "marks scale", "cpi calculation", "letter grade"]):
-        return (
-            f"### 📊 PDEU 10-Point Grading System\n\n"
-            f"| Letter Grade | Grade Point | Qualitative Meaning |\n"
-            f"| :---: | :---: | :--- |\n"
-            f"| **S** | **10.0** | Outstanding |\n"
-            f"| **A+** | **9.0** | Excellent |\n"
-            f"| **A** | **8.0** | Very Good |\n"
-            f"| **B+** | **7.0** | Good |\n"
-            f"| **B** | **6.0** | Above Average |\n"
-            f"| **C** | **5.0** | Average |\n"
-            f"| **P** | **4.0** | Pass |\n"
-            f"| **F** | **0.0** | Fail (Repeat Course) |\n\n"
-            f"- **Semester Performance Index (SPI):** Weighted sum of credits × grade points divided by total credits registered in that semester.\n"
-            f"- **Cumulative Performance Index (CPI):** Cumulative weighted average across all completed semesters.",
-            [ChatActionLink(title="Curriculum Explorer", path="/curriculum")],
-            ["Attendance policy", "Minor policy"],
-        )
+def _faculty_roles(db: Session, user: User, faculty: Faculty, context: dict) -> Answer:
+    roles = list(db.scalars(select(FacultyRoleAssignment).where(
+        FacultyRoleAssignment.faculty_id == faculty.id, FacultyRoleAssignment.is_active.is_(True))))
+    lines = [f"- {_human(r.role)} — {_human(r.domain)}" for r in roles]
+    if context.get("is_hod"):
+        lines.insert(0, f"- Head of Department — {context['faculty']['department_name']}")
+    if faculty.is_mentor:
+        lines.append("- Mentor")
+    text = "### Your roles\n\n" + ("\n".join(lines) if lines else "You hold no appointed roles.")
+    links = [ChatActionLink(title="Roles", path="/admin/roles")] if context.get("is_hod") else []
+    return text, links, ["Show my mentees"]
 
-    if any(k in q_lower for k in ["nptel", "mooc", "swayam", "online course"]):
-        return (
-            f"### 🌐 NPTEL / MOOC Course Guidelines\n\n"
-            f"- **Credit Equivalency:** 8-week NPTEL courses map to **2 or 3 credits**; 12-week courses map to **3 or 4 credits** as designated in your curriculum.\n"
-            f"- **Verification Process:**\n"
-            f"  1. Register for university-approved NPTEL courses at the start of semester.\n"
-            f"  2. Complete exam and obtain e-certificate from NPTEL / SWAYAM.\n"
-            f"  3. Upload the original certificate (PDF) on CampusHub under **Academics → NPTEL**.\n"
-            f"  4. The NPTEL Coordinator verifies the certificate against official scores before credits are transferred to your transcript.",
-            [ChatActionLink(title="NPTEL Portal", path="/nptel")],
-            ["What electives are open?", "My CPI"],
-        )
 
-    # Fallback response with role-aware help
-    return (
-        f"I can assist you with university academic procedures, enrollment queries, and guidelines on CampusHub.\n\n"
-        f"You can ask me questions like:\n"
-        f"- *\"What is my internship status?\"*\n"
-        f"- *\"Who is my assigned mentor?\"*\n"
-        f"- *\"What is the minimum attendance requirement?\"*\n"
-        f"- *\"What is the PDEU grading scale?\"*\n"
-        f"- *\"Are elective registration rounds open?\"*\n\n"
-        f"Feel free to click any suggestion below or type your query!",
-        [ChatActionLink(title="Dashboard", path="/dashboard")],
-        [
-            "What is my internship status?",
-            "What is the minimum attendance policy?",
-            "What is the grading system?",
-            "Are elective registrations open?",
-        ],
-    )
+def _hod_coordinators(db: Session, faculty: Faculty) -> Answer:
+    roles = list(db.scalars(select(FacultyRoleAssignment).where(
+        FacultyRoleAssignment.department_id == faculty.department_id,
+        FacultyRoleAssignment.is_active.is_(True))))
+    lines = "\n".join(f"- **{r.faculty.user.full_name}** — {_human(r.role)}, {_human(r.domain)}"
+                      for r in roles if r.faculty)
+    return ("### Appointed in your department\n\n" + (lines or "No one is appointed yet."),
+            [ChatActionLink(title="Roles", path="/admin/roles")], [])
+
+
+def _answer_faculty(q: str, user: User, context: dict, db: Session) -> Answer | None:
+    faculty = db.get(Faculty, context["faculty"]["id"])
+    if _has(q, "meeting", "meetings", "appointment", "appointments"):
+        return _faculty_meetings(db, faculty)
+    if _has(q, "review", "reviews", "pending", "submission", "submissions", "approve"):
+        return _faculty_reviews(db, faculty)
+    if _has(q, "score", "performance", "rating"):
+        return _faculty_score(db, faculty)
+    if context.get("is_hod") and _has(q, "coordinator", "coordinators", "appointed"):
+        return _hod_coordinators(db, faculty)
+    if _has(q, "role", "roles", "coordinator", "responsibilities"):
+        return _faculty_roles(db, user, faculty, context)
+    if _has(q, "mentee", "mentees", "student", "students"):
+        return _faculty_mentees(db, faculty)
+    return None
+
+
+# ── registrar ─────────────────────────────────────────────────────────────
+def _admin_summary(db: Session) -> Answer:
+    students = db.scalar(select(func.count(Student.id))) or 0
+    faculty = db.scalar(select(func.count(Faculty.id)).where(Faculty.is_active.is_(True))) or 0
+    rounds = db.scalar(select(func.count(ElectiveRegistrationWindow.id)).where(
+        ElectiveRegistrationWindow.status == RegistrationWindowStatus.OPEN)) or 0
+    return (f"### Portal summary\n\n- **Students:** {students}\n- **Active faculty:** {faculty}\n"
+            f"- **Open elective rounds:** {rounds}",
+            [ChatActionLink(title="Administration", path="/admin")], [])
+
+
+def answer_query_contextually(user: User, query: str, context: dict[str, Any],
+                              db: Session) -> Answer:
+    q = re.sub(r"\s+", " ", query.lower()).strip(" ?!.")
+    if q in {"hi", "hello", "hey", "hii", "namaste", "good morning", "good afternoon",
+             "good evening", "help", "what can you do"}:
+        return _greeting(user, context)
+    if _has(q, "my name", "who am i", "about me", "my details", "my profile", "my roll",
+            "roll number", "roll no", "my email", "my department", "my semester",
+            "which semester", "my division", "my programme", "my program", "signed in as"):
+        return _identity(user, context, db)
+    if _has(q, "notification", "notifications", "unread"):
+        return _notifications(user, db)
+    if _has(q, "attendance"):
+        return _no_policy_record("attendance")
+    if _has(q, "grading", "grade scale", "grading scale", "grade points", "letter grade"):
+        return _no_policy_record("grading")
+
+    answer = None
+    if context.get("student"):
+        answer = _answer_student(q, user, context, db)
+    elif context.get("faculty"):
+        answer = _answer_faculty(q, user, context, db)
+    elif context.get("is_admin") and _has(q, "summary", "statistics", "stats", "overview"):
+        answer = _admin_summary(db)
+    return answer or _fallback(user, query)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -387,7 +387,10 @@ the screens read them from `/faculty-scores/policy` and never restate them.
   documents), marks entered by a presentation window's deadline, and how fast
   meeting requests are answered (`mentor_meetings.responded_at`).
 - Work is credited to whoever reviewed it; waiting work is the mentor's.
-- Compare by **on-time rate**, not points — workloads differ.
+- The headline is a **score out of 100**: each item placed between the worst
+  (0) and best (100) outcome its category allows, averaged — so workloads
+  compare fairly. The points total grows with workload and is never the
+  headline. Bands (Excellent ≥ 90, Good ≥ 75, …) read the score.
 - A faculty member sees their own; the HoD their department (not themselves);
   the registrar any. Students and colleagues see none.
 - **Real faculty are not scored until `SCORE_REAL_FACULTY` is on.** While the

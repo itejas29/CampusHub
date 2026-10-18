@@ -37,6 +37,8 @@ class FacultyScoreOut(BaseModel):
     is_demo: bool = False
     #: False for real faculty until SCORE_REAL_FACULTY is switched on.
     is_scored: bool = True
+    #: Out of 100 — the headline figure. None until something is scored.
+    score: int | None = None
     points: int
     on_time: int
     late: int
@@ -71,6 +73,7 @@ def _out(db, score: scoring.Score, *, with_entries: bool) -> FacultyScoreOut:
     entries = sorted(score.entries, key=lambda e: e.when, reverse=True)[:40] if with_entries else []
     return FacultyScoreOut(
         faculty_id=f.id, name=f.user.full_name, designation=f.designation, is_demo=f.is_demo,
+        score=score.score,
         points=score.points, on_time=score.on_time, late=score.late, overdue=score.overdue,
         missed=score.missed, pending=score.pending, scored=score.scored,
         on_time_rate=round(score.on_time_rate, 3) if score.on_time_rate is not None else None,
@@ -116,8 +119,9 @@ def department_scores(db: DbSession, user: CurrentUser,
                                                Faculty.is_active.is_(True)))
     rows = [_out(db, scores.get(f.id) or scoring.Score(faculty_id=f.id), with_entries=False)
             for f in members if f.id != dept.hod_faculty_id and not scoring.is_office(f)]
-    rows.sort(key=lambda r: (not r.is_scored, r.scored == 0, -(r.on_time_rate or 0),
-                             -r.points, r.name))
+    rows.sort(key=lambda r: (not r.is_scored, r.scored == 0, -(r.score or 0),
+                             -(r.on_time_rate or 0), r.name))
+
     return DepartmentScoresOut(department_code=dept.code, department_name=dept.name,
                                policy=scoring.POLICY,
                                scores_real_faculty=settings.SCORE_REAL_FACULTY, faculty=rows)

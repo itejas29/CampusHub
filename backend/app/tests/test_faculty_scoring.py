@@ -136,7 +136,31 @@ def test_an_unanswered_meeting_request_counts_against_the_mentor(db, world):
 
 def test_the_rate_needs_enough_activity_before_a_band_is_shown():
     s = scoring.Score(faculty_id=1)
-    assert s.band == "Not enough activity" and s.on_time_rate is None
+    assert s.band == "Not enough activity" and s.on_time_rate is None and s.score is None
+
+
+def _entry(category, outcome, points):
+    return scoring.Entry(when=NOW, category=category, label="x", outcome=outcome, points=points)
+
+
+def test_the_score_is_out_of_100_whatever_the_workload():
+    few, many = scoring.Score(faculty_id=1), scoring.Score(faculty_id=2)
+    for _ in range(4):
+        few.add(_entry("REVIEW", "ON_TIME", 2))
+    for _ in range(900):
+        many.add(_entry("REVIEW", "ON_TIME", 2))
+    assert few.score == many.score == 100
+    assert many.points == 1800      # the points total still grows; the score does not
+
+
+def test_each_item_counts_from_its_worst_outcome_to_its_best():
+    s = scoring.Score(faculty_id=1)
+    s.add(_entry("REVIEW", "ON_TIME", 1))     # within a week: 75
+    s.add(_entry("REVIEW", "OVERDUE", -2))    # left waiting: 0
+    s.add(_entry("MARKS", "ON_TIME", 3))      # 100
+    s.add(_entry("MEETING", "LATE", 0))       # answered late: 50
+    assert s.score == round((75 + 0 + 100 + 50) / 4)
+    assert s.band == "Needs attention"
 
 
 # ── who sees what ─────────────────────────────────────────────────────────
