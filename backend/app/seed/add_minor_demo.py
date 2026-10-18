@@ -5,6 +5,9 @@
 
 Adds, without touching anything else:
 
+* any named demo student (the login page's shortcuts) missing from a database
+  seeded before they were added — Ananya Menon and Kavya Patel on the live
+  site — created exactly as the seed creates them;
 * a minor seat for Ananya Menon (Data Science) and for one generated CSE
   student in ICT's IoT minor, each registered in Semester III — if they have
   no seat yet;
@@ -38,6 +41,31 @@ def _is_demo(student: Student) -> bool:
 def add(db, *, dry_run: bool) -> list[str]:
     done: list[str] = []
     rng = random.Random(7)
+    # ── named demo students the database predates ─────────────────────────
+    from slugify import slugify
+
+    from app.models.enums import Role
+    from app.models.academics import Program
+    from app.models.identity import Department
+
+    ict = db.scalar(select(Department).where(Department.code == "ICT"))
+    btech = db.scalar(select(Program).where(Program.code == "B.TECH-ICT"))
+    for name, roll, sem, division, cpi, backlogs, admission in seed.D.NAMED_STUDENTS:
+        if db.scalar(select(Student.id).where(Student.roll_number == roll)):
+            continue
+        email = f"{slugify(name, separator='.')}.{roll[-3:]}@campushub.example.com"
+        if db.scalar(select(User.id).where(User.email == email)):
+            continue
+        done.append(f"demo student: {name} ({roll}, Semester {sem})")
+        if dry_run or ict is None or btech is None:
+            continue
+        user = seed.make_user(db, name=name, email=email, roles=[Role.STUDENT])
+        db.add(Student(user_id=user.id, roll_number=roll, enrollment_number=f"PDEU{admission}{roll[-3:]}",
+                       program_id=btech.id, department_id=ict.id, admission_year=admission,
+                       current_semester=sem, division=division, batch=f"{admission}-{admission + 4}",
+                       cpi=cpi, backlog_count=backlogs))
+        db.flush()
+
     minors = {m.code: m for m in db.scalars(select(MinorProgram))}
     admin = db.scalar(select(User).where(User.email == "admin@campushub.example.com"))
 
