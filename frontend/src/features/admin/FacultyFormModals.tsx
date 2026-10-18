@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { FormField, Input, Select } from "@/components/ui/Form";
 import { Modal } from "@/components/ui/Modal";
 import { ApiError, api } from "@/lib/api";
+import { emailError, personNameError, phoneError } from "@/lib/validation";
 import type { DepartmentRow, FacultyRow } from "@/types";
 
 export function AddFacultyModal({
@@ -82,7 +83,8 @@ export function AddFacultyModal({
           <Button
             size="sm"
             loading={addFaculty.isPending}
-            disabled={!fullName.trim() || !email.trim() || !employeeCode.trim() || !departmentId}
+            disabled={!fullName.trim() || !email.trim() || !employeeCode.trim() || !departmentId
+              || Boolean(personNameError(fullName) || phoneError(phone) || emailError(email))}
             icon={<Plus className="h-4 w-4" />}
             onClick={() => addFaculty.mutate()}
           >
@@ -95,7 +97,7 @@ export function AddFacultyModal({
         {error && <Alert variant="danger">{error}</Alert>}
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <FormField label="Full Name" required>
+          <FormField label="Full Name" required error={personNameError(fullName)}>
             <Input
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
@@ -114,7 +116,7 @@ export function AddFacultyModal({
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <FormField label="University Email" required>
+          <FormField label="University Email" required error={emailError(email)}>
             <Input
               type="email"
               value={email}
@@ -165,11 +167,11 @@ export function AddFacultyModal({
               placeholder="e.g. Artificial Intelligence, Cloud"
             />
           </FormField>
-          <FormField label="Contact Phone">
+          <FormField label="Contact Phone" error={phoneError(phone)}>
             <Input
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="e.g. +91 9876543210"
+              placeholder="e.g. 98765 43210"
             />
           </FormField>
         </div>
@@ -246,6 +248,7 @@ export function EditFacultyModal({
           <Button
             size="sm"
             loading={updateFaculty.isPending}
+            disabled={!fullName.trim() || Boolean(personNameError(fullName) || phoneError(phone) || emailError(publicEmail))}
             onClick={() => updateFaculty.mutate()}
           >
             Save Changes
@@ -257,7 +260,7 @@ export function EditFacultyModal({
         {error && <Alert variant="danger">{error}</Alert>}
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <FormField label="Full Name" required>
+          <FormField label="Full Name" required error={personNameError(fullName)}>
             <Input
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
@@ -283,11 +286,11 @@ export function EditFacultyModal({
               placeholder="e.g. 6-207"
             />
           </FormField>
-          <FormField label="Contact Phone">
+          <FormField label="Contact Phone" error={phoneError(phone)}>
             <Input
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="e.g. +91 9876543210"
+              placeholder="e.g. 98765 43210"
             />
           </FormField>
         </div>
@@ -300,7 +303,7 @@ export function EditFacultyModal({
               placeholder="e.g. Data Structures, Cloud Computing"
             />
           </FormField>
-          <FormField label="Public Contact Email">
+          <FormField label="Public Contact Email" error={emailError(publicEmail)}>
             <Input
               type="email"
               value={publicEmail}

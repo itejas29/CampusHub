@@ -6,14 +6,15 @@ from pydantic import BaseModel, EmailStr, Field
 
 from app.models.enums import AssignedRole, CoordinationDomain, Role, StudentStatus
 from app.schemas.common import ORMModel
+from app.schemas.fields import PersonName, Phone, RollNumber, block, identifier, line, optional
 
 
 class DepartmentBase(BaseModel):
-    code: str = Field(max_length=20)
-    name: str = Field(max_length=150)
-    short_name: str | None = None
-    school: str = "FoET"
-    description: str | None = None
+    code: identifier(20)
+    name: line(150, min_length=2)
+    short_name: optional(line(50)) = None
+    school: line(120) = "FoET"
+    description: optional(block(2000)) = None
 
 
 class DepartmentCreate(DepartmentBase):
@@ -21,10 +22,10 @@ class DepartmentCreate(DepartmentBase):
 
 
 class DepartmentUpdate(BaseModel):
-    name: str | None = None
-    short_name: str | None = None
-    school: str | None = None
-    description: str | None = None
+    name: optional(line(150, min_length=2)) = None
+    short_name: optional(line(50)) = None
+    school: optional(line(120)) = None
+    description: optional(block(2000)) = None
     is_active: bool | None = None
 
 
@@ -112,33 +113,33 @@ class StudentDetail(StudentOut):
 
 
 class StudentCreate(BaseModel):
-    full_name: str = Field(max_length=150)
+    full_name: PersonName
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
-    roll_number: str = Field(max_length=30)
-    enrollment_number: str | None = None
+    roll_number: RollNumber
+    enrollment_number: optional(identifier(30)) = None
     program_id: int
     department_id: int
     admission_year: int = Field(ge=2000, le=2100)
     current_semester: int = Field(default=1, ge=1, le=12)
-    division: str | None = None
-    batch: str | None = None
-    phone: str | None = None
+    division: optional(identifier(10)) = None
+    batch: optional(line(20)) = None
+    phone: optional(Phone) = None
     cpi: float | None = Field(default=None, ge=0, le=10)
 
 
 class StudentUpdate(BaseModel):
-    full_name: str | None = None
-    phone: str | None = None
+    full_name: optional(PersonName) = None
+    phone: optional(Phone) = None
     current_semester: int | None = Field(default=None, ge=1, le=12)
-    division: str | None = None
-    batch: str | None = None
+    division: optional(identifier(10)) = None
+    batch: optional(line(20)) = None
     cpi: float | None = Field(default=None, ge=0, le=10)
     backlog_count: int | None = Field(default=None, ge=0)
     status: StudentStatus | None = None
-    address: str | None = None
-    guardian_name: str | None = None
-    guardian_phone: str | None = None
+    address: optional(block(500)) = None
+    guardian_name: optional(PersonName) = None
+    guardian_phone: optional(Phone) = None
 
 
 class FacultyOut(ORMModel):
@@ -168,45 +169,45 @@ class FacultyOut(ORMModel):
 
 
 class FacultyCreate(BaseModel):
-    full_name: str = Field(max_length=150)
+    full_name: PersonName
     email: EmailStr
     password: str = Field(default="Campus@123", min_length=8, max_length=128)
-    employee_code: str = Field(max_length=30)
+    employee_code: identifier(30)
     department_id: int
-    designation: str = Field(max_length=100)
-    cabin: str | None = None
-    specialization: str | None = None
-    qualification: str | None = None
-    public_email: str | None = None
-    public_phone: str | None = None
+    designation: line(100, min_length=2)
+    cabin: optional(line(60)) = None
+    specialization: optional(line(255)) = None
+    qualification: optional(line(150)) = None
+    public_email: optional(EmailStr) = None
+    public_phone: optional(Phone) = None
     is_mentor: bool = True
     extra_roles: list[Role] = Field(default_factory=list)
 
 
 class FacultyUpdate(BaseModel):
-    full_name: str | None = None
-    designation: str | None = None
-    cabin: str | None = None
-    specialization: str | None = None
-    qualification: str | None = None
-    public_email: str | None = None
-    public_phone: str | None = None
-    bio: str | None = None
+    full_name: optional(PersonName) = None
+    designation: optional(line(100, min_length=2)) = None
+    cabin: optional(line(60)) = None
+    specialization: optional(line(255)) = None
+    qualification: optional(line(150)) = None
+    public_email: optional(EmailStr) = None
+    public_phone: optional(Phone) = None
+    bio: optional(block(2000)) = None
     is_mentor: bool | None = None
     is_active: bool | None = None
 
 
 class ProfileUpdate(BaseModel):
-    full_name: str | None = Field(default=None, max_length=150)
-    phone: str | None = Field(default=None, max_length=20)
-    address: str | None = None
-    guardian_name: str | None = None
-    guardian_phone: str | None = None
-    cabin: str | None = None
-    public_email: str | None = None
-    public_phone: str | None = None
-    specialization: str | None = None
-    bio: str | None = None
+    full_name: optional(PersonName) = None
+    phone: optional(Phone) = None
+    address: optional(block(500)) = None
+    guardian_name: optional(PersonName) = None
+    guardian_phone: optional(Phone) = None
+    cabin: optional(line(60)) = None
+    public_email: optional(EmailStr) = None
+    public_phone: optional(Phone) = None
+    specialization: optional(line(255)) = None
+    bio: optional(block(2000)) = None
 
 
 # ── coordinator role assignments ──────────────────────────────────────────

@@ -18,6 +18,7 @@ import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 import { cn, humanise, roman } from "@/lib/utils";
+import { personNameError, phoneError, placeError, textError } from "@/lib/validation";
 import type { EnrollmentSummary, InternshipProgram, Organization } from "@/types";
 
 export function InternshipsPage() {
@@ -91,11 +92,19 @@ export function InternshipsPage() {
   const supervisorLabel = allowedTypes.length === 1
     ? `${allowedTypes[0] === "NGO" ? "NGO" : humanise(allowedTypes[0])} supervisor`
     : "Supervisor at the organisation";
+  // The same checks the server makes, shown as the student types.
+  const problems = {
+    orgName: textError(newOrg.name),
+    orgCity: placeError(newOrg.city),
+    supName: personNameError(supervisor.name),
+    supPhone: phoneError(supervisor.phone),
+  };
   // The server requires a host whenever the programme (or track) does.
   const formReady =
     (!tracks.length || Boolean(track))
     && (!needsOrg || (organizationId !== "" && (organizationId !== "new" || newOrg.name.trim().length > 1)))
-    && (!needsSupervisor || Boolean(supervisor.name.trim() && supervisor.phone.trim()));
+    && (!needsSupervisor || Boolean(supervisor.name.trim() && supervisor.phone.trim()))
+    && !problems.orgName && !problems.orgCity && !problems.supName && !problems.supPhone;
   const trackStages = track?.stages;
   const shownStages = (enrollIn?.stages ?? []).filter((st) => !trackStages || trackStages.includes(st.code));
   const filteredOrgs = (organizations.data ?? []).filter(
@@ -398,11 +407,11 @@ export function InternshipsPage() {
               </select>
               {organizationId === "new" && (
                 <div className="grid gap-3 pt-2 sm:grid-cols-2">
-                  <FormField label="Organisation name" htmlFor="org-name" required>
+                  <FormField label="Organisation name" htmlFor="org-name" required error={problems.orgName}>
                     <Input id="org-name" value={newOrg.name} maxLength={180}
                            onChange={(e) => setNewOrg((o) => ({ ...o, name: e.target.value }))} />
                   </FormField>
-                  <FormField label="City" htmlFor="org-city">
+                  <FormField label="City" htmlFor="org-city" error={problems.orgCity}>
                     <Input id="org-city" value={newOrg.city} maxLength={100}
                            onChange={(e) => setNewOrg((o) => ({ ...o, city: e.target.value }))} />
                   </FormField>
@@ -419,11 +428,12 @@ export function InternshipsPage() {
 
           {needsSupervisor && (
             <div className="grid gap-3 sm:grid-cols-2">
-              <FormField label={`${supervisorLabel} — name`} htmlFor="sup-name" required>
+              <FormField label={`${supervisorLabel} — name`} htmlFor="sup-name" required error={problems.supName}>
                 <Input id="sup-name" value={supervisor.name} maxLength={150} autoComplete="off"
                        onChange={(e) => setSupervisor((v) => ({ ...v, name: e.target.value }))} />
               </FormField>
-              <FormField label={`${supervisorLabel} — phone`} htmlFor="sup-phone" required>
+              <FormField label={`${supervisorLabel} — phone`} htmlFor="sup-phone" required
+                         error={problems.supPhone} hint={problems.supPhone ? undefined : "10-digit mobile, e.g. 98765 43210"}>
                 <Input id="sup-phone" type="tel" inputMode="tel" value={supervisor.phone} maxLength={20}
                        autoComplete="off"
                        onChange={(e) => setSupervisor((v) => ({ ...v, phone: e.target.value }))} />

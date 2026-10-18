@@ -33,6 +33,7 @@ from app.models.internships import (
     InternshipEnrollment, InternshipEvaluation, InternshipGroup, InternshipProgram,
     InternshipProject, InternshipReport, InternshipStage, Organization,
 )
+from app.schemas.fields import csv_safe
 from app.schemas.common import Message
 from app.schemas.internships import (
     DocumentGroupOut, DocumentReviewRequest, ExpectedDocumentOut, ProgressOut,
@@ -539,7 +540,8 @@ def export_program_enrollments_csv(
         evaluation = ("FINALISED" if EvaluationStatus.FINALISED in evaluations
                       else "SUBMITTED" if EvaluationStatus.SUBMITTED in evaluations
                       else "DRAFT" if evaluations else "")
-        writer.writerow([
+        # Typed text (names, organisations) must not run as a spreadsheet formula.
+        writer.writerow([csv_safe(cell) for cell in [
             student.roll_number if student else "",
             student_user.full_name if student_user else "",
             student.division if student else "",
@@ -553,7 +555,7 @@ def export_program_enrollments_csv(
             float(e.final_marks) if e.final_marks is not None else "",
             e.final_grade or "",
             e.status.value,
-        ])
+        ]])
 
     csv_data = output.getvalue()
     code_slug = program.code.replace(" ", "_")
@@ -889,7 +891,7 @@ async def upload_document(
     enrollment_id: int, db: DbSession, user: CurrentUser,
     file: UploadFile = File(...),
     document_type: DocumentType = Form(DocumentType.OTHER),
-    title: str | None = Form(None),
+    title: str | None = Form(None, max_length=200),
     stage_id: int | None = Form(None),
     week_number: int | None = Form(None),
 ) -> DocumentOut:

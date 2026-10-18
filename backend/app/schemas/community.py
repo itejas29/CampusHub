@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import datetime as dt
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 from app.models.enums import (
     ClubCategory, ClubMemberRole, EventMode, EventStatus, EventType, RegistrationStatus,
 )
 from app.schemas.common import ORMModel
+from app.schemas.fields import Url, block, line, optional
 
 
 class ClubMemberOut(ORMModel):
@@ -49,27 +50,27 @@ class ClubDetail(ClubOut):
 
 
 class ClubCreate(BaseModel):
-    name: str = Field(max_length=150)
+    name: line(150, min_length=2)
     category: ClubCategory = ClubCategory.TECHNICAL
-    tagline: str | None = Field(default=None, max_length=200)
-    description: str | None = None
-    instagram_url: str | None = None
-    linkedin_url: str | None = None
-    website_url: str | None = None
-    email: str | None = None
+    tagline: optional(line(200)) = None
+    description: optional(block(5000)) = None
+    instagram_url: optional(Url) = None
+    linkedin_url: optional(Url) = None
+    website_url: optional(Url) = None
+    email: optional(EmailStr) = None
     founded_year: int | None = Field(default=None, ge=1950, le=2100)
     faculty_advisor_id: int | None = None
 
 
 class ClubUpdate(BaseModel):
-    name: str | None = None
+    name: optional(line(150, min_length=2)) = None
     category: ClubCategory | None = None
-    tagline: str | None = None
-    description: str | None = None
-    instagram_url: str | None = None
-    linkedin_url: str | None = None
-    website_url: str | None = None
-    email: str | None = None
+    tagline: optional(line(200)) = None
+    description: optional(block(5000)) = None
+    instagram_url: optional(Url) = None
+    linkedin_url: optional(Url) = None
+    website_url: optional(Url) = None
+    email: optional(EmailStr) = None
     faculty_advisor_id: int | None = None
     is_active: bool | None = None
 
@@ -108,43 +109,43 @@ class EventOut(ORMModel):
 
 
 class EventCreate(BaseModel):
-    title: str = Field(max_length=200)
+    title: line(200, min_length=3)
     club_id: int | None = None
     event_type: EventType = EventType.EVENT
-    summary: str | None = Field(default=None, max_length=300)
-    description: str | None = None
+    summary: optional(line(300)) = None
+    description: optional(block(5000)) = None
     start_at: dt.datetime
     end_at: dt.datetime | None = None
-    venue: str | None = Field(default=None, max_length=180)
+    venue: optional(line(180)) = None
     mode: EventMode = EventMode.OFFLINE
-    meeting_url: str | None = None
+    meeting_url: optional(Url) = None
     registration_required: bool = True
     registration_deadline: dt.datetime | None = None
     capacity: int | None = Field(default=None, ge=1, le=10000)
-    poster_url: str | None = None
-    external_url: str | None = None
-    speaker: str | None = None
-    tags: list[str] = Field(default_factory=list)
+    poster_url: optional(Url) = None
+    external_url: optional(Url) = None
+    speaker: optional(line(200)) = None
+    tags: list[line(40)] = Field(default_factory=list, max_length=15)
     status: EventStatus = EventStatus.DRAFT
 
 
 class EventUpdate(BaseModel):
-    title: str | None = None
+    title: optional(line(200, min_length=3)) = None
     event_type: EventType | None = None
-    summary: str | None = None
-    description: str | None = None
+    summary: optional(line(300)) = None
+    description: optional(block(5000)) = None
     start_at: dt.datetime | None = None
     end_at: dt.datetime | None = None
-    venue: str | None = None
+    venue: optional(line(180)) = None
     mode: EventMode | None = None
-    meeting_url: str | None = None
+    meeting_url: optional(Url) = None
     registration_required: bool | None = None
     registration_deadline: dt.datetime | None = None
     capacity: int | None = Field(default=None, ge=1, le=10000)
-    poster_url: str | None = None
-    external_url: str | None = None
-    speaker: str | None = None
-    tags: list[str] | None = None
+    poster_url: optional(Url) = None
+    external_url: optional(Url) = None
+    speaker: optional(line(200)) = None
+    tags: list[line(40)] | None = Field(default=None, max_length=15)
     status: EventStatus | None = None
 
 

@@ -11,6 +11,10 @@ from app.models.enums import (
     ProgramPhase,
 )
 from app.schemas.common import ORMModel
+from app.schemas.fields import (
+    Grade, PersonName, Phone, Pincode, RollNumber, Url, block, identifier, json_object, line, optional,
+    place,
+)
 
 
 class OrganizationOut(ORMModel):
@@ -34,21 +38,21 @@ class OrganizationOut(ORMModel):
 
 
 class OrganizationCreate(BaseModel):
-    name: str = Field(max_length=200)
+    name: line(200, min_length=2)
     type: OrganizationType = OrganizationType.NGO
-    field_of_work: str | None = None
-    description: str | None = None
-    address: str | None = None
-    city: str | None = None
-    district: str | None = None
-    state: str | None = None
-    country: str = "India"
-    pincode: str | None = None
-    phone: str | None = Field(default=None, max_length=20)
-    email: EmailStr | None = None
-    website: str | None = None
-    contact_person: str | None = None
-    contact_designation: str | None = None
+    field_of_work: optional(line(150)) = None
+    description: optional(block(2000)) = None
+    address: optional(block(300)) = None
+    city: optional(place()) = None
+    district: optional(place()) = None
+    state: optional(place()) = None
+    country: place() = "India"
+    pincode: optional(Pincode) = None
+    phone: optional(Phone) = None
+    email: optional(EmailStr) = None
+    website: optional(Url) = None
+    contact_person: optional(PersonName) = None
+    contact_designation: optional(line(100)) = None
 
 
 class StageOut(ORMModel):
@@ -146,10 +150,10 @@ class InternshipProgramOut(ORMModel):
 
 
 class InternshipProgramCreate(BaseModel):
-    code: str = Field(max_length=30)
-    name: str = Field(max_length=180)
+    code: identifier(30)
+    name: line(180, min_length=3)
     type: InternshipType
-    description: str | None = None
+    description: optional(block(5000)) = None
     department_id: int | None = None
     academic_year_id: int | None = None
     target_semester: int | None = None
@@ -168,8 +172,8 @@ class InternshipProgramCreate(BaseModel):
 
 
 class InternshipProgramUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
+    name: optional(line(180, min_length=3)) = None
+    description: optional(block(5000)) = None
     status: ProgramStatus | None = None
     default_group_size: int | None = Field(default=None, ge=1, le=100)
     report_frequency: ReportFrequency | None = None
@@ -198,10 +202,10 @@ class GroupOut(ORMModel):
 
 
 class GroupCreate(BaseModel):
-    name: str = Field(max_length=80)
+    name: line(80)
     faculty_id: int | None = None
     capacity: int = Field(default=10, ge=1, le=100)
-    meeting_schedule: str | None = None
+    meeting_schedule: optional(line(200)) = None
 
 
 class ProjectDetailOut(ORMModel):
@@ -215,13 +219,13 @@ class ProjectDetailOut(ORMModel):
 
 
 class ProjectDetailUpdate(BaseModel):
-    title: str | None = Field(default=None, max_length=250)
-    problem_statement: str | None = None
-    approach: str | None = None
-    outcomes: str | None = None
-    technologies: str | None = None
-    beneficiaries: str | None = None
-    extra: dict | None = None
+    title: optional(line(250, min_length=3)) = None
+    problem_statement: optional(block(5000)) = None
+    approach: optional(block(5000)) = None
+    outcomes: optional(block(5000)) = None
+    technologies: optional(line(300)) = None
+    beneficiaries: optional(block(2000)) = None
+    extra: json_object() | None = None
 
 
 class DocumentOut(ORMModel):
@@ -261,27 +265,27 @@ class ReportOut(ORMModel):
 class ReportSubmit(BaseModel):
     report_type: ReportType = ReportType.WEEKLY
     sequence_number: int = Field(default=1, ge=1, le=60)
-    title: str | None = Field(default=None, max_length=200)
+    title: optional(line(200)) = None
     period_start: dt.date | None = None
     period_end: dt.date | None = None
-    summary: str = Field(min_length=10, max_length=5000)
-    tasks_completed: str | None = None
-    challenges: str | None = None
-    next_plan: str | None = None
+    summary: block(5000, min_length=10)
+    tasks_completed: optional(block(5000)) = None
+    challenges: optional(block(5000)) = None
+    next_plan: optional(block(5000)) = None
     hours_spent: float | None = Field(default=None, ge=0, le=400)
     file_id: int | None = None
 
 
 class ReportReview(BaseModel):
     status: SubmissionStatus
-    feedback: str | None = None
+    feedback: optional(block(2000)) = None
 
 
 class EvaluationScoreIn(BaseModel):
     criteria_id: int
     marks: float | None = Field(default=None, ge=0)
     is_absent: bool = False
-    comments: str | None = None
+    comments: optional(block(2000)) = None
 
 
 class EvaluationScoreOut(ORMModel):
@@ -295,10 +299,10 @@ class EvaluationScoreOut(ORMModel):
 
 
 class EvaluationSubmit(BaseModel):
-    scores: list[EvaluationScoreIn] = Field(default_factory=list)
+    scores: list[EvaluationScoreIn] = Field(default_factory=list, max_length=50)
     is_absent: bool = False
-    comments: str | None = None
-    grade: str | None = Field(default=None, max_length=10)
+    comments: optional(block(2000)) = None
+    grade: optional(Grade) = None
     finalise: bool = False
 
 
@@ -358,8 +362,8 @@ class EnrollmentSummary(ORMModel):
 class PresentationSchedule(BaseModel):
     """Allocate (or clear, by passing null) a presentation slot."""
     scheduled_at: dt.datetime | None = None
-    venue: str | None = Field(default=None, max_length=120)
-    panel: str | None = Field(default=None, max_length=180)
+    venue: optional(line(120)) = None
+    panel: optional(line(180)) = None
 
 
 class PresentationQueueRow(BaseModel):
@@ -418,40 +422,41 @@ class EnrollRequest(BaseModel):
     new_organization: OrganizationCreate | None = None
     #: The person at the organisation who supervises the student (for CSSI,
     #: the NGO supervisor). Required when the programme requires one.
-    industry_mentor_name: str | None = Field(default=None, max_length=150)
-    industry_mentor_phone: str | None = Field(default=None, max_length=20)
-    industry_mentor_email: EmailStr | None = None
+    industry_mentor_name: optional(PersonName) = None
+    industry_mentor_phone: optional(Phone) = None
+    industry_mentor_email: optional(EmailStr) = None
     #: Required when the programme offers tracks (`config["tracks"]`).
-    track: str | None = Field(default=None, max_length=40)
+    track: optional(identifier(40)) = None
 
 
 class EnrollmentUpdate(BaseModel):
     organization_id: int | None = None
     start_date: dt.date | None = None
     end_date: dt.date | None = None
-    location: str | None = None
-    stipend: float | None = Field(default=None, ge=0)
-    industry_mentor_name: str | None = None
-    industry_mentor_email: EmailStr | None = None
-    industry_mentor_phone: str | None = None
-    industry_mentor_designation: str | None = None
+    location: optional(line(150)) = None
+    stipend: float | None = Field(default=None, ge=0, le=10_000_000)
+    industry_mentor_name: optional(PersonName) = None
+    industry_mentor_email: optional(EmailStr) = None
+    industry_mentor_phone: optional(Phone) = None
+    industry_mentor_designation: optional(line(100)) = None
 
 
 class StageActionRequest(BaseModel):
     stage_id: int
-    data: dict = Field(default_factory=dict)
+    data: json_object() = Field(default_factory=dict)
 
 
 class StageReviewRequest(BaseModel):
     stage_id: int
     approve: bool
-    remarks: str | None = None
+    remarks: optional(block(2000)) = None
 
 
 class MentorOverrideRequest(BaseModel):
     mentor_faculty_id: int | None = None
     group_id: int | None = None
-    reason: str = Field(default="Assigned by coordinator", min_length=1, max_length=500)
+    reason: line(500) = "Assigned by coordinator"
+
 
 
 class MentorCapacityOut(BaseModel):
@@ -487,7 +492,7 @@ class BatchMentorAssignRequest(BaseModel):
     faculty_ids: list[int] | None = None
     min_students_per_mentor: int = 2
     max_students_per_mentor: int = 10
-    reason: str = "Roll number-wise mentor allocation"
+    reason: line(500) = "Roll number-wise mentor allocation"
 
 
 class AllocationMentorAdd(BaseModel):
@@ -499,11 +504,11 @@ class AllocationMentorReplace(BaseModel):
 
 
 class TeamCreate(BaseModel):
-    name: str = Field(min_length=1, max_length=120)
+    name: line(120)
 
 
 class TeamMemberAdd(BaseModel):
-    roll_number: str = Field(min_length=3, max_length=20)
+    roll_number: RollNumber
 
 
 class GuidePreferences(BaseModel):
@@ -513,9 +518,9 @@ class GuidePreferences(BaseModel):
 class StageIn(BaseModel):
     #: Omit for a new stage.
     id: int | None = None
-    code: str | None = Field(default=None, max_length=50)
-    name: str = Field(min_length=1, max_length=150)
-    description: str | None = Field(default=None, max_length=2000)
+    code: optional(identifier(50)) = None
+    name: line(150)
+    description: optional(block(2000)) = None
     is_mandatory: bool = True
     requires_document: bool = False
     document_type: DocumentType | None = None
@@ -524,9 +529,9 @@ class StageIn(BaseModel):
 
 class CriterionIn(BaseModel):
     id: int | None = None
-    code: str | None = Field(default=None, max_length=50)
-    name: str = Field(min_length=1, max_length=180)
-    description: str | None = Field(default=None, max_length=2000)
+    code: optional(identifier(50)) = None
+    name: line(180)
+    description: optional(block(2000)) = None
     max_marks: float
     weight: float = 1
 
@@ -634,8 +639,8 @@ class InternshipWindowOut(ORMModel):
 
 class InternshipWindowOpen(BaseModel):
     kind: str
-    title: str = Field(default="", max_length=180)
-    message: str = Field(min_length=1, max_length=5000)
+    title: line(180, min_length=0) = ""
+    message: block(5000, min_length=1)
     opens_at: dt.datetime
     closes_at: dt.datetime
     cohort_semester: int | None = Field(default=None, ge=1, le=10)
@@ -647,7 +652,7 @@ class InternshipWindowOpen(BaseModel):
 class InternshipWindowUpdate(BaseModel):
     opens_at: dt.datetime | None = None
     closes_at: dt.datetime | None = None
-    message: str | None = Field(default=None, max_length=5000)
+    message: optional(block(5000, min_length=1)) = None
     submission_due_at: dt.datetime | None = None
     presentation_from: dt.date | None = None
     presentation_to: dt.date | None = None
