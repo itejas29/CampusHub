@@ -17,7 +17,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base, PKMixin, TimestampMixin
 from app.models.enums import (
     AllocationStatus, ComponentType, CourseCategory, CurriculumStatus, DeliveryMode,
-    MoocPlatform, MoocStatus, OfferingStatus, PreferenceStatus,
+    MoocOption, MoocOutcome, MoocPlatform, MoocRoundStatus, MoocStatus, OfferingStatus,
+    PreferenceStatus,
     RegistrationWindowStatus, RoundSelectionMode, RoundStage, SourceConfidence,
     SourceScope, VerificationStatus,
 )
@@ -293,6 +294,9 @@ class Course(PKMixin, TimestampMixin, Base):
     platform: Mapped[MoocPlatform | None] = mapped_column(_enum(MoocPlatform, "course_platform"))
     provider_url: Mapped[str | None] = mapped_column(String(500))
     duration_weeks: Mapped[int | None] = mapped_column(Integer)
+    #: The rest of the department's NPTEL sheet: discipline, the professors
+    #: (SME), the institute and the coordinating institute.
+    provider_details: Mapped[dict | None] = mapped_column(JSON)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     department: Mapped["Department | None"] = relationship()  # noqa: F821
@@ -671,20 +675,135 @@ class ElectiveAllocation(PKMixin, TimestampMixin, Base):
     section: Mapped["CourseSection | None"] = relationship(lazy="joined")
 
 
+class MoocRound(PKMixin, TimestampMixin, Base):
+    """One semester's NPTEL / NCC choice, run by the department's coordinator.
+
+    Replaces the Google Form: the approved course list, the deadline, who has
+    chosen what. It stays the record for the semester — certificates come in
+    while it is locked, and closing it records each student's outcome.
+    """
+
+    __tablename__ = "mooc_rounds"
+
+    title: Mapped[str] = mapped_column(String(180), nullable=False)
+    #: What the coordinator tells the students (the email, in effect).
+    message: Mapped[str | None] = mapped_column(Text)
+    department_id: Mapped[int | None] = mapped_column(
+        ForeignKey("departments.id", ondelete="SET NULL"), index=True
+    )
+    #: The curriculum's MOOC slot this round settles (e.g. OE2 in Semester V).
+    curriculum_component_id: Mapped[int] = mapped_column(
+        ForeignKey("curriculum_components.id", ondelete="CASCADE"), index=True,
+        nullable=False,
+    )
+    status: Mapped[MoocRoundStatus] = mapped_column(
+        _enum(MoocRoundStatus, "mooc_round_status", 20),
+        default=MoocRoundStatus.DRAFT, nullable=False,
+    )
+    #: Which semesters' students choose in it. Students carrying the slot
+    #: over from an earlier round are included whatever their semester.
+    eligible_semesters: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    opens_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    closes_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    #: The NPTEL portal's own last date to register. Shown to students; the
+    #: portal does not check that they registered there.
+    platform_deadline: Mapped[dt.date | None] = mapped_column(Date)
+    locked_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    closed_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+
+    @property
+    def closes_at_utc(self) -> dt.datetime | None:
+        return as_utc(self.closes_at)
+
+    @property
+    def opens_at_utc(self) -> dt.datetime | None:
+        return as_utc(self.opens_at)
+
+    def is_open_at(self, now: dt.datetime) -> bool:
+        if self.status != MoocRoundStatus.OPEN:
+            return False
+        if self.opens_at_utc and now < self.opens_at_utc:
+            return False
+        return not (self.closes_at_utc and now >= self.closes_at_utc)
+
+
+class MoocRoundCourse(PKMixin, TimestampMixin, Base):
+    """A course on a round's approved list. The next semester's round can copy
+    the list, or the coordinator can change it."""
+
+    __tablename__ = "mooc_round_courses"
+    __table_args__ = (
+        UniqueConstraint("mooc_round_id", "course_id",
+                         name="uq_mooc_round_courses_round_course"),
+    )
+
+    mooc_round_id: Mapped[int] = mapped_column(
+        ForeignKey("mooc_rounds.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    course_id: Mapped[int] = mapped_column(
+        ForeignKey("courses.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+
+    course: Mapped["Course"] = relationship(lazy="joined")
+
+
+class MoocRoundOutcome(PKMixin, TimestampMixin, Base):
+    """What closing a round decided for one student on the slot."""
+
+    __tablename__ = "mooc_round_outcomes"
+    __table_args__ = (
+        UniqueConstraint("mooc_round_id", "student_id",
+                         name="uq_mooc_round_outcomes_round_student"),
+    )
+
+    mooc_round_id: Mapped[int] = mapped_column(
+        ForeignKey("mooc_rounds.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    student_id: Mapped[int] = mapped_column(
+        ForeignKey("students.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    curriculum_component_id: Mapped[int] = mapped_column(
+        ForeignKey("curriculum_components.id", ondelete="CASCADE"), index=True,
+        nullable=False,
+    )
+    outcome: Mapped[MoocOutcome] = mapped_column(
+        _enum(MoocOutcome, "mooc_outcome", 20), nullable=False
+    )
+    #: The student's semester when the round closed, for the record.
+    semester_at_close: Mapped[int | None] = mapped_column(Integer)
+
+
 class MoocRegistration(PKMixin, TimestampMixin, Base):
-    """NPTEL / SWAYAM registration + certificate verification lifecycle."""
+    """NPTEL / SWAYAM registration + certificate verification lifecycle.
+
+    In a round, one row per student: the course they chose (or NCC), then the
+    certificate — or their report that they did not pass.
+    """
 
     __tablename__ = "mooc_registrations"
     __table_args__ = (
         UniqueConstraint("student_id", "course_offering_id",
                          name="uq_mooc_registrations_student_id_course_offering_id"),
+        UniqueConstraint("mooc_round_id", "student_id",
+                         name="uq_mooc_registrations_round_student"),
     )
 
     student_id: Mapped[int] = mapped_column(
         ForeignKey("students.id", ondelete="CASCADE"), index=True, nullable=False
     )
-    course_offering_id: Mapped[int] = mapped_column(
-        ForeignKey("course_offerings.id", ondelete="CASCADE"), index=True, nullable=False
+    #: Registrations made before rounds point at an offering; a round's point
+    #: at the course itself (`course_id`), or at nothing for NCC.
+    course_offering_id: Mapped[int | None] = mapped_column(
+        ForeignKey("course_offerings.id", ondelete="CASCADE"), index=True
+    )
+    mooc_round_id: Mapped[int | None] = mapped_column(
+        ForeignKey("mooc_rounds.id", ondelete="CASCADE"), index=True
+    )
+    option: Mapped[MoocOption] = mapped_column(
+        _enum(MoocOption, "mooc_option", 10), default=MoocOption.NPTEL, nullable=False
+    )
+    course_id: Mapped[int | None] = mapped_column(
+        ForeignKey("courses.id", ondelete="SET NULL"), index=True
     )
     curriculum_component_id: Mapped[int | None] = mapped_column(
         ForeignKey("curriculum_components.id", ondelete="SET NULL")
@@ -716,4 +835,15 @@ class MoocRegistration(PKMixin, TimestampMixin, Base):
     grade: Mapped[str | None] = mapped_column(String(10))
     remarks: Mapped[str | None] = mapped_column(Text)
 
-    course_offering: Mapped["CourseOffering"] = relationship(lazy="joined")
+    course_offering: Mapped["CourseOffering | None"] = relationship(lazy="joined")
+    course: Mapped["Course | None"] = relationship(lazy="joined")
+
+    @property
+    def subject_title(self) -> str | None:
+        """What the student is taking: NCC, the round's course, or the
+        offering a registration made before rounds points at."""
+        if self.option == MoocOption.NCC:
+            return "NCC certification"
+        if self.course is not None:
+            return self.course.title
+        return self.course_offering.course.title if self.course_offering else None

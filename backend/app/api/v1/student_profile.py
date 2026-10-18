@@ -182,9 +182,8 @@ def _academic(db, student: Student) -> ProfileAcademic:
     moocs = []
     for registration in db.scalars(select(MoocRegistration).where(
             MoocRegistration.student_id == student.id)):
-        offering = registration.course_offering
         moocs.append({
-            "course": offering.course.title if offering else None,
+            "course": registration.subject_title,
             "platform": registration.platform.value,
             "status": registration.status.value,
             "verification": registration.verification_status.value,

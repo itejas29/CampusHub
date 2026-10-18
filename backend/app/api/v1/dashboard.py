@@ -33,7 +33,7 @@ from app.schemas.admin import (
     HodDashboard, ProgressItem, StatCard, StudentDashboard,
 )
 from app.services import announcements as announcement_audience
-from app.services import registration, scope
+from app.services import mooc_rounds, registration, scope
 from app.services import internship_windows as program_windows
 from app.services import documents as docs
 from app.services import serializers
@@ -161,6 +161,7 @@ def student_dashboard(db: DbSession, user: CurrentUser) -> StudentDashboard:
 
     # Action items: open elective windows and internship stages awaiting the student.
     action_items: list[DeadlineItem] = []
+    mooc_live = mooc_rounds.round_for_student(db, student)
     for component in pending_components:
         closes = db.scalar(
             select(func.min(CourseOffering.registration_closes_at)).where(
@@ -169,9 +170,18 @@ def student_dashboard(db: DbSession, user: CurrentUser) -> StudentDashboard:
             )
         )
         if component.component_type == ComponentType.MOOC:
-            # No preference list here — the student registers one course.
-            step = (" — registration was not accepted, register again"
-                    if mooc_rows.get(component.id) else " — register a course")
+            # No preference list here — the student takes one course, or NCC.
+            if mooc_rows.get(component.id):
+                # In a round the choice stands and only the certificate is redone;
+                # without one, the student registers again.
+                step = (" — the certificate was not accepted, submit it again"
+                        if mooc_live is not None
+                        else " — registration was not accepted, register again")
+            elif mooc_live is not None:
+                step = " — choose an NPTEL course or NCC"
+                closes = mooc_live[0].closes_at
+            else:
+                step = " — register a course"
         else:
             step = " — submit preferences"
         action_items.append(DeadlineItem(
@@ -195,6 +205,21 @@ def student_dashboard(db: DbSession, user: CurrentUser) -> StudentDashboard:
                 due_at=status.closes_at, context=window.title,
                 link=serializers.elective_path(component), kind="elective",
             ))
+    # A MOOC slot carried over from an earlier semester is not in this
+    # semester's list, but it is still the student's to clear.
+    if mooc_live is not None and mooc_live[1].carry_over:
+        round_, _ = mooc_live
+        component = db.get(CurriculumComponent, round_.curriculum_component_id)
+        chosen = db.scalar(select(MoocRegistration).where(
+            MoocRegistration.mooc_round_id == round_.id,
+            MoocRegistration.student_id == student.id))
+        title = component.title if component else "NPTEL / NCC"
+        action_items.append(DeadlineItem(
+            title=(f"{title} — carried over: choose an NPTEL course or NCC" if not chosen
+                   else f"{title} — carried over: submit your certificate"),
+            due_at=round_.closes_at if not chosen else None,
+            context=round_.title, link="/academics/nptel", kind="elective",
+        ))
     if early_pending:
         pending_stat = next(s for s in stats if s.key == "pending_electives")
         pending_stat.value = len(pending_components) + len(early_pending)

@@ -414,7 +414,7 @@ def _student_nptel(db: Session, student: Student) -> Answer:
         return ("You have no NPTEL registrations. Register for a course on the NPTEL page; once "
                 "you pass, upload the certificate there and the NPTEL coordinator verifies it.",
                 link, [])
-    lines = "\n".join(f"- **{r.course_offering.course.title if r.course_offering else 'Course'}** — "
+    lines = "\n".join(f"- **{r.subject_title or 'Course'}** — "
                       f"{_human(r.status)}" for r in regs)
     return f"### Your NPTEL courses\n\n{lines}", link, []
 

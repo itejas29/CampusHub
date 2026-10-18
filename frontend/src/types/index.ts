@@ -307,12 +307,68 @@ export interface AllocationRunResult {
 
 export interface MoocRegistration {
   id: number; student_id: number; student_name: string | null;
-  roll_number: string | null; course_offering_id: number; course_code: string | null;
+  roll_number: string | null; course_offering_id: number | null; course_code: string | null;
+  option: MoocOption; mooc_round_id: number | null;
   course_title: string | null; platform: string; platform_registration_id: string | null;
   course_url: string | null; status: string; exam_date: string | null;
   exam_city: string | null; exam_fee_paid: boolean; exam_fee_reference: string | null;
   certificate_url: string | null; verification_status: string; verified_at: string | null;
   final_score: number | null; grade: string | null; remarks: string | null;
+}
+
+export type MoocOption = "NPTEL" | "NCC";
+export type MoocRoundStatus = "DRAFT" | "OPEN" | "LOCKED" | "CLOSED";
+export type MoocOutcome = "CLEARED" | "CARRIED_OVER" | "BACKLOG";
+
+export interface MoocCourse {
+  course_id: number; code: string; title: string; weeks: number | null;
+  credits: number | null; url: string | null; discipline: string | null;
+  instructors: string | null; institute: string | null;
+  coordinating_institute: string | null; chosen_count: number | null;
+}
+
+export interface MoocRound {
+  id: number; title: string; message: string | null; status: MoocRoundStatus;
+  department_id: number | null; curriculum_component_id: number;
+  component_code: string | null; component_title: string | null;
+  component_semester: number | null; eligible_semesters: number[];
+  opens_at: string | null; closes_at: string | null; platform_deadline: string | null;
+  locked_at: string | null; closed_at: string | null; is_open: boolean;
+  is_past_deadline: boolean; course_count: number; covered_count: number;
+  carry_over_count: number; chosen_count: number; nptel_count: number; ncc_count: number;
+  certificates_waiting: number; verified_count: number; failed_count: number;
+  can_manage: boolean;
+}
+
+export interface MoocChoice {
+  registration_id: number; option: MoocOption; course: MoocCourse | null;
+  status: string; verification_status: string; certificate_url: string | null;
+  remarks: string | null; updated_at: string | null;
+}
+
+export interface StudentMoocRound {
+  id: number; title: string; message: string | null; status: MoocRoundStatus;
+  opens_at: string | null; closes_at: string | null; platform_deadline: string | null;
+  can_choose: boolean; reason: string | null; carry_over: boolean;
+  courses: MoocCourse[]; choice: MoocChoice | null; can_submit_result: boolean;
+}
+
+export interface StudentMoocStanding {
+  component_id: number | null; component_code: string | null;
+  component_title: string | null; component_semester: number | null;
+  standing: MoocOutcome | null; round: StudentMoocRound | null;
+}
+
+export interface MoocRosterRow {
+  student_id: number; student_name: string | null; roll_number: string | null;
+  semester: number | null; carry_over: boolean; registration_id: number | null;
+  option: MoocOption | null; course_code: string | null; course_title: string | null;
+  status: string | null; verification_status: string | null; certificate_url: string | null;
+}
+
+export interface MoocSlot {
+  component_id: number; code: string; title: string; semester_number: number;
+  program_code: string; curriculum_version: string; department_id: number | null;
 }
 
 export interface MoocEligibility {

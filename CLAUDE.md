@@ -270,6 +270,35 @@ code), edits a course's code/name/credits **everywhere it is offered**, or
 removes it from the slot (refused once it holds seats or sits in a live round;
 the course stays in the catalogue).
 
+### NPTEL / NCC rounds (`services/mooc_rounds.py`)
+
+How the ICT department runs the Semester V Open Elective (the coordinator's
+emails to the 2024 batch, and the department's answers to the project team):
+
+- The NPTEL coordinator runs a **round** (`mooc_rounds`): DRAFT → OPEN
+  (choosing) → LOCKED (choices fixed; certificates still come in) → CLOSED.
+  It replaces the Google Form. The **approved list** (`mooc_round_courses`) is
+  imported from the department's sheet (.xlsx or .csv, read without a library)
+  or added by hand; **only 12-week courses, each 3 credits** — `REQUIRED_WEEKS`
+  and `CREDITS`, the one place those numbers live.
+- Each covered student picks **one listed course or NCC** (`MoocOption`), with
+  no limit per course, and may change it until the deadline. Students register
+  on the NPTEL portal **themselves**; the portal does not track it (the round's
+  `platform_deadline` is shown for information only).
+- The result is a **certificate** (NPTEL certifies only those who pass; NCC
+  students submit theirs) verified by the coordinator, or the student's report
+  that they **did not pass** (`MoocStatus.FAILED`).
+- **Closing the semester** writes one `mooc_round_outcomes` row per covered
+  student: CLEARED (verified), CARRIED_OVER, or — if they were already
+  carrying it over — BACKLOG. A carried-over student is covered by the next
+  round whatever their semester, chooses again (NPTEL or NCC) from the same or
+  an updated list, and sees it on the dashboard. Closing waits while a
+  certificate is unverified unless the coordinator forces it.
+- While a round covers a student, the old free `/mooc/register` is refused.
+- Demo/live: `python -m app.seed.add_nptel_round` adds the department's
+  2026-27 list (`seed/sources/nptel_ict_2026-27.json`, 15 courses) as a
+  **draft** round, without a reseed; the full seed does the same.
+
 ### Allocation is per round, and first come, first served
 
 - **A run allocates one round**, never the whole slot (`registration_window_id`

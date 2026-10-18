@@ -174,7 +174,7 @@ export const NAVIGATION: NavSection[] = [
         coordinates: ["OPEN_ELECTIVE", "CORE_ELECTIVE"],
       },
       {
-        label: "NPTEL Verification", to: "/admin/nptel", icon: BadgeCheck,
+        label: "NPTEL / NCC", to: "/admin/nptel", icon: BadgeCheck,
         permission: "mooc:verify", coordinates: ["MOOC"],
       },
       {
