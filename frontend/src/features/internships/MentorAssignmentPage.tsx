@@ -107,9 +107,9 @@ export function MentorAssignmentPage() {
     return programs.filter((p) => {
       // Check if user has an active coordination matching this program's domain and department
       const matchesCoordination = myCoordinations.some((c) => {
-        const domainMatches =
-          (p.type === "CSSI" && c.domain === "CSSI") ||
-          (p.type === "SUMMER" && c.domain === "SUMMER_INTERNSHIP");
+        // The server names the role that runs each programme, so a new
+        // programme type needs no change here.
+        const domainMatches = c.domain === p.coordination_domain;
         const deptMatches = c.department_id == null || c.department_id === p.department_id;
         return domainMatches && deptMatches;
       });
@@ -224,6 +224,18 @@ export function MentorAssignmentPage() {
         text: err instanceof ApiError ? err.message : "Failed to allocate students.",
       });
     },
+  });
+
+  // Teams and solo students to their highest-ranked guide with room.
+  const allocateByPreference = useMutation({
+    mutationFn: () => api.post<{ assigned_count: number; message: string }>(
+      `/internships/programs/${activeProgramId}/assign-mentors`, { by_preference: true }),
+    onSuccess: (res) => {
+      setFeedback({ tone: "success", text: res.message });
+      void queryClient.invalidateQueries({ queryKey: ["mentor-capacity"] });
+      void queryClient.invalidateQueries({ queryKey: ["internship-enrollments"] });
+    },
+    onError: (err) => setFeedback({ tone: "danger", text: err instanceof ApiError ? err.message : "Could not allocate by preference." }),
   });
 
   // Lock, unlock and the one-step changes a locked allocation allows. The
@@ -362,6 +374,8 @@ export function MentorAssignmentPage() {
   }, [enrollments, assignmentTab, mentorFilter, search]);
 
   const unassignedCount = enrollments.filter((e) => !e.mentor_faculty_id).length;
+  // Students waiting for a guide who ranked some (Semester VII / VIII projects).
+  const rankedWaiting = enrollments.filter((e) => !e.mentor_faculty_id && (e.guide_preferences?.length ?? 0) > 0).length;
   const assignedCount = enrollments.filter((e) => !!e.mentor_faculty_id).length;
   const activeMentorsCount = mentors.filter((m) => m.assigned_count > 0).length;
   const totalStudents = enrollments.length;
@@ -703,7 +717,16 @@ export function MentorAssignmentPage() {
                         onClick={() => setShowResetConfirm(true)} disabled={!assignedCount || clearAllAssignments.isPending}>
                   Reset all
                 </Button>
-                <Button variant="accent" size="sm" loading={allocateByRollNo.isPending}
+                {rankedWaiting > 0 && (
+                  <Button variant="accent" size="sm" loading={allocateByPreference.isPending}
+                          disabled={allocationLocked}
+                          title="Each team or student gets their highest-ranked guide with room; the rest stay for you."
+                          icon={<ListOrdered className="h-3.5 w-3.5" aria-hidden />}
+                          onClick={() => allocateByPreference.mutate()}>
+                    Allocate by preference ({rankedWaiting})
+                  </Button>
+                )}
+                <Button variant={rankedWaiting > 0 ? "secondary" : "accent"} size="sm" loading={allocateByRollNo.isPending}
                         disabled={allocationLocked || !totalStudents || !runUsed}
                         icon={<UserCheck className="h-3.5 w-3.5" aria-hidden />}
                         onClick={handleAutoAllocate}>
@@ -812,6 +835,16 @@ export function MentorAssignmentPage() {
                             <div className="min-w-0">
                               <p className="truncate text-sm font-medium text-ink" title={row.student_name ?? undefined}>{row.student_name}</p>
                               <p className="font-mono text-2xs text-ink-subtle">{row.roll_number}</p>
+                              {row.team && (
+                                <p className="truncate text-2xs text-accent" title={row.team.members.map((m) => m.name).join(", ")}>
+                                  Team “{row.team.name}” · {row.team.members.length}
+                                </p>
+                              )}
+                              {!row.mentor_faculty_id && (row.guide_preferences?.length ?? 0) > 0 && (
+                                <p className="truncate text-2xs text-ink-subtle" title={row.guide_preferences!.map((g, i) => `${i + 1}. ${g.name}`).join("\n")}>
+                                  Prefers {row.guide_preferences!.map((g) => g.name.replace(/^(Dr\.|Prof\.)\s*/, "")).join(" › ")}
+                                </p>
+                              )}
                             </div>
                           </div>
                         </td>

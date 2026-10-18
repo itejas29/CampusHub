@@ -111,6 +111,7 @@ def student_dashboard(db: DbSession, user: CurrentUser) -> StudentDashboard:
         ElectiveAllocation.student_id == student.id,
         ElectiveAllocation.status.in_([AllocationStatus.ALLOCATED,
                                        AllocationStatus.CONFIRMED]),
+        registration.visible_allocations(),
     )))
     enrollments = list(db.scalars(select(InternshipEnrollment).where(
         InternshipEnrollment.student_id == student.id
@@ -565,7 +566,7 @@ def _coordination_portfolios(db, user: User) -> list[dict]:
     An internship coordination expands to one entry per programme it governs,
     so the dashboard can link to the real programme id rather than a guess.
     """
-    from app.models.enums import AssignedRole, CoordinationDomain as D
+    from app.models.enums import INTERNSHIP_DOMAINS, AssignedRole, CoordinationDomain as D
     from app.models.minors import MinorProgram
 
     now = utcnow()
@@ -580,7 +581,7 @@ def _coordination_portfolios(db, user: User) -> list[dict]:
         }
         in_dept = (lambda col: col == c.department_id) if c.department_id else None
 
-        if c.domain in (D.CSSI, D.SUMMER_INTERNSHIP):
+        if c.domain in INTERNSHIP_DOMAINS:
             programs = [
                 p for p in db.scalars(select(InternshipProgram).order_by(InternshipProgram.id))
                 if scope.domain_for_program(p) == c.domain

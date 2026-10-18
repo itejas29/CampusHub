@@ -645,7 +645,8 @@ class MoocUpdateRequest(BaseModel):
     exam_city: str | None = None
     exam_fee_paid: bool | None = None
     exam_fee_reference: str | None = None
-    final_score: float | None = Field(default=None, ge=0, le=100)
+    # No final_score: the score is recorded by the verifier from the
+    # certificate. Students could set their own here before.
 
 
 class MoocVerifyRequest(BaseModel):

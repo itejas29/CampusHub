@@ -13,8 +13,8 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import BusinessRuleError, NotFoundError
 from app.models.enums import (
-    AuditAction, EnrollmentStatus, EvaluationStatus, NotificationType, ProgramPhase,
-    ReportFrequency, ReportType, StageStatus,
+    AuditAction, EnrollmentStatus, EvaluationStatus, NotificationType, OrganizationType,
+    ProgramPhase, ReportFrequency, ReportType, StageStatus, SubmissionStatus,
 )
 from app.models.identity import Faculty, Student, User
 from app.models.internships import (
@@ -53,9 +53,103 @@ def utcnow() -> dt.datetime:
 
 
 # ── enrolment ─────────────────────────────────────────────────────────────
+# ── admission batches and tracks (programme configuration) ───────────────
+def governs_batch(program: InternshipProgram, admission_year: int | None) -> bool:
+    """Whether this programme applies to a student admitted in that year.
+
+    `config["admission_years"] = {"from": 2024}` / `{"to": 2023}`. Two
+    Semester VII programmes can then run side by side — the Minor Project for
+    the earlier schemes, the Seminar for the 2024-28 scheme — the way
+    curriculum versions are scoped to batches. No setting means every batch.
+    """
+    years = (program.config or {}).get("admission_years") or {}
+    if admission_year is None or not years:
+        return True
+    low, high = years.get("from"), years.get("to")
+    return (low is None or admission_year >= low) and (high is None or admission_year <= high)
+
+
+def batch_note(program: InternshipProgram) -> str:
+    years = (program.config or {}).get("admission_years") or {}
+    if years.get("from") and years.get("to"):
+        return f"for students admitted {years['from']}–{years['to']}"
+    if years.get("from"):
+        return f"for students admitted in {years['from']} or later"
+    if years.get("to"):
+        return f"for students admitted in {years['to']} or earlier"
+    return ""
+
+
+def program_tracks(program: InternshipProgram) -> list[dict]:
+    """The tracks a programme offers, as configured; empty for most."""
+    return list((program.config or {}).get("tracks") or [])
+
+
+def track_for(program: InternshipProgram, key: str | None) -> dict | None:
+    """The chosen track, validated. None for a programme without tracks."""
+    from app.core.errors import ValidationError
+
+    tracks = program_tracks(program)
+    if not tracks:
+        return None
+    chosen = next((t for t in tracks if t.get("key") == key), None)
+    if chosen is None:
+        labels = " or ".join(t.get("label", t.get("key", "")) for t in tracks)
+        raise ValidationError(f"Choose how you will take {program.name}: {labels}.")
+    return chosen
+
+
+def registration_requirements(program: InternshipProgram, track: dict | None) -> dict:
+    """What registering asks for: a host organisation, its kinds, a supervisor.
+
+    A track overrides the programme — the Semester VIII project track needs no
+    host, the industry track needs a company and its supervisor.
+    """
+    track = track or {}
+    return {
+        "requires_organization": track.get("requires_organization", program.requires_organization),
+        "organization_types": track.get("organization_types",
+                                        program.allowed_organization_types or []),
+        "requires_supervisor": track.get("requires_industry_mentor",
+                                         program.requires_industry_mentor),
+    }
+
+
+def assert_registration_organisation(db: Session, program: InternshipProgram, *,
+                                     organization_id: int | None,
+                                     new_type: OrganizationType | None,
+                                     track: dict | None = None) -> None:
+    """A programme that needs a host organisation gets one of the kinds it accepts.
+
+    Both rules were stored on the programme and shown on the form, but nothing
+    enforced them: a CSSI registration went through with no NGO at all, or with
+    a company in place of one.
+    """
+    from app.core.errors import ValidationError
+    from app.models.internships import Organization
+
+    needs = registration_requirements(program, track)
+    allowed = set(needs["organization_types"])
+    if organization_id is not None:
+        org = db.get(Organization, organization_id)
+        if org is None:
+            raise ValidationError("That organisation is not on the list.")
+        kind = org.type
+    elif new_type is not None:
+        kind = new_type
+    else:
+        if needs["requires_organization"]:
+            raise ValidationError(
+                f"Name the organisation you will work with for {program.name}.")
+        return
+    if allowed and kind.value not in allowed:
+        names = ", ".join(sorted(t.replace("_", " ").lower() for t in allowed))
+        raise ValidationError(f"{program.name} accepts only: {names}.")
+
+
 def enroll_student(
     db: Session, *, program: InternshipProgram, student: Student,
-    actor: User | None = None,
+    actor: User | None = None, track: str | None = None,
 ) -> InternshipEnrollment:
     existing = db.scalar(
         select(InternshipEnrollment).where(
@@ -69,7 +163,7 @@ def enroll_student(
     enrollment = InternshipEnrollment(
         program_id=program.id, student_id=student.id,
         status=EnrollmentStatus.REGISTERED, registered_at=utcnow(),
-        start_date=program.start_date, end_date=program.end_date,
+        start_date=program.start_date, end_date=program.end_date, track=track,
     )
     db.add(enrollment)
     db.flush()
@@ -121,18 +215,27 @@ def initialise_stage_progress(
         .order_by(InternshipStage.sequence)
     ))
     existing = {p.stage_id for p in enrollment.stage_progress}
+    # A track lists the stage codes it runs; the rest do not apply to this
+    # student and are recorded as SKIPPED (an industry offer letter for an
+    # in-house project, say), so progress counts only what is theirs to do.
+    track = next((t for t in program_tracks(program) if t.get("key") == enrollment.track), None)
+    applies = set(track["stages"]) if track and track.get("stages") else None
     created: list[EnrollmentStageProgress] = []
-    for index, stage in enumerate(stages):
+    first = True
+    for stage in stages:
         if stage.id in existing:
             continue
+        skipped = applies is not None and stage.code not in applies
         progress = EnrollmentStageProgress(
             enrollment_id=enrollment.id, stage_id=stage.id,
-            status=StageStatus.IN_PROGRESS if index == 0 else StageStatus.PENDING,
+            status=(StageStatus.SKIPPED if skipped
+                    else StageStatus.IN_PROGRESS if first else StageStatus.PENDING),
         )
         db.add(progress)
         created.append(progress)
-        if index == 0:
+        if not skipped and first:
             enrollment.current_stage_id = stage.id
+            first = False
     db.flush()
     return created
 
@@ -272,6 +375,45 @@ def expected_report_schedule(program: InternshipProgram) -> list[dict]:
     return schedule
 
 
+#: A review decides one of these; anything else (back to SUBMITTED, or the
+#: synthetic NOT_SUBMITTED) is not a decision.
+REPORT_REVIEW_OUTCOMES = (SubmissionStatus.UNDER_REVIEW, SubmissionStatus.APPROVED,
+                          SubmissionStatus.VERIFIED, SubmissionStatus.REJECTED)
+
+
+def assert_report_in_schedule(program: InternshipProgram, report_type: ReportType,
+                              sequence_number: int) -> None:
+    """A periodic report's number falls inside the programme's schedule.
+
+    Report #50 of a programme that expects 8 weekly reports used to be accepted.
+    The final report is not numbered against the schedule.
+    """
+    from app.core.errors import ValidationError
+
+    if report_type == ReportType.FINAL:
+        return
+    if program.report_frequency == ReportFrequency.NONE:
+        raise ValidationError(f"{program.name} does not use periodic reports.")
+    count = program.expected_report_count or 0
+    if count and sequence_number > count:
+        raise ValidationError(
+            f"{program.name} expects {count} {report_type.value.lower()} reports; "
+            f"there is no report #{sequence_number}.")
+
+
+def assert_report_review(report, status: SubmissionStatus, feedback: str | None) -> None:
+    from app.core.errors import ValidationError
+
+    if status not in REPORT_REVIEW_OUTCOMES:
+        raise ValidationError("Approve, verify, send back or start reviewing — "
+                              f"'{status.value}' is not a review decision.")
+    if status == SubmissionStatus.REJECTED and not (feedback or "").strip():
+        raise ValidationError("Say what needs to change when sending a report back.")
+    if report.status in (SubmissionStatus.APPROVED, SubmissionStatus.VERIFIED) \
+            and status == SubmissionStatus.UNDER_REVIEW:
+        raise ValidationError("This report has already been approved.")
+
+
 def report_progress(db: Session, enrollment: InternshipEnrollment) -> dict:
     program = enrollment.program
     expected = expected_report_schedule(program)
@@ -316,6 +458,46 @@ def compute_totals(
         if mark is not None:
             total += float(mark) * weight
     return round(total, 2), round(maximum, 2)
+
+
+def can_review(enrollment: InternshipEnrollment, faculty: Faculty | None) -> bool:
+    """Whether this faculty member reviews and marks this student.
+
+    The student's own mentor does. A group lead used to as well, so after a
+    roll-number allocation two people could mark the same CSSI student and the
+    later save won. A programme may still opt group leads in
+    (`config["group_lead_reviews"]`); none does by default. Group leads keep
+    read access either way.
+    """
+    if faculty is None:
+        return False
+    if enrollment.mentor_faculty_id == faculty.id:
+        return True
+    leads_review = bool((enrollment.program.config or {}).get("group_lead_reviews"))
+    return leads_review and enrollment.group is not None and enrollment.group.faculty_id == faculty.id
+
+
+def finalise_blockers(db: Session, enrollment: InternshipEnrollment) -> list[str]:
+    """What must be approved and verified before marks can be finalised.
+
+    Every mandatory stage of the student's track except the marking stage
+    itself (owned by faculty, no document): approved, with its document
+    verified where it needs one. A mentor could finalise before, say, the CSSI
+    certificate had been checked.
+    """
+    from app.services.documents import stage_requirements_met
+
+    missing = []
+    for view in stage_timeline(db, enrollment):
+        stage = view.stage
+        if view.status == StageStatus.SKIPPED or not stage.is_mandatory:
+            continue
+        if stage.owner_role == "FACULTY" and not stage.requires_document:
+            continue
+        met, _reason = stage_requirements_met(db, enrollment, stage)
+        if view.status != StageStatus.APPROVED or not met:
+            missing.append(stage.name)
+    return missing
 
 
 def finalise_enrollment(
@@ -419,6 +601,34 @@ def split_by_roll(total: int, mentors: int, capacity: int) -> list[int]:
     return [base + (1 if i < extra else 0) for i in range(used)]
 
 
+def _sync_allocation_stage(db: Session, enrollment: InternshipEnrollment, *,
+                           assigned: bool, actor: User | None) -> None:
+    """The coordinator's allocation stage follows the allocation itself.
+
+    A stage the coordinator owns and that needs no document ("Mentor
+    Allocation", "Guide Allocation") is done by allocating. Nothing completed
+    it before, so a student sat at that step after being given a mentor until
+    someone approved the stage by hand. Taking the mentor away reopens it.
+    """
+    changed = False
+    for progress in enrollment.stage_progress:
+        stage = progress.stage
+        if stage.owner_role != "COORDINATOR" or stage.requires_document:
+            continue
+        if assigned and progress.status in (StageStatus.PENDING, StageStatus.IN_PROGRESS,
+                                            StageStatus.SUBMITTED):
+            progress.status = StageStatus.APPROVED
+            progress.reviewed_at = utcnow()
+            progress.reviewed_by_user_id = actor.id if actor else None
+            changed = True
+        elif not assigned and progress.status == StageStatus.APPROVED:
+            progress.status = StageStatus.PENDING
+            changed = True
+    if changed:
+        db.flush()
+        _advance_current_stage(db, enrollment)
+
+
 def override_mentor(
     db: Session, *, enrollment: InternshipEnrollment, new_faculty_id: int | None,
     reason: str | None, actor: User | None = None, enforce_capacity: bool = True,
@@ -456,6 +666,7 @@ def override_mentor(
         enrollment.status = EnrollmentStatus.MENTOR_ASSIGNED
     elif not new_faculty_id and enrollment.status == EnrollmentStatus.MENTOR_ASSIGNED:
         enrollment.status = EnrollmentStatus.REGISTERED
+    _sync_allocation_stage(db, enrollment, assigned=new_faculty_id is not None, actor=actor)
 
     audit.record(
         db, action=AuditAction.MENTOR_OVERRIDE, entity_type="internship_enrollment",
@@ -509,6 +720,12 @@ def program_phase(program, current_semester: int | None) -> ProgramPhase:
 
 def phase_note(program, phase: ProgramPhase, current_semester: int | None) -> str | None:
     """One sentence explaining the phase to the student, or None when active."""
+    if phase is ProgramPhase.ANNOUNCED and registers_early(program, current_semester):
+        return (
+            f"Runs in Semester {program.target_semester}. Registration is open now, "
+            "so you can arrange your project or host company ahead; work is "
+            "submitted once the semester begins."
+        )
     if phase is ProgramPhase.ANNOUNCED:
         return (
             f"Announced for Semester {program.target_semester}. You are in "
@@ -547,6 +764,27 @@ def student_can_see_program(program, current_semester: int | None, *,
         return True
     phase = program_phase(program, current_semester)
     return phase not in (ProgramPhase.HIDDEN, ProgramPhase.CONCLUDED)
+
+
+def registers_early(program, current_semester: int | None) -> bool:
+    """Whether an announced programme already takes registrations.
+
+    `config["register_from_semester"] = 7` on the Semester VIII project lets a
+    Semester VII student register (and an industry-track student line up a
+    company) a semester ahead. Work is still submitted only from the
+    programme's own semester — see assert_submissions_open.
+    """
+    early = (getattr(program, "config", None) or {}).get("register_from_semester")
+    return (early is not None and current_semester is not None
+            and program_phase(program, current_semester) is ProgramPhase.ANNOUNCED
+            and current_semester >= early)
+
+
+def assert_can_register_now(program, current_semester: int | None) -> None:
+    """Registration (not submission) for a programme without coordinator windows."""
+    if registers_early(program, current_semester):
+        return
+    assert_submissions_open(program, current_semester)
 
 
 def assert_submissions_open(program, current_semester: int | None) -> None:

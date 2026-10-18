@@ -196,10 +196,27 @@ def apply(payload: MinorApplyRequest, db: DbSession, student: CurrentStudent,
             raise BusinessRuleError(f"{program.name}: {result.reasons[0]}")
         programs.append(program)
 
+    # A withdrawn application is replaced too: left in place it collided with
+    # the new one on (student, minor, year) and re-applying failed with a
+    # database error. A decided one (allocated, waitlisted, rejected) stays,
+    # and applying to that minor again is refused with the reason.
+    decided = {a.minor_program_id: a for a in db.scalars(select(MinorApplication).where(
+        MinorApplication.student_id == student.id,
+        MinorApplication.status.not_in([MinorApplicationStatus.SUBMITTED,
+                                        MinorApplicationStatus.DRAFT,
+                                        MinorApplicationStatus.WITHDRAWN]),
+    ))}
+    for program in programs:
+        earlier = decided.get(program.id)
+        if earlier is not None and earlier.academic_year_id == program.academic_year_id:
+            raise BusinessRuleError(
+                f"{program.name}: your application this year was already "
+                f"{earlier.status.value.lower()}.")
     for old in db.scalars(select(MinorApplication).where(
         MinorApplication.student_id == student.id,
         MinorApplication.status.in_(
-            [MinorApplicationStatus.SUBMITTED, MinorApplicationStatus.DRAFT]
+            [MinorApplicationStatus.SUBMITTED, MinorApplicationStatus.DRAFT,
+             MinorApplicationStatus.WITHDRAWN]
         ),
     )):
         db.delete(old)
@@ -312,7 +329,14 @@ def list_applications(
         stmt = stmt.where(MinorApplication.minor_program_id == program_id)
     if status:
         stmt = stmt.where(MinorApplication.status == status)
-    return [_application_out(db, a) for a in db.scalars(stmt)]
+    # Each application is shown only to someone who may act on it. The list
+    # used to answer any minor coordinator with every department's applicants —
+    # and their CPI.
+    rows = [a for a in db.scalars(stmt)
+            if user.has_role(*scope.UNSCOPED_ROLES)
+            or scope.can_manage_minor(db, user, a.minor_program,
+                                      scope.student_department_id(db, a.student_id))]
+    return [_application_out(db, a) for a in rows]
 
 
 @router.post("/applications/{application_id}/decide", response_model=MinorApplicationOut)

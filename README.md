@@ -53,6 +53,7 @@ them and fills the form on click.
 | `FACULTY` + `DEPARTMENT_ADMIN` | `ict.office@campushub.example.com` | ICT office: department data administration; cannot appoint |
 | `FACULTY` (Open Elective coordinator) | `vikram.joshi@campushub.example.com` | Runs ICT Open Elective registration rounds |
 | `FACULTY` (Core Elective coordinator) | `leena.nambiar@campushub.example.com` | Runs ICT Core Elective registration rounds |
+| `FACULTY` (Projects coordinator) | `rakesh.bhatt@campushub.example.com` | Runs the Sem VII Minor Project / Seminar and the Sem VIII Major Project |
 | `CLUB_ADMIN` | `clubs@campushub.example.com` | Club and event management |
 | `SUPER_ADMIN` | `admin@campushub.example.com` | Everything, including the audit log |
 

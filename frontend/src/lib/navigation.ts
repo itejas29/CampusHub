@@ -26,7 +26,8 @@ export interface NavItem {
    * Visible only to faculty who actually mentor students on this internship
    * type. A faculty member never made a mentor sees no student list at all.
    */
-  mentorsProgram?: "CSSI" | "SUMMER";
+  /** Shown to a mentor of any of these programme types. */
+  mentorsProgram?: string | string[];
   /**
    * Visible only while this semester-gated section applies to the student. The
    * list comes from the server (`student.visible_sections`), so the menu and
@@ -96,6 +97,10 @@ export const NAVIGATION: NavSection[] = [
       {
         label: "SI Students", to: "/internships/si-students", icon: Users,
         roles: STAFF, mentorsProgram: "SUMMER",
+      },
+      {
+        label: "Project Students", to: "/internships/project-students", icon: Users,
+        roles: STAFF, mentorsProgram: ["MINOR_PROJECT", "SEMINAR", "MAJOR_PROJECT"],
       },
       {
         label: "All Students", to: "/internships/students", icon: Users,
@@ -199,7 +204,7 @@ export const PROFILE_ITEM: NavItem = { label: "Profile", to: "/profile", icon: S
 export function visibleSections(
   roles: Role[],
   can: (permission: string) => boolean,
-  mentorsProgram: (type: "CSSI" | "SUMMER") => boolean = () => false,
+  mentorsProgram: (type: string) => boolean = () => false,
   coordinates: (domain: CoordinationDomain) => boolean = () => false,
   studentSections: string[] | null = null,
 ): NavSection[] {
@@ -207,7 +212,8 @@ export function visibleSections(
   const allowed = (item: NavItem) => {
     if (item.roles && !item.roles.some((role) => owned.has(role))) return false;
     if (item.excludeRoles?.some((role) => owned.has(role))) return false;
-    if (item.mentorsProgram && !mentorsProgram(item.mentorsProgram)) return false;
+    if (item.mentorsProgram
+        && !([] as string[]).concat(item.mentorsProgram).some(mentorsProgram)) return false;
     // `null` means "not a student" — staff navigation is unaffected.
     if (item.studentSection && studentSections
         && !studentSections.includes(item.studentSection)) return false;

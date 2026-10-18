@@ -23,7 +23,7 @@ from __future__ import annotations
 import datetime as dt
 from dataclasses import dataclass
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.errors import BusinessRuleError, ValidationError
@@ -264,6 +264,29 @@ def assert_can_withdraw(db: Session, component: CurriculumComponent,
         )
 
 
+def committed_seats(db: Session, window: ElectiveRegistrationWindow) -> int:
+    """Seats a real allocation run has written for this round's courses."""
+    offering_ids = select(CourseOffering.id).where(
+        CourseOffering.registration_window_id == window.id)
+    return db.scalar(select(func.count(ElectiveAllocation.id)).where(
+        ElectiveAllocation.course_offering_id.in_(offering_ids))) or 0
+
+
+def assert_can_reopen(db: Session, window: ElectiveRegistrationWindow) -> None:
+    """A round whose seats are committed is not reopened to choice filling.
+
+    LOCKED → OPEN is how a coordinator lets students back in before running the
+    allocation. After a real run it reopened choices while every student
+    already held a seat — the next run, or publishing, would then rest on
+    preferences changed after the seats were given.
+    """
+    if committed_seats(db, window):
+        raise BusinessRuleError(
+            "Seats from this round are already allocated, so it cannot be "
+            "reopened for choices. Mark it allocated and publish, or ask the "
+            "registrar to clear the allocation.")
+
+
 def transition(window: ElectiveRegistrationWindow,
                target: RegistrationWindowStatus) -> None:
     """Move a round forward, refusing anything the lifecycle does not allow."""
@@ -323,8 +346,8 @@ def delete_round(db: Session, window: ElectiveRegistrationWindow) -> DeletedRoun
     if offering_ids and db.scalar(select(func.count(ElectiveAllocation.id)).where(
             ElectiveAllocation.course_offering_id.in_(offering_ids))):
         raise BusinessRuleError(
-            "Allocation has already run for this round's courses, so it can no "
-            "longer be deleted. Undo the allocation first."
+            "Allocation has already run for this round's courses, so students "
+            "hold seats from it and it can no longer be deleted."
         )
 
     told = ([s.user_id for s in students_in_window(db, window)]
@@ -558,3 +581,70 @@ def validate_round(db: Session, window: ElectiveRegistrationWindow, *,
                 "The closing time has already passed. Set a later deadline "
                 "before opening the round."
             )
+
+
+# ── undoing a run ─────────────────────────────────────────────────────────
+def undo_allocation(db: Session, window: ElectiveRegistrationWindow) -> int:
+    """Take back a run that has not been published, and return the round to LOCKED.
+
+    A wrong run (the wrong seat limit, a course left out) could not be
+    reversed: the round could not reopen or be deleted once seats existed, and
+    rerunning skipped every student who already held one. This removes the
+    seats the round's courses hold, recounts each course, and drops the class
+    sections the run formed (those left empty), so the coordinator can run it
+    again. Students were never told — they hear on Publish — so nobody needs
+    telling now. Once published it is refused: students hold those seats.
+    """
+    from app.models.academics import CourseSection
+
+    if window.status not in (RegistrationWindowStatus.LOCKED, RegistrationWindowStatus.ALLOCATED):
+        raise BusinessRuleError(
+            f"This round is {window.status.value.lower()}. An allocation can be "
+            "undone after it has run and before the results are published.")
+    offering_ids = [o.id for o in db.scalars(select(CourseOffering).where(
+        CourseOffering.registration_window_id == window.id))]
+    rows = list(db.scalars(select(ElectiveAllocation).where(
+        ElectiveAllocation.course_offering_id.in_(offering_ids or [0]))))
+    if not rows:
+        raise BusinessRuleError("This round has no allocation to undo.")
+    for row in rows:
+        db.delete(row)
+    db.flush()
+    for offering in db.scalars(select(CourseOffering).where(CourseOffering.id.in_(offering_ids))):
+        offering.seats_filled = db.scalar(select(func.count(ElectiveAllocation.id)).where(
+            ElectiveAllocation.course_offering_id == offering.id,
+            ElectiveAllocation.status == AllocationStatus.ALLOCATED)) or 0
+        for section in db.scalars(select(CourseSection).where(
+                CourseSection.course_offering_id == offering.id)):
+            if not db.scalar(select(func.count(ElectiveAllocation.id)).where(
+                    ElectiveAllocation.section_id == section.id)):
+                db.delete(section)
+    if window.status == RegistrationWindowStatus.ALLOCATED:
+        transition(window, RegistrationWindowStatus.LOCKED)
+    db.flush()
+    return len(rows)
+
+
+# ── what a student may see of an allocation ───────────────────────────────
+#: A round's results reach students only once the coordinator publishes them.
+RESULTS_VISIBLE = (RegistrationWindowStatus.PUBLISHED, RegistrationWindowStatus.CLOSED)
+
+
+def visible_allocations():
+    """Condition on ElectiveAllocation: the rows a *student* may be shown.
+
+    An allocation made by a round is hidden until that round is PUBLISHED.
+    Every student screen used to read the allocation table directly, so a seat
+    showed on the student's list, workspace, curriculum and dashboard the
+    moment the coordinator ran the allocation — before checking or publishing
+    it. An allocation outside any round (a manual one) is shown as it stands.
+    """
+    shown = (
+        select(CourseOffering.id)
+        .outerjoin(ElectiveRegistrationWindow,
+                   ElectiveRegistrationWindow.id == CourseOffering.registration_window_id)
+        .where(or_(CourseOffering.registration_window_id.is_(None),
+                   ElectiveRegistrationWindow.status.in_(RESULTS_VISIBLE)))
+    )
+    return ElectiveAllocation.course_offering_id.in_(shown)
+

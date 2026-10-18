@@ -121,6 +121,10 @@ def test_faculty_with_no_assignment_coordinates_nothing():
 @pytest.mark.parametrize("program_type,expected", [
     ("CSSI", CoordinationDomain.CSSI),
     ("SUMMER", CoordinationDomain.SUMMER_INTERNSHIP),
+    ("MINOR_PROJECT", CoordinationDomain.PROJECT),
+    ("SEMINAR", CoordinationDomain.PROJECT),
+    ("MAJOR_PROJECT", CoordinationDomain.MAJOR_PROJECT),
+    ("RESEARCH", None),              # no coordinator role governs it yet
 ])
 def test_internship_programme_maps_to_its_governing_domain(program_type, expected):
     from app.services.scope import domain_for_program

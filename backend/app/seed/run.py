@@ -34,6 +34,7 @@ from app.models.engagement import (
     Announcement, MentorAssignment, MentorMeeting, Notification,
 )
 from app.models.enums import (
+    INTERNSHIP_DOMAINS,
     AllocationStatus, CurriculumStatus, RegistrationWindowStatus,
     SourceConfidence, AnnouncementCategory, AudienceType, AuditAction, ClubCategory,
     ClubMemberRole, ComponentType, CoordinationDomain, DocumentType, EnrollmentStatus,
@@ -656,7 +657,7 @@ def seed(db: Session) -> None:
         ))
         # Only *coordinating* an internship implies the coarse route-guard role.
         # A Mentor grant never does.
-        if assigned_role == "COORDINATOR" and domain in ("CSSI", "SUMMER_INTERNSHIP"):
+        if assigned_role == "COORDINATOR" and CoordinationDomain(domain) in INTERNSHIP_DOMAINS:
             existing = db.scalar(select(UserRole).where(
                 UserRole.user_id == faculty.user_id,
                 UserRole.role == Role.INTERNSHIP_COORDINATOR,
@@ -664,6 +665,9 @@ def seed(db: Session) -> None:
             if existing is None:
                 db.add(UserRole(user_id=faculty.user_id,
                                 role=Role.INTERNSHIP_COORDINATOR))
+                # Written now, so a second internship grant to the same person
+                # (Projects and Major Project) finds it instead of adding again.
+                db.flush()
     db.flush()
 
     log("Students (ICT — four divisions, full cohort)…")
@@ -1091,6 +1095,8 @@ def seed(db: Session) -> None:
 
     seed_internship_records(db, cssi, summer, cssi_groups, students, ngos, companies,
                             faculty_by_code, admin_user)
+    log("Semester VII and VIII projects…")
+    seed_project_programs(db, year, semesters, departments, faculty_by_code, students, companies)
     seed_academic_activity(db, components, offerings, courses, students, elective_types,
                            minors, faculty_by_code, admin_user)
     seed_community(db, students, faculty_by_code, club_admin_user)
@@ -1121,6 +1127,138 @@ def seed(db: Session) -> None:
             )
 
     db.commit()
+
+
+PROJECT_PROGRAMS = [
+    # (code, name, type, semester, credits, admission years, stages, criteria,
+    #  reports, tracks, what still needs confirming, description)
+    ("MP7-2025", "Minor Project (Semester VII)", InternshipType.MINOR_PROJECT, 7, 3,
+     {"to": 2023}, D.MINOR_PROJECT_STAGES, D.MINOR_PROJECT_CRITERIA,
+     (ReportFrequency.NONE, 0), None,
+     ["credits", "stages", "rubric", "admission batches", "team size", "guide preferences"],
+     "A guided project in Semester VII for the schemes before 2024-28. Register a "
+     "topic, work with your faculty guide, and present at mid-semester and at the end."),
+    ("SEM7-2025", "Seminar (Semester VII)", InternshipType.SEMINAR, 7, 1,
+     {"from": 2024}, D.SEMINAR_STAGES, D.SEMINAR_CRITERIA,
+     (ReportFrequency.NONE, 0), None,
+     ["stages", "rubric", "guide preferences"],
+     "The 1-credit Semester VII Seminar of the 2024-28 scheme: a topic studied in "
+     "depth under a faculty guide, written up and presented."),
+    ("MP8-2025", "Major Project / Industry Internship (Semester VIII)",
+     InternshipType.MAJOR_PROJECT, 8, 12, None, D.MAJOR_PROJECT_STAGES,
+     D.MAJOR_PROJECT_CRITERIA, (ReportFrequency.MONTHLY, 4), D.MAJOR_PROJECT_TRACKS,
+     ["stages", "rubric", "report cadence", "credits for batches before 2024", "team size",
+      "guide preferences"],
+     "The 12-credit Semester VIII Major / Comprehensive Project. Take it as an "
+     "in-house project with a faculty guide, or as a full-semester industry "
+     "internship with a guide and a supervisor at the host."),
+]
+
+
+def seed_project_programs(db, year, semesters, departments, faculty_by_code,
+                          students, companies) -> list:
+    """Semester VII and VIII projects: rows on the one internship engine."""
+    created = []
+    for (code, name, ptype, sem, credits, batches, stages, criteria, (freq, count),
+         tracks, unconfirmed, blurb) in PROJECT_PROGRAMS:
+        config = {"requires_faculty_confirmation": unconfirmed,
+                  # Rank up to three guides; a seminar is individual, a project
+                  # may be done in a team of up to four (or alone).
+                  "guide_preferences": 3}
+        if ptype != InternshipType.SEMINAR:
+            config["team_size"] = {"min": 1, "max": 4}
+        early = sem - 1 if tracks else None
+        if early:
+            # Semester VIII registration opens in Semester VII, so an
+            # industry-track student can line up a company ahead of time.
+            config["register_from_semester"] = early
+        if batches:
+            config["admission_years"] = batches
+        if tracks:
+            config["tracks"] = tracks
+        program = InternshipProgram(
+            code=code, name=name, type=ptype, description=blurb,
+            academic_year_id=year.id, semester_id=semesters[sem].id,
+            department_id=departments["ICT"].id, target_semester=sem,
+            # Offered in its own semester only; a student who registered keeps
+            # their record afterwards. Left open-ended, the Semester VII Minor
+            # Project was being offered to Semester VIII students as well.
+            announce_from_semester=early or sem, visible_to_semester=sem, credits=credits,
+            requires_group=False, default_group_size=0,
+            # A track decides for Semester VIII; Semester VII has no host.
+            requires_organization=False, allowed_organization_types=[],
+            report_frequency=freq, expected_report_count=count,
+            requires_industry_mentor=False,
+            registration_opens_at=NOW - dt.timedelta(days=20),
+            registration_closes_at=NOW + dt.timedelta(days=20),
+            start_date=TODAY - dt.timedelta(days=30), end_date=TODAY + dt.timedelta(days=90),
+            status=ProgramStatus.REGISTRATION_OPEN,
+            coordinator_faculty_id=faculty_by_code["ICT-F-103"].id,
+            config=config,
+        )
+        db.add(program)
+        db.flush()
+        for index, (scode, sname, desc, needs_doc, doc_type, owner) in enumerate(stages, 1):
+            db.add(InternshipStage(
+                program_id=program.id, code=scode, name=sname, description=desc,
+                sequence=index, is_mandatory=True, requires_document=needs_doc,
+                document_type=DocumentType(doc_type) if doc_type else None, owner_role=owner))
+        for index, (ccode, cname, desc, max_marks, weight) in enumerate(criteria, 1):
+            db.add(EvaluationCriteria(
+                program_id=program.id, code=ccode, name=cname, description=desc,
+                max_marks=max_marks, weight=weight, sequence=index,
+                evaluator_role=EvaluatorRole.FACULTY_MENTOR))
+        db.flush()
+        created.append(program)
+
+    # A few fictional students already under way, so the coordinator and guide
+    # screens have something to show. Never a real student (the real Semester
+    # VII cohort gets no invented work), and not the two demo sign-ins left to
+    # register live: Arjun Verma (VII) and Pooja Shah (VIII).
+    left_to_register = {"21BIT021", "21BIT081"}
+    def generated(semester):
+        return [s for s in students
+                if s.current_semester == semester and s.roll_number not in left_to_register
+                and s.user.email.endswith("@campushub.example.com")
+                and "@students." not in s.user.email
+                and s.department_id == departments["ICT"].id]
+    guides = [faculty_by_code[c] for c in ("ICT-F-101", "ICT-F-106", "ICT-F-107")]
+    minor_project, _seminar, major = created
+    for index, student in enumerate([s for s in generated(7) if s.admission_year <= 2023][:9]):
+        _seed_project_record(db, minor_project, student, guides[index % 3], index)
+    for index, student in enumerate(generated(8)[:8]):
+        track = "INDUSTRY" if index % 2 else "PROJECT"
+        _seed_project_record(db, major, student, guides[index % 3], index, track=track,
+                             company=companies[index % len(companies)] if track == "INDUSTRY" else None)
+    db.flush()
+    return created
+
+
+def _seed_project_record(db, program, student, guide, index, *, track=None, company=None):
+    enrollment = internship_engine.enroll_student(db, program=program, student=student, track=track)
+    enrollment.mentor_faculty_id = guide.id
+    enrollment.status = EnrollmentStatus.MENTOR_ASSIGNED
+    if company is not None:
+        enrollment.organization_id = company.id
+        enrollment.industry_mentor_name = "Ms. Kavita Rao"
+        enrollment.industry_mentor_phone = "+91 98250 00000"
+    db.flush()
+    db.refresh(enrollment)
+    # Spread how far each student has got: synopsis approved, guide assigned,
+    # and for some a mid-semester review waiting for the guide.
+    for progress in sorted(enrollment.stage_progress, key=lambda p: p.stage.sequence):
+        if progress.status == StageStatus.SKIPPED:
+            continue
+        if progress.stage.code in ("SYNOPSIS", "GUIDE_ALLOCATION", "OFFER_LETTER"):
+            progress.status = StageStatus.APPROVED
+            progress.submitted_at = NOW - dt.timedelta(days=18 - index % 5)
+            progress.reviewed_at = NOW - dt.timedelta(days=15 - index % 5)
+            progress.reviewed_by_user_id = guide.user_id
+        elif progress.stage.code == "MID_REVIEW" and index % 3 == 0:
+            progress.status = StageStatus.SUBMITTED
+            progress.submitted_at = NOW - dt.timedelta(days=2 + index % 4)
+    internship_engine._advance_current_stage(db, enrollment)
+    enrollment.status = EnrollmentStatus.IN_PROGRESS
 
 
 def seed_internship_records(db, cssi, summer, cssi_groups, students, ngos, companies,

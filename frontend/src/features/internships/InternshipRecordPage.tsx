@@ -22,6 +22,7 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { humanise } from "@/lib/utils";
 import type { EnrollmentDetail } from "@/types";
 import { InternshipCertificateModal } from "./InternshipCertificateModal";
+import { TeamAndGuides } from "./TeamAndGuides";
 
 const FREQUENCY_REPORT_TYPE: Record<string, string> = {
   DAILY: "DAILY",
@@ -43,6 +44,9 @@ const FREQUENCY_SEQ_LABEL: Record<string, string> = {
   FORTNIGHTLY: "Fortnight",
   MONTHLY: "Month",
 };
+
+/** Projects and seminars have no host organisation. */
+const PROJECT_TYPES = new Set(["MINOR_PROJECT", "SEMINAR", "MAJOR_PROJECT"]);
 
 const TABS = [
   { key: "workflow", label: "Workflow" },
@@ -228,8 +232,12 @@ export function InternshipRecordPage() {
   return (
     <div>
       <PageHeader
-        title={data.program_code ?? "Internship"}
-        description={data.organization_name ?? "Organisation not yet recorded"}
+        title={data.program_name ?? data.program_code ?? "Internship"}
+        // A project has no host organisation; say its track (or nothing) instead.
+        description={data.organization_name
+          ?? data.track_label
+          ?? (PROJECT_TYPES.has(data.program_type ?? "") ? data.program_code ?? undefined
+            : "Organisation not yet recorded")}
         breadcrumbs={[
           { label: "Internships", to: "/internships" },
           { label: data.program_code ?? "Record" },
@@ -303,6 +311,8 @@ export function InternshipRecordPage() {
           </CardBody>
         </Card>
       )}
+
+      <TeamAndGuides record={data} onChanged={invalidate} />
 
       <Tabs
         tabs={TABS.map((t) =>

@@ -14,7 +14,7 @@ export interface StudentContext {
 }
 
 export type CoordinationDomain =
-  | "CSSI" | "SUMMER_INTERNSHIP" | "MINOR" | "MOOC"
+  | "CSSI" | "SUMMER_INTERNSHIP" | "MINOR" | "MOOC" | "PROJECT" | "MAJOR_PROJECT"
   | "OPEN_ELECTIVE" | "CORE_ELECTIVE" | "MENTORSHIP";
 
 export interface Coordination {
@@ -417,6 +417,16 @@ export interface InternshipProgram {
   requires_group: boolean; default_group_size: number; requires_organization: boolean;
   /** Students per mentor; `confirmed` is false while it is the portal default. */
   mentor_capacity: number; mentor_capacity_confirmed: boolean;
+  /** Whether the signed-in person may manage it (their coordinator scope). */
+  can_manage?: boolean;
+  /** The coordinator role that runs this programme. */
+  coordination_domain?: CoordinationDomain | null;
+  /** Ways to take the programme (Semester VIII), with what each asks for. */
+  tracks?: ProgramTrack[];
+  /** "for students admitted in 2024 or later"; null when every batch. */
+  batch_note?: string | null;
+  /** What the department still has to confirm, e.g. ["stages", "rubric"]. */
+  needs_confirmation?: string[];
   /** Set once the coordinator locks the mentor allocation. */
   mentor_allocation_locked_at?: string | null;
   /** The mentors in a locked allocation; empty while unlocked. */
@@ -464,8 +474,26 @@ export interface InternshipGroup {
   member_count: number; meeting_schedule: string | null;
 }
 
+export interface ProjectTeam {
+  id: number; name: string; leader_enrollment_id: number | null; is_fixed: boolean;
+  members: { enrollment_id: number; name: string; roll_number: string }[];
+}
+
+export interface ProgramTrack {
+  key: string; label: string; description: string | null;
+  requires_organization: boolean; organization_types: string[]; requires_supervisor: boolean;
+  /** Stage codes this track runs; the rest are skipped for its students. */
+  stages?: string[];
+}
+
 export interface EnrollmentSummary {
   id: number; program_id: number; program_code: string | null; student_id: number;
+  program_type?: string | null;
+  program_name?: string | null; track?: string | null; track_label?: string | null;
+  /** Project team (Semester VII / VIII). */
+  team?: ProjectTeam | null;
+  /** Guides ranked by the student or their team, most preferred first. */
+  guide_preferences?: { faculty_id: number; name: string }[];
   student_name: string | null; roll_number: string | null;
   department_code: string | null; division: string | null; semester: number | null;
   avatar_url: string | null; group_id: number | null; group_name: string | null;
@@ -552,6 +580,10 @@ export interface InternshipProgress {
 }
 
 export interface EnrollmentDetail extends EnrollmentSummary {
+  /** {min, max} when this student may work in a team; null otherwise. */
+  team_limits?: { min?: number; max?: number } | null;
+  /** How many guides may be ranked; 0 when the programme takes none. */
+  preference_limit?: number;
   report_frequency?: string | null;
   email: string | null; phone: string | null; guardian_name: string | null;
   guardian_phone: string | null; start_date: string | null; end_date: string | null;

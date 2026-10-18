@@ -239,7 +239,8 @@ def my_elective_components(
     allocations = {
         a.curriculum_component_id: a
         for a in db.scalars(
-            select(ElectiveAllocation).where(ElectiveAllocation.student_id == student.id)
+            select(ElectiveAllocation).where(ElectiveAllocation.student_id == student.id,
+                                             registration.visible_allocations())
         )
     }
     pref_counts = dict(db.execute(
@@ -338,6 +339,7 @@ def component_workspace(component_id: int, db: DbSession,
         select(ElectiveAllocation).where(
             ElectiveAllocation.student_id == student.id,
             ElectiveAllocation.curriculum_component_id == component.id,
+            registration.visible_allocations(),
         )
     )
     reg = registration.status_for(db, component, student)
@@ -555,7 +557,8 @@ def withdraw_preferences(component_id: int, db: DbSession, student: CurrentStude
 def my_allocations(db: DbSession, student: CurrentStudent) -> list[AllocationOut]:
     rows = db.scalars(
         select(ElectiveAllocation)
-        .where(ElectiveAllocation.student_id == student.id)
+        .where(ElectiveAllocation.student_id == student.id,
+               registration.visible_allocations())
         .order_by(ElectiveAllocation.created_at.desc())
     )
     return [_allocation_out(db, a) for a in rows]
@@ -1500,6 +1503,25 @@ def set_window_offerings(
     return _window_out(db, window, user)
 
 
+@router.post("/admin/windows/{window_id}/undo-allocation", response_model=RegistrationWindowOut)
+def undo_window_allocation(
+    window_id: int, db: DbSession,
+    user: User = Depends(_manages_electives),
+) -> RegistrationWindowOut:
+    """Take back an unpublished run; the round returns to Locked to run again."""
+    window = db.get(ElectiveRegistrationWindow, window_id)
+    if window is None:
+        raise NotFoundError("Registration round not found.")
+    _assert_manages_window(db, user, window)
+    removed = registration.undo_allocation(db, window)
+    audit.record(db, action=AuditAction.ALLOCATION_OVERRIDE, entity_type="registration_window",
+                 entity_id=window.id, actor=user,
+                 description=f"{window.code}: allocation undone ({removed} seats removed)",
+                 meta={"seats_removed": removed})
+    db.commit()
+    return _window_out(db, window, user)
+
+
 @router.delete("/admin/windows/{window_id}", response_model=Message)
 def delete_window(
     window_id: int, db: DbSession,
@@ -1565,6 +1587,8 @@ def move_window(
     if going_live:
         # The last point a mistake can be caught before students are told.
         registration.validate_round(db, window, opening=True)
+        if previous == RegistrationWindowStatus.LOCKED:
+            registration.assert_can_reopen(db, window)
 
     registration.transition(window, target)
 

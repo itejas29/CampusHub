@@ -302,7 +302,8 @@ def test_the_hod_dashboard_shows_every_module_and_which_have_nobody(
     assert modules["CSSI"]["is_covered"] is True and modules["CSSI"]["mentor_count"] == 1
     assert modules["OPEN_ELECTIVE"]["is_covered"] is False
     uncovered = next(s for s in body["stats"] if s["key"] == "uncovered")
-    assert uncovered["value"] == 5
+    # Every module but the two the fixture covers.
+    assert uncovered["value"] == len(CoordinationDomain) - 2
 
 
 def test_the_hod_dashboard_is_only_for_an_hod(api, world, login, hod):

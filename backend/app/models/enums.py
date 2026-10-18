@@ -75,13 +75,25 @@ class CoordinationDomain(StrEnum):
     OPEN_ELECTIVE = "OPEN_ELECTIVE"
     CORE_ELECTIVE = "CORE_ELECTIVE"
     MENTORSHIP = "MENTORSHIP"
+    #: Semester VII Minor Project and Seminar.
+    PROJECT = "PROJECT"
+    #: Semester VIII Major Project / Industry Internship.
+    MAJOR_PROJECT = "MAJOR_PROJECT"
 
 
-#: Which internship programme type each coordination domain governs.
+#: Which coordination domain governs each internship-engine programme type.
+#: The one place this is written down — scope checks, the coarse coordinator
+#: role and the screens all read it. A type missing here has no coordinator.
 INTERNSHIP_DOMAIN_FOR_TYPE = {
     "CSSI": CoordinationDomain.CSSI,
     "SUMMER": CoordinationDomain.SUMMER_INTERNSHIP,
+    "MINOR_PROJECT": CoordinationDomain.PROJECT,
+    "SEMINAR": CoordinationDomain.PROJECT,
+    "MAJOR_PROJECT": CoordinationDomain.MAJOR_PROJECT,
 }
+
+#: Domains whose work runs on the internship engine.
+INTERNSHIP_DOMAINS = frozenset(INTERNSHIP_DOMAIN_FOR_TYPE.values())
 
 
 class StudentStatus(StrEnum):
@@ -312,6 +324,13 @@ class InternshipType(StrEnum):
     SUMMER = "SUMMER"
     RESEARCH = "RESEARCH"
     OTHER = "OTHER"
+    #: Semester VII Minor Project (2020–2023 admission schemes).
+    MINOR_PROJECT = "MINOR_PROJECT"
+    #: Semester VII Seminar (2024-28 scheme, 1 credit).
+    SEMINAR = "SEMINAR"
+    #: Semester VIII Major / Comprehensive Project, or an industry internship
+    #: in its place — the student's track.
+    MAJOR_PROJECT = "MAJOR_PROJECT"
 
 
 class ProgramStatus(StrEnum):
@@ -397,6 +416,8 @@ class DocumentType(StrEnum):
     JOINING_LETTER = "JOINING_LETTER"
     COMPLETION_LETTER = "COMPLETION_LETTER"
     SYLLABUS = "SYLLABUS"
+    #: A project or seminar proposal: topic, objectives, plan.
+    SYNOPSIS = "SYNOPSIS"
     OTHER = "OTHER"
 
 

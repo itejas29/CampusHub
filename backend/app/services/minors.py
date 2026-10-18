@@ -34,6 +34,7 @@ from sqlalchemy.orm import Session
 from app.core.errors import BusinessRuleError
 
 from app.models.enums import MinorApplicationStatus, MinorEnrollmentStatus
+from app.models.academics import as_utc
 from app.models.identity import Student
 from app.models.minors import MinorApplication, MinorEnrollment, MinorProgram
 
@@ -50,10 +51,13 @@ def application_window_open(program: MinorProgram,
     date configured is treated as permanently open — that is how the seeded
     rounds behave and changing it would silently close them.
     """
-    now = now or utcnow()
-    if program.application_opens_at and now < program.application_opens_at:
+    now = as_utc(now or utcnow())
+    # as_utc: SQLite hands these back without a zone, and comparing them with
+    # an aware "now" raised — signing a Semester VI student in returned a 500.
+    opens, closes = as_utc(program.application_opens_at), as_utc(program.application_closes_at)
+    if opens and now < opens:
         return False
-    if program.application_closes_at and now > program.application_closes_at:
+    if closes and now > closes:
         return False
     return True
 

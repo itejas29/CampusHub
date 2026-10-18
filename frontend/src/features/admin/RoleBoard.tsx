@@ -34,6 +34,8 @@ const DOMAIN_COLOUR: Record<string, { dot: string; chip: string }> = {
   OPEN_ELECTIVE: { dot: "bg-violet", chip: "border-violet/30 bg-violet-soft/60" },
   CORE_ELECTIVE: { dot: "bg-iris", chip: "border-iris/30 bg-iris-soft/60" },
   MENTORSHIP: { dot: "bg-brand", chip: "border-brand/30 bg-brand-soft/60" },
+  PROJECT: { dot: "bg-success-solid", chip: "border-success/30 bg-success-soft/60" },
+  MAJOR_PROJECT: { dot: "bg-electric", chip: "border-electric/30 bg-electric/10" },
 };
 const NEUTRAL = { dot: "bg-ink-subtle", chip: "border-line bg-surface-muted" };
 

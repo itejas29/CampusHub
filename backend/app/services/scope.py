@@ -146,12 +146,15 @@ def assert_manages_minor(db: Session, user: User, program,
     )
 
 
-def domain_for_program(program: InternshipProgram) -> CoordinationDomain:
-    """Map an internship programme onto the domain that governs it."""
-    return {
-        "CSSI": CoordinationDomain.CSSI,
-        "SUMMER": CoordinationDomain.SUMMER_INTERNSHIP,
-    }.get(program.type.value, CoordinationDomain.SUMMER_INTERNSHIP)
+def domain_for_program(program: InternshipProgram) -> CoordinationDomain | None:
+    """The domain that governs an internship-engine programme, if any.
+
+    Read from INTERNSHIP_DOMAIN_FOR_TYPE. An unmapped type used to fall back to
+    Summer Internship, so a new programme type would quietly have been run by
+    the Summer coordinator. Unmapped now means no coordinator role governs it,
+    and only an institution-wide role can manage it.
+    """
+    return INTERNSHIP_DOMAIN_FOR_TYPE.get(program.type.value)
 
 
 def can_manage_program(db: Session, user: User, program: InternshipProgram) -> bool:
@@ -161,7 +164,10 @@ def can_manage_program(db: Session, user: User, program: InternshipProgram) -> b
     so the ICT summer coordinator cannot touch Mechanical's programme or ICT's
     CSSI programme.
     """
-    return coordinates(db, user, domain_for_program(program), program.department_id)
+    domain = domain_for_program(program)
+    if domain is None:
+        return user.has_role(*UNSCOPED_ROLES)
+    return coordinates(db, user, domain, program.department_id)
 
 
 def managed_program_ids(db: Session, user: User) -> list[int] | None:

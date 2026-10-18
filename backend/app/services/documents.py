@@ -155,13 +155,17 @@ def expected_documents(db: Session,
     if schedule:
         by_week = {r.sequence_number: r for r in reports
                    if r.report_type.value != "FINAL"}
-        group = DocumentGroup(title="Weekly Reports")
+        period, title = {"DAILY": ("Day", "Daily Reports"), "WEEKLY": ("Week", "Weekly Reports"),
+                         "FORTNIGHTLY": ("Fortnight", "Fortnightly Reports"),
+                         "MONTHLY": ("Month", "Monthly Reports")
+                         }.get(program.report_frequency.value, ("Report", "Reports"))
+        group = DocumentGroup(title=title)
         for slot in schedule:
             week = slot["sequence_number"]
             report = by_week.get(week)
             group.items.append(ExpectedDocument(
                 key=f"week:{week}",
-                label=f"Week {week} Report",
+                label=f"{period} {week} Report",
                 kind="report",
                 week_number=week,
                 period_start=slot["period_start"],
@@ -192,9 +196,11 @@ def expected_documents(db: Session,
             # Latest submission per stage wins.
             doc_by_stage[document.stage_id] = document
 
+    skipped = {p.stage_id for p in enrollment.stage_progress
+               if p.status == StageStatus.SKIPPED}
     required = DocumentGroup(title="Required Documents")
     for stage in stages:
-        if not stage.requires_document:
+        if not stage.requires_document or stage.id in skipped:
             continue
         document = doc_by_stage.get(stage.id)
         required.items.append(ExpectedDocument(
@@ -341,7 +347,11 @@ def progress(db: Session, enrollment: InternshipEnrollment) -> dict:
     completed = 0
     blockers: list[str] = []
     for view in timeline:
-        approved = view.status in (StageStatus.APPROVED, StageStatus.SKIPPED)
+        if view.status == StageStatus.SKIPPED:
+            # Not part of this student's track: nothing to evidence.
+            completed += 1
+            continue
+        approved = view.status == StageStatus.APPROVED
         met, reason = stage_requirements_met(db, enrollment, view.stage)
         if approved and met:
             completed += 1

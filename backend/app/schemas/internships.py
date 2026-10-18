@@ -122,6 +122,16 @@ class InternshipProgramOut(ORMModel):
     #: the mentors listed can hold students — see services/mentor_allocation.
     mentor_allocation_locked_at: dt.datetime | None = None
     mentor_allocation_ids: list[int] = Field(default_factory=list)
+    #: Whether the person asking may manage this programme (coordinator scope).
+    can_manage: bool = False
+    #: The coordinator role that runs it ("CSSI", "PROJECT", …).
+    coordination_domain: str | None = None
+    #: Ways to take the programme, each with what registering asks for.
+    tracks: list[dict] = Field(default_factory=list)
+    #: "for students admitted in 2024 or later" — empty when every batch.
+    batch_note: str | None = None
+    #: What the department still has to confirm (stages, rubric, credits).
+    needs_confirmation: list[str] = Field(default_factory=list)
     #: Window kinds this programme runs (e.g. ["REGISTRATION", "PRESENTATION"]);
     #: empty means the older semester-only rules apply.
     window_kinds: list[str] = Field(default_factory=list)
@@ -316,6 +326,14 @@ class EnrollmentSummary(ORMModel):
     program_id: int
     program_code: str | None = None
     program_type: str | None = None
+    program_name: str | None = None
+    #: The track chosen, for a programme that offers several (Semester VIII).
+    track: str | None = None
+    track_label: str | None = None
+    #: Project team (Semester VII / VIII): id, name, leader, members, is_fixed.
+    team: dict | None = None
+    #: Guides ranked by the student (or their team), most preferred first.
+    guide_preferences: list[dict] = Field(default_factory=list)
     student_id: int
     student_name: str | None = None
     roll_number: str | None = None
@@ -358,6 +376,10 @@ class PresentationQueueRow(BaseModel):
 
 
 class EnrollmentDetail(EnrollmentSummary):
+    #: {"min", "max"} when this student may work in a team; None otherwise.
+    team_limits: dict | None = None
+    #: How many guides may be ranked; 0 when the programme takes none.
+    preference_limit: int = 0
     report_frequency: str | None = None
     email: str | None = None
     phone: str | None = None
@@ -399,6 +421,8 @@ class EnrollRequest(BaseModel):
     industry_mentor_name: str | None = Field(default=None, max_length=150)
     industry_mentor_phone: str | None = Field(default=None, max_length=20)
     industry_mentor_email: EmailStr | None = None
+    #: Required when the programme offers tracks (`config["tracks"]`).
+    track: str | None = Field(default=None, max_length=40)
 
 
 class EnrollmentUpdate(BaseModel):
@@ -457,6 +481,8 @@ class BatchMentorAssignRequest(BaseModel):
     auto_distribute: bool = False
     rebalance: bool = False
     allocate_by_roll_no: bool = False
+    #: Teams and solo students get their highest-ranked guide with room.
+    by_preference: bool = False
     clear_all: bool = False
     faculty_ids: list[int] | None = None
     min_students_per_mentor: int = 2
@@ -470,6 +496,51 @@ class AllocationMentorAdd(BaseModel):
 
 class AllocationMentorReplace(BaseModel):
     new_faculty_id: int
+
+
+class TeamCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+
+
+class TeamMemberAdd(BaseModel):
+    roll_number: str = Field(min_length=3, max_length=20)
+
+
+class GuidePreferences(BaseModel):
+    faculty_ids: list[int] = Field(default_factory=list, max_length=10)
+
+
+class StageIn(BaseModel):
+    #: Omit for a new stage.
+    id: int | None = None
+    code: str | None = Field(default=None, max_length=50)
+    name: str = Field(min_length=1, max_length=150)
+    description: str | None = Field(default=None, max_length=2000)
+    is_mandatory: bool = True
+    requires_document: bool = False
+    document_type: DocumentType | None = None
+    owner_role: str = "STUDENT"
+
+
+class CriterionIn(BaseModel):
+    id: int | None = None
+    code: str | None = Field(default=None, max_length=50)
+    name: str = Field(min_length=1, max_length=180)
+    description: str | None = Field(default=None, max_length=2000)
+    max_marks: float
+    weight: float = 1
+
+
+class StagesReplace(BaseModel):
+    stages: list[StageIn] = Field(min_length=1, max_length=30)
+
+
+class CriteriaReplace(BaseModel):
+    criteria: list[CriterionIn] = Field(min_length=1, max_length=20)
+
+
+class ConfirmItem(BaseModel):
+    item: str = Field(min_length=1, max_length=60)
 
 
 class BatchMentorAssignResponse(BaseModel):

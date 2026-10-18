@@ -21,7 +21,7 @@ from app.schemas.academics import (
 )
 from app.schemas.common import Message
 from app.schemas.identity import ProgramOut
-from app.services import audit
+from app.services import audit, registration
 from app.services import curriculum as curriculum_engine
 from app.services.eligibility import active_curriculum
 from app.services.serializers import component_out
@@ -65,7 +65,8 @@ def _build(db, curriculum: Curriculum, student: Student | None = None,
             select(ElectiveAllocation.curriculum_component_id, Course.code, Course.title)
             .join(CourseOffering, CourseOffering.id == ElectiveAllocation.course_offering_id)
             .join(Course, Course.id == CourseOffering.course_id)
-            .where(ElectiveAllocation.student_id == student.id)
+            .where(ElectiveAllocation.student_id == student.id,
+                   registration.visible_allocations())
         ).all()
         allocations = {r[0]: f"{r[1]} · {r[2]}" for r in rows}
 

@@ -18,7 +18,8 @@ interface Props {
   /** "mine" = only students I mentor; "all" = every student I coordinate. */
   scope?: "mine" | "all";
   /** Narrow to one internship type, giving CSSI and SI their own screens. */
-  programType?: "CSSI" | "SUMMER";
+  /** One programme type, or several shown together (the project programmes). */
+  programType?: string | string[];
   title?: string;
   description?: string;
 }
@@ -47,12 +48,13 @@ export function MyStudentsPage({ scope = "mine", programType, title, description
   // When a screen is typed (CSSI / SI) the programme filter is limited to that
   // type, so the dropdown never offers a programme the screen would hide.
   const typedPrograms = useMemo(
-    () => (programs.data ?? []).filter((p) => !programType || p.type === programType),
+    () => (programs.data ?? []).filter((p) => !programType
+      || (Array.isArray(programType) ? programType.includes(p.type) : p.type === programType)),
     [programs.data, programType],
   );
 
   const enrollments = useQuery({
-    queryKey: ["internship-enrollments", scope, programType, programId, status],
+    queryKey: ["internship-enrollments", scope, String(programType ?? ""), programId, status],
     queryFn: () =>
       api.get<EnrollmentSummary[]>(
         `/internships/enrollments${qs({
