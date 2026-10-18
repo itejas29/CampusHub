@@ -154,9 +154,17 @@ def check_minor_eligibility(
 
     if not minor.is_active:
         reasons.append("This minor is not currently offered.")
+    from app.services.minors import application_semesters
+
     if student.current_semester < minor.eligible_from_semester:
         reasons.append(
             f"Registration opens from semester {minor.eligible_from_semester} "
+            f"(you are in semester {student.current_semester})."
+        )
+    elif student.current_semester not in application_semesters(minor):
+        semesters = " or ".join(str(s) for s in application_semesters(minor))
+        reasons.append(
+            f"Applications are made in semester {semesters} "
             f"(you are in semester {student.current_semester})."
         )
     # A minor is taken outside the student's own department.

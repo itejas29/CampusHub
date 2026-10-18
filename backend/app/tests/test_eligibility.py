@@ -103,7 +103,14 @@ def _minor(**overrides):
 
 
 def test_eligible_student_passes_every_configured_check(student):
+    student.current_semester = 3        # applications are made in Semester III
     assert check_minor_eligibility(student, _minor()).eligible
+
+
+def test_a_student_past_the_application_semester_is_told_when_to_apply(student):
+    result = check_minor_eligibility(student, _minor())       # Semester VI
+    assert not result.eligible
+    assert any("Applications are made in semester 3" in r for r in result.reasons)
 
 
 def test_minor_from_the_students_own_department_is_rejected(student):
@@ -148,6 +155,7 @@ def test_closed_application_window_is_rejected(student, now):
 
 
 def test_thresholds_left_unset_are_not_enforced(student):
+    student.current_semester = 3
     student.cpi = None
     student.backlog_count = 9
     assert check_minor_eligibility(

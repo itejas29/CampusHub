@@ -83,9 +83,22 @@ def student_can_see_minor(program: MinorProgram, student: Student, *,
     """
     if has_application:
         return True
-    if student.current_semester < program.eligible_from_semester:
+    if student.current_semester not in application_semesters(program):
         return False
     return application_window_open(program, now)
+
+
+def application_semesters(program) -> list[int]:
+    """The semesters in which a student may apply for this minor.
+
+    The ICT department takes minor applications in Semester III (as described to
+    the project team; Annexure II says only that minors run from Semester III).
+    A student who did not apply then does not see the minor afterwards; one
+    who did keeps it for good. `rules["application_semesters"]` overrides this
+    per minor; by default it is the minor's first eligible semester.
+    """
+    configured = (getattr(program, "rules", None) or {}).get("application_semesters")
+    return list(configured) if configured else [program.eligible_from_semester]
 
 # Fields a policy may rank on. Everything is drawn from the application snapshot
 # taken at submission time, so a later CPI revision cannot reorder a closed round.

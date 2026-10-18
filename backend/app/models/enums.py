@@ -318,6 +318,14 @@ class MinorEnrollmentStatus(StrEnum):
     DISCONTINUED = "DISCONTINUED"
 
 
+class MinorCourseResultStatus(StrEnum):
+    """Where a student stands in one minor course."""
+
+    IN_PROGRESS = "IN_PROGRESS"
+    PASSED = "PASSED"
+    FAILED = "FAILED"
+
+
 # ──────────────────────────── internships ─────────────────────────────────
 class InternshipType(StrEnum):
     CSSI = "CSSI"

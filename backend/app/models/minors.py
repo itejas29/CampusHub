@@ -4,13 +4,15 @@ from __future__ import annotations
 import datetime as dt
 
 from sqlalchemy import (
-    JSON, Boolean, DateTime, Enum as SAEnum, ForeignKey, Integer, Numeric, String,
+    JSON, Boolean, Date, DateTime, Enum as SAEnum, ForeignKey, Integer, Numeric, String,
     Text, UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, PKMixin, TimestampMixin
-from app.models.enums import MinorApplicationStatus, MinorEnrollmentStatus
+from app.models.enums import (
+    MinorApplicationStatus, MinorCourseResultStatus, MinorEnrollmentStatus,
+)
 
 
 def _enum(e, name: str, length: int = 40) -> SAEnum:
@@ -151,3 +153,56 @@ class MinorEnrollment(PKMixin, TimestampMixin, Base):
     remarks: Mapped[str | None] = mapped_column(Text)
 
     minor_program: Mapped["MinorProgram"] = relationship(lazy="joined")
+
+
+class MinorCourseResult(PKMixin, TimestampMixin, Base):
+    """A minor student's result in one of the minor's courses.
+
+    Recorded by the minor's coordinator. Marks and grade are stored as the
+    department gives them — no grading scale is assumed here.
+    """
+
+    __tablename__ = "minor_course_results"
+    __table_args__ = (
+        UniqueConstraint("enrollment_id", "minor_course_id",
+                         name="uq_minor_course_results_enrollment_course"),
+    )
+
+    enrollment_id: Mapped[int] = mapped_column(
+        ForeignKey("minor_enrollments.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    minor_course_id: Mapped[int] = mapped_column(
+        ForeignKey("minor_courses.id", ondelete="CASCADE"), nullable=False
+    )
+    marks: Mapped[float | None] = mapped_column(Numeric(5, 2))
+    grade: Mapped[str | None] = mapped_column(String(4))
+    status: Mapped[MinorCourseResultStatus] = mapped_column(
+        _enum(MinorCourseResultStatus, "minor_course_result_status"),
+        default=MinorCourseResultStatus.IN_PROGRESS, nullable=False,
+    )
+    recorded_by_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+    recorded_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class MinorFeePayment(PKMixin, TimestampMixin, Base):
+    """A minor student's fee for one semester, recorded as paid by the department."""
+
+    __tablename__ = "minor_fee_payments"
+    __table_args__ = (
+        UniqueConstraint("enrollment_id", "semester",
+                         name="uq_minor_fee_payments_enrollment_semester"),
+    )
+
+    enrollment_id: Mapped[int] = mapped_column(
+        ForeignKey("minor_enrollments.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    semester: Mapped[int] = mapped_column(Integer, nullable=False)
+    amount_paid: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    reference: Mapped[str | None] = mapped_column(String(80))
+    paid_on: Mapped[dt.date | None] = mapped_column(Date)
+    recorded_by_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+
