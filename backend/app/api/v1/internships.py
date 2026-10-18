@@ -28,6 +28,7 @@ from app.models.enums import (
 from app.models.identity import Faculty, Student, User
 from app.models.system import StoredFile
 from app.models.internships import (
+    ProjectTeam,
     EnrollmentStageProgress, EvaluationCriteria, EvaluationScore, InternshipDocument,
     InternshipEnrollment, InternshipEvaluation, InternshipGroup, InternshipProgram,
     InternshipProject, InternshipReport, InternshipStage, Organization,
@@ -45,12 +46,13 @@ from app.schemas.internships import (
     MentorCapacityOut, BatchMentorAssignRequest, BatchMentorAssignResponse,
     InternshipWindowOpen, InternshipWindowOut, InternshipWindowUpdate, MentorRosterGroup,
     MentorRosterStudent, ProgramWindowsOut, AllocationMentorAdd, AllocationMentorReplace,
+    ConfirmItem, CriteriaReplace, StagesReplace, TeamCreate, TeamMemberAdd, GuidePreferences,
 )
 from app.services import (
     audit, documents as docs, internships as engine, notifications, scope,
 )
 from app.services import internship_windows as program_windows
-from app.services import mentor_allocation
+from app.services import mentor_allocation, program_setup, project_teams
 from app.models.enums import InternshipWindowKind
 from app.models.internships import InternshipWindow
 from app.services.files import save_upload, signed_url
@@ -128,10 +130,9 @@ def _assert_can_review(db, enrollment: InternshipEnrollment, user: CurrentUser,
                        faculty: Faculty | None) -> None:
     if _can_manage(user, db, enrollment.program):
         return
-    if faculty and (enrollment.mentor_faculty_id == faculty.id
-                    or (enrollment.group and enrollment.group.faculty_id == faculty.id)):
+    if engine.can_review(enrollment, faculty):
         return
-    raise PermissionDeniedError("Only the assigned mentor or a coordinator may review this.")
+    raise PermissionDeniedError("Only the student's mentor or a coordinator may review this.")
 
 
 # ── serialisers ───────────────────────────────────────────────────────────
@@ -171,7 +172,8 @@ def _program_out(db, program: InternshipProgram,
                 can_enroll = True
             except BusinessRuleError as exc:
                 can_enroll, blocked = False, exc.message
-        elif phase is not ProgramPhase.ACTIVE:
+        elif phase is not ProgramPhase.ACTIVE and not engine.registers_early(
+                program, student.current_semester):
             # Announced but not yet open, or already past — see program_phase().
             can_enroll = False
             blocked = engine.phase_note(program, phase, student.current_semester)
@@ -236,6 +238,8 @@ def _summary(db, enrollment: InternshipEnrollment,
         track=enrollment.track,
         track_label=next((t.get("label") for t in engine.program_tracks(enrollment.program)
                           if t.get("key") == enrollment.track), None) if enrollment.track else None,
+        team=project_teams.team_out(db, enrollment),
+        guide_preferences=project_teams.preference_names(db, enrollment),
         student_id=enrollment.student_id,
         student_name=student.user.full_name if student else None,
         roll_number=student.roll_number if student else None,
@@ -348,6 +352,8 @@ def _detail(db, enrollment: InternshipEnrollment) -> EnrollmentDetail:
 
     return EnrollmentDetail(
         **base.model_dump(),
+        team_limits=project_teams.team_limits(enrollment.program, enrollment),
+        preference_limit=project_teams.preference_count(enrollment.program, enrollment),
         email=student.user.email if student else None,
         phone=student.user.phone if student else None,
         guardian_name=student.guardian_name if student else None,
@@ -755,7 +761,7 @@ def enroll(program_id: int, payload: EnrollRequest, db: DbSession,
     else:
         if program.status != ProgramStatus.REGISTRATION_OPEN:
             raise BusinessRuleError("Registration is not open for this programme.")
-        engine.assert_submissions_open(program, student.current_semester)
+        engine.assert_can_register_now(program, student.current_semester)
     # Checked for every programme. It used to sit inside the window branch, so
     # the Summer Internship took registrations with no industry supervisor.
     if engine.registration_requirements(program, track)["requires_supervisor"] and not (
@@ -807,7 +813,9 @@ def update_enrollment(enrollment_id: int, payload: EnrollmentUpdate, db: DbSessi
             program_windows.assert_can_register(db, enrollment.program, student,
                                                 already_enrolled=True)
         else:
-            _assert_can_submit(db, enrollment, user)
+            # Registration details stay editable for an early registrant.
+            student = _assert_is_owner(db, enrollment, user)
+            engine.assert_can_register_now(enrollment.program, student.current_semester)
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(enrollment, field, value)
     audit.record(db, action=AuditAction.UPDATE, entity_type="internship_enrollment",
@@ -1157,6 +1165,13 @@ def submit_evaluation(
                 f"{criterion.name}: maximum is {criterion.max_marks} marks."
             )
 
+    # Checked before anything is written. Finalising needs the student's work approved and verified first.
+    if payload.finalise and not payload.is_absent:
+        pending = engine.finalise_blockers(db, enrollment)
+        if pending:
+            raise BusinessRuleError(
+                "Marks can be finalised once this work is approved and verified: "
+                + ", ".join(pending) + ". Save them as a draft until then.")
     evaluation = db.scalar(select(InternshipEvaluation).where(
         InternshipEvaluation.enrollment_id == enrollment.id,
         InternshipEvaluation.evaluator_user_id == user.id,
@@ -1244,9 +1259,12 @@ def override_mentor(
         if group is None or group.program_id != enrollment.program_id:
             raise ValidationError("That group belongs to a different programme.")
         enrollment.group_id = group.id
-    engine.override_mentor(db, enrollment=enrollment,
-                           new_faculty_id=payload.mentor_faculty_id,
-                           reason=payload.reason, actor=user)
+    # A team shares one guide: assigning one member assigns them all.
+    team = (db.get(ProjectTeam, enrollment.team_id) if enrollment.team_id else None)
+    for member in (project_teams.members(db, team) if team else [enrollment]):
+        engine.override_mentor(db, enrollment=member,
+                               new_faculty_id=payload.mentor_faculty_id,
+                               reason=payload.reason, actor=user)
     db.commit()
     db.refresh(enrollment)
     return _summary(db, enrollment)
@@ -1318,7 +1336,8 @@ def batch_assign_mentors(
         program_windows.assert_can_allocate_mentors(db, program)
     # A locked allocation changes one deliberate step at a time, never by a run.
     if payload.assignments and not (payload.clear_all or payload.allocate_by_roll_no
-                                    or payload.rebalance or payload.auto_distribute):
+                                    or payload.rebalance or payload.auto_distribute
+                                    or payload.by_preference):
         for item in payload.assignments:
             mentor_allocation.assert_allowed_target(program, item.mentor_faculty_id)
     else:
@@ -1355,6 +1374,15 @@ def batch_assign_mentors(
             assigned_count=0,
             message=f"Cleared the mentor for {cleared} students.",
         )
+
+    if payload.by_preference:
+        result = project_teams.allocate_by_preference(db, program, actor=user)
+        db.commit()
+        return BatchMentorAssignResponse(
+            assigned_count=result["placed"],
+            message=(f"Allocated {result['placed']} students to a preferred guide."
+                     + (f" {result['left']} could not be placed — their guides are full or "
+                        "they ranked none; assign them below." if result["left"] else "")))
 
     if payload.allocate_by_roll_no or payload.rebalance:
         # Roll-number blocks: consecutive roll numbers share a mentor, which is
@@ -1437,6 +1465,132 @@ def batch_assign_mentors(
                                          message=f"Updated {changed} mentor assignments.")
 
     return BatchMentorAssignResponse(assigned_count=0, message="No changes performed.")
+
+
+# ── project teams and guide preferences ───────────────────────────────────
+def _own_enrollment(db, user, enrollment_id: int) -> InternshipEnrollment:
+    enrollment = db.get(InternshipEnrollment, enrollment_id)
+    if enrollment is None:
+        raise NotFoundError("Internship record not found.")
+    student = _assert_is_owner(db, enrollment, user)
+    engine.assert_can_register_now(enrollment.program, student.current_semester)
+    return enrollment
+
+
+def _team_and_mine(db, user, team_id: int) -> tuple[ProjectTeam, InternshipEnrollment]:
+    team = db.get(ProjectTeam, team_id)
+    if team is None:
+        raise NotFoundError("Team not found.")
+    student = db.scalar(select(Student).where(Student.user_id == user.id))
+    mine = student and db.scalar(select(InternshipEnrollment).where(
+        InternshipEnrollment.program_id == team.program_id,
+        InternshipEnrollment.student_id == student.id))
+    if not mine:
+        raise PermissionDeniedError("Only the team's own students can change it.")
+    engine.assert_can_register_now(mine.program, student.current_semester)
+    return team, mine
+
+
+@router.post("/enrollments/{enrollment_id}/team", response_model=EnrollmentDetail)
+def create_team(enrollment_id: int, payload: TeamCreate, db: DbSession,
+                user: CurrentUser) -> EnrollmentDetail:
+    enrollment = _own_enrollment(db, user, enrollment_id)
+    project_teams.create_team(db, enrollment, payload.name, actor=user)
+    db.commit()
+    db.refresh(enrollment)
+    return _detail(db, enrollment)
+
+
+@router.post("/teams/{team_id}/members", response_model=EnrollmentDetail)
+def add_team_member(team_id: int, payload: TeamMemberAdd, db: DbSession,
+                    user: CurrentUser) -> EnrollmentDetail:
+    team, mine = _team_and_mine(db, user, team_id)
+    joined = project_teams.add_member(db, team, mine, payload.roll_number, actor=user)
+    notifications.notify(
+        db, user_id=joined.student.user_id, type=NotificationType.INTERNSHIP_STAGE,
+        title=f"Added to the team “{team.name}”",
+        message=f"{mine.student.user.full_name} added you to their {mine.program.name} team.",
+        link=f"/internships/record/{joined.id}")
+    db.commit()
+    db.refresh(mine)
+    return _detail(db, mine)
+
+
+@router.delete("/teams/{team_id}/members/{enrollment_id}", response_model=EnrollmentDetail)
+def remove_team_member(team_id: int, enrollment_id: int, db: DbSession,
+                       user: CurrentUser) -> EnrollmentDetail:
+    team, mine = _team_and_mine(db, user, team_id)
+    leaving = db.get(InternshipEnrollment, enrollment_id)
+    if leaving is None:
+        raise NotFoundError("Internship record not found.")
+    project_teams.remove_member(db, team, mine, leaving, actor=user)
+    db.commit()
+    db.refresh(mine)
+    return _detail(db, mine)
+
+
+@router.put("/enrollments/{enrollment_id}/guide-preferences", response_model=EnrollmentDetail)
+def set_guide_preferences(enrollment_id: int, payload: GuidePreferences, db: DbSession,
+                          user: CurrentUser) -> EnrollmentDetail:
+    enrollment = _own_enrollment(db, user, enrollment_id)
+    project_teams.set_preferences(db, enrollment, payload.faculty_ids, actor=user)
+    db.commit()
+    db.refresh(enrollment)
+    return _detail(db, enrollment)
+
+
+@router.get("/programs/{program_id}/guides", response_model=list[dict])
+def list_guides(program_id: int, db: DbSession, user: CurrentUser) -> list[dict]:
+    """Who may guide this programme's students — for ranking preferences."""
+    program = db.get(InternshipProgram, program_id)
+    if program is None:
+        raise NotFoundError("Programme not found.")
+    student = db.scalar(select(Student).where(Student.user_id == user.id))
+    registered = student and db.scalar(select(InternshipEnrollment.id).where(
+        InternshipEnrollment.program_id == program.id,
+        InternshipEnrollment.student_id == student.id))
+    if not registered and not _can_manage(user, db, program):
+        raise PermissionDeniedError("Register for the programme to see its guides.")
+    return [{"faculty_id": f.id, "name": f.user.full_name, "designation": f.designation,
+             "specialization": f.specialization}
+            for f in engine.eligible_mentors(db, program)]
+
+
+# ── stages and rubric, edited by the coordinator ──────────────────────────
+@router.put("/programs/{program_id}/stages", response_model=InternshipProgramOut)
+def replace_program_stages(
+    program_id: int, payload: StagesReplace, db: DbSession,
+    user: User = Depends(require_permission(P["INTERNSHIP_MANAGE"])),
+) -> InternshipProgramOut:
+    program = _allocation_program(db, user, program_id)
+    program_setup.replace_stages(db, program, [s.model_dump() for s in payload.stages], actor=user)
+    db.commit()
+    db.refresh(program)
+    return _program_out(db, program)
+
+
+@router.put("/programs/{program_id}/criteria", response_model=InternshipProgramOut)
+def replace_program_criteria(
+    program_id: int, payload: CriteriaReplace, db: DbSession,
+    user: User = Depends(require_permission(P["INTERNSHIP_MANAGE"])),
+) -> InternshipProgramOut:
+    program = _allocation_program(db, user, program_id)
+    program_setup.replace_criteria(db, program, [c.model_dump() for c in payload.criteria], actor=user)
+    db.commit()
+    db.refresh(program)
+    return _program_out(db, program)
+
+
+@router.post("/programs/{program_id}/confirm", response_model=InternshipProgramOut)
+def confirm_program_item(
+    program_id: int, payload: ConfirmItem, db: DbSession,
+    user: User = Depends(require_permission(P["INTERNSHIP_MANAGE"])),
+) -> InternshipProgramOut:
+    program = _allocation_program(db, user, program_id)
+    program_setup.confirm(db, program, payload.item, actor=user)
+    db.commit()
+    db.refresh(program)
+    return _program_out(db, program)
 
 
 # ── locked mentor allocation ──────────────────────────────────────────────

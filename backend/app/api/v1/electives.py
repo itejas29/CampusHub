@@ -1503,6 +1503,25 @@ def set_window_offerings(
     return _window_out(db, window, user)
 
 
+@router.post("/admin/windows/{window_id}/undo-allocation", response_model=RegistrationWindowOut)
+def undo_window_allocation(
+    window_id: int, db: DbSession,
+    user: User = Depends(_manages_electives),
+) -> RegistrationWindowOut:
+    """Take back an unpublished run; the round returns to Locked to run again."""
+    window = db.get(ElectiveRegistrationWindow, window_id)
+    if window is None:
+        raise NotFoundError("Registration round not found.")
+    _assert_manages_window(db, user, window)
+    removed = registration.undo_allocation(db, window)
+    audit.record(db, action=AuditAction.ALLOCATION_OVERRIDE, entity_type="registration_window",
+                 entity_id=window.id, actor=user,
+                 description=f"{window.code}: allocation undone ({removed} seats removed)",
+                 meta={"seats_removed": removed})
+    db.commit()
+    return _window_out(db, window, user)
+
+
 @router.delete("/admin/windows/{window_id}", response_model=Message)
 def delete_window(
     window_id: int, db: DbSession,

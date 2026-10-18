@@ -655,6 +655,8 @@ MAJOR_PROJECT_TRACKS = [
      "stages": ["GUIDE_ALLOCATION", "SYNOPSIS", "MID_REVIEW", "FINAL_REPORT",
                 "FINAL_PRESENTATION", "EVALUATION"]},
     {"key": "INDUSTRY", "label": "Industry Internship",
+     # An internship is individual: no teams on this track.
+     "team_size": None,
      "description": "A full-semester internship at a company, research lab or "
                     "startup, with a faculty guide and a supervisor at the host.",
      "requires_organization": True, "requires_industry_mentor": True,

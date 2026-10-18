@@ -460,6 +460,46 @@ def compute_totals(
     return round(total, 2), round(maximum, 2)
 
 
+def can_review(enrollment: InternshipEnrollment, faculty: Faculty | None) -> bool:
+    """Whether this faculty member reviews and marks this student.
+
+    The student's own mentor does. A group lead used to as well, so after a
+    roll-number allocation two people could mark the same CSSI student and the
+    later save won. A programme may still opt group leads in
+    (`config["group_lead_reviews"]`); none does by default. Group leads keep
+    read access either way.
+    """
+    if faculty is None:
+        return False
+    if enrollment.mentor_faculty_id == faculty.id:
+        return True
+    leads_review = bool((enrollment.program.config or {}).get("group_lead_reviews"))
+    return leads_review and enrollment.group is not None and enrollment.group.faculty_id == faculty.id
+
+
+def finalise_blockers(db: Session, enrollment: InternshipEnrollment) -> list[str]:
+    """What must be approved and verified before marks can be finalised.
+
+    Every mandatory stage of the student's track except the marking stage
+    itself (owned by faculty, no document): approved, with its document
+    verified where it needs one. A mentor could finalise before, say, the CSSI
+    certificate had been checked.
+    """
+    from app.services.documents import stage_requirements_met
+
+    missing = []
+    for view in stage_timeline(db, enrollment):
+        stage = view.stage
+        if view.status == StageStatus.SKIPPED or not stage.is_mandatory:
+            continue
+        if stage.owner_role == "FACULTY" and not stage.requires_document:
+            continue
+        met, _reason = stage_requirements_met(db, enrollment, stage)
+        if view.status != StageStatus.APPROVED or not met:
+            missing.append(stage.name)
+    return missing
+
+
 def finalise_enrollment(
     db: Session, *, enrollment: InternshipEnrollment, evaluation: InternshipEvaluation,
     actor: User | None = None,
@@ -680,6 +720,12 @@ def program_phase(program, current_semester: int | None) -> ProgramPhase:
 
 def phase_note(program, phase: ProgramPhase, current_semester: int | None) -> str | None:
     """One sentence explaining the phase to the student, or None when active."""
+    if phase is ProgramPhase.ANNOUNCED and registers_early(program, current_semester):
+        return (
+            f"Runs in Semester {program.target_semester}. Registration is open now, "
+            "so you can arrange your project or host company ahead; work is "
+            "submitted once the semester begins."
+        )
     if phase is ProgramPhase.ANNOUNCED:
         return (
             f"Announced for Semester {program.target_semester}. You are in "
@@ -718,6 +764,27 @@ def student_can_see_program(program, current_semester: int | None, *,
         return True
     phase = program_phase(program, current_semester)
     return phase not in (ProgramPhase.HIDDEN, ProgramPhase.CONCLUDED)
+
+
+def registers_early(program, current_semester: int | None) -> bool:
+    """Whether an announced programme already takes registrations.
+
+    `config["register_from_semester"] = 7` on the Semester VIII project lets a
+    Semester VII student register (and an industry-track student line up a
+    company) a semester ahead. Work is still submitted only from the
+    programme's own semester — see assert_submissions_open.
+    """
+    early = (getattr(program, "config", None) or {}).get("register_from_semester")
+    return (early is not None and current_semester is not None
+            and program_phase(program, current_semester) is ProgramPhase.ANNOUNCED
+            and current_semester >= early)
+
+
+def assert_can_register_now(program, current_semester: int | None) -> None:
+    """Registration (not submission) for a programme without coordinator windows."""
+    if registers_early(program, current_semester):
+        return
+    assert_submissions_open(program, current_semester)
 
 
 def assert_submissions_open(program, current_semester: int | None) -> None:

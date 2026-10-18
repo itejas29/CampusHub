@@ -474,6 +474,11 @@ export interface InternshipGroup {
   member_count: number; meeting_schedule: string | null;
 }
 
+export interface ProjectTeam {
+  id: number; name: string; leader_enrollment_id: number | null; is_fixed: boolean;
+  members: { enrollment_id: number; name: string; roll_number: string }[];
+}
+
 export interface ProgramTrack {
   key: string; label: string; description: string | null;
   requires_organization: boolean; organization_types: string[]; requires_supervisor: boolean;
@@ -483,7 +488,12 @@ export interface ProgramTrack {
 
 export interface EnrollmentSummary {
   id: number; program_id: number; program_code: string | null; student_id: number;
+  program_type?: string | null;
   program_name?: string | null; track?: string | null; track_label?: string | null;
+  /** Project team (Semester VII / VIII). */
+  team?: ProjectTeam | null;
+  /** Guides ranked by the student or their team, most preferred first. */
+  guide_preferences?: { faculty_id: number; name: string }[];
   student_name: string | null; roll_number: string | null;
   department_code: string | null; division: string | null; semester: number | null;
   avatar_url: string | null; group_id: number | null; group_name: string | null;
@@ -570,6 +580,10 @@ export interface InternshipProgress {
 }
 
 export interface EnrollmentDetail extends EnrollmentSummary {
+  /** {min, max} when this student may work in a team; null otherwise. */
+  team_limits?: { min?: number; max?: number } | null;
+  /** How many guides may be ranked; 0 when the programme takes none. */
+  preference_limit?: number;
   report_frequency?: string | null;
   email: string | null; phone: string | null; guardian_name: string | null;
   guardian_phone: string | null; start_date: string | null; end_date: string | null;

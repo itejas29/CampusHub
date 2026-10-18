@@ -320,6 +320,36 @@ to the Summer Internship coordinator.
 - Real students get no seeded project work. Demo: Dr. Rakesh Bhatt coordinates
   both roles; Arjun Verma (VII) and Pooja Shah (VIII) are left to register.
 
+## Coordinator tools on the internship engine
+
+- **Stages and rubric are edited by the coordinator** (`services/program_setup.py`,
+  `PUT /internships/programs/{id}/stages|criteria`). A new stage reaches every
+  record; a stage with submitted work or a document cannot be removed; a
+  stage's code never changes. The rubric is fixed once any evaluation exists.
+  Each item in `requires_faculty_confirmation` is confirmed separately
+  (`POST …/confirm`); editing confirms nothing.
+- **Final marks wait for the work** (`internships.finalise_blockers`): every
+  mandatory stage of the student's track approved, its document verified and,
+  for a reporting programme, every scheduled report approved. Drafts are
+  always allowed; an absent student can be finalised.
+- **One marker per student** (`internships.can_review`): the student's own
+  mentor (or the coordinator). A group lead reads the record but neither
+  reviews nor marks, unless a programme sets `config["group_lead_reviews"]`.
+- **Project teams and guide preferences** (`services/project_teams.py`,
+  `project_teams` table, migration 0014): `config["team_size"]` and
+  `config["guide_preferences"]`, which a track can switch off (the industry
+  track is individual). A team shares one guide — assigning one member assigns
+  all — and is fixed once it has one. "Allocate by preference" serves teams and
+  solo students in registration order, each to the best-ranked guide with room.
+- **Early registration**: `config["register_from_semester"]` lets an announced
+  programme take registrations a semester ahead (Semester VIII from VII); work
+  is still submitted only from the programme's own semester.
+- **Undo an elective allocation** (`registration.undo_allocation`,
+  `POST /electives/admin/windows/{id}/undo-allocation`): before publishing
+  only. Removes the round's seats, recounts courses, drops the sections left
+  empty, and returns the round to Locked. Nobody is notified — students hear
+  only on Publish.
+
 ## Faculty performance score
 
 Requested by the department (not a PDEU rule — weights are flagged as

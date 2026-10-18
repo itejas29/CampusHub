@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { ClipboardList, Download, Layers, Users } from "lucide-react";
+import { useState } from "react";
+import { ClipboardList, Download, Layers, Pencil, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Alert } from "@/components/ui/Alert";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
@@ -13,6 +14,7 @@ import { api, downloadProtectedFile } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { humanise, roman } from "@/lib/utils";
 import type { InternshipGroup, InternshipProgram } from "@/types";
+import { ConfirmPending, RubricEditor, StagesEditor } from "./ProgramSetupEditors";
 
 export function ProgramsAdminPage() {
   const { data, isLoading, error, refetch } = useQuery({
@@ -57,6 +59,8 @@ export function ProgramsAdminPage() {
 }
 
 function ProgramCard({ program }: { program: InternshipProgram }) {
+  const [editing, setEditing] = useState<"stages" | "rubric" | null>(null);
+  const canEdit = Boolean(program.can_manage);
   const groups = useQuery({
     queryKey: ["internship-groups", program.id],
     queryFn: () => api.get<InternshipGroup[]>(`/internships/programs/${program.id}/groups`),
@@ -87,7 +91,8 @@ function ProgramCard({ program }: { program: InternshipProgram }) {
           <Alert variant="warning" title="Starting point — awaiting the department's confirmation">
             The {program.needs_confirmation!.join(", ")} of this programme {program.needs_confirmation!.length === 1 ? "is" : "are"} not
             taken from a PDEU document. They let the module run end to end until the department
-            confirms or replaces them.
+            confirms or replaces them. Edit them below, then confirm each one.
+            {canEdit && <ConfirmPending program={program} />}
           </Alert>
         )}
         <div className="flex flex-wrap gap-1.5">
@@ -132,9 +137,15 @@ function ProgramCard({ program }: { program: InternshipProgram }) {
 
         <div className="grid gap-5 lg:grid-cols-2">
           <div className="min-w-0">
-            <h3 className="mb-2 flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wide text-ink-subtle">
-              <Layers className="h-3 w-3" aria-hidden /> Configured stages
-            </h3>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <h3 className="flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wide text-ink-subtle">
+                <Layers className="h-3 w-3" aria-hidden /> Configured stages
+              </h3>
+              {canEdit && (
+                <Button variant="ghost" size="sm" icon={<Pencil className="h-3.5 w-3.5" aria-hidden />}
+                        onClick={() => setEditing("stages")}>Edit stages</Button>
+              )}
+            </div>
             <ol className="space-y-1">
               {program.stages.map((stage, index) => (
                 <li key={stage.id}
@@ -153,9 +164,15 @@ function ProgramCard({ program }: { program: InternshipProgram }) {
           </div>
 
           <div className="min-w-0">
-            <h3 className="mb-2 text-2xs font-semibold uppercase tracking-wide text-ink-subtle">
-              Evaluation rubric
-            </h3>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <h3 className="text-2xs font-semibold uppercase tracking-wide text-ink-subtle">
+                Evaluation rubric
+              </h3>
+              {canEdit && (
+                <Button variant="ghost" size="sm" icon={<Pencil className="h-3.5 w-3.5" aria-hidden />}
+                        onClick={() => setEditing("rubric")}>Edit rubric</Button>
+              )}
+            </div>
             <TableWrap className="rounded border border-line">
               <THead>
                 <TH>Criterion</TH>
@@ -223,6 +240,14 @@ function ProgramCard({ program }: { program: InternshipProgram }) {
           </div>
         )}
       </CardBody>
+      {canEdit && (
+        <>
+          <StagesEditor key={`s${program.stages.map((x) => x.id).join()}`} program={program}
+                        open={editing === "stages"} onClose={() => setEditing(null)} />
+          <RubricEditor key={`r${program.criteria.map((x) => `${x.id}:${x.max_marks}`).join()}`} program={program}
+                        open={editing === "rubric"} onClose={() => setEditing(null)} />
+        </>
+      )}
     </Card>
   );
 }

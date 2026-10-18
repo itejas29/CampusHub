@@ -583,6 +583,48 @@ def validate_round(db: Session, window: ElectiveRegistrationWindow, *,
             )
 
 
+# ── undoing a run ─────────────────────────────────────────────────────────
+def undo_allocation(db: Session, window: ElectiveRegistrationWindow) -> int:
+    """Take back a run that has not been published, and return the round to LOCKED.
+
+    A wrong run (the wrong seat limit, a course left out) could not be
+    reversed: the round could not reopen or be deleted once seats existed, and
+    rerunning skipped every student who already held one. This removes the
+    seats the round's courses hold, recounts each course, and drops the class
+    sections the run formed (those left empty), so the coordinator can run it
+    again. Students were never told — they hear on Publish — so nobody needs
+    telling now. Once published it is refused: students hold those seats.
+    """
+    from app.models.academics import CourseSection
+
+    if window.status not in (RegistrationWindowStatus.LOCKED, RegistrationWindowStatus.ALLOCATED):
+        raise BusinessRuleError(
+            f"This round is {window.status.value.lower()}. An allocation can be "
+            "undone after it has run and before the results are published.")
+    offering_ids = [o.id for o in db.scalars(select(CourseOffering).where(
+        CourseOffering.registration_window_id == window.id))]
+    rows = list(db.scalars(select(ElectiveAllocation).where(
+        ElectiveAllocation.course_offering_id.in_(offering_ids or [0]))))
+    if not rows:
+        raise BusinessRuleError("This round has no allocation to undo.")
+    for row in rows:
+        db.delete(row)
+    db.flush()
+    for offering in db.scalars(select(CourseOffering).where(CourseOffering.id.in_(offering_ids))):
+        offering.seats_filled = db.scalar(select(func.count(ElectiveAllocation.id)).where(
+            ElectiveAllocation.course_offering_id == offering.id,
+            ElectiveAllocation.status == AllocationStatus.ALLOCATED)) or 0
+        for section in db.scalars(select(CourseSection).where(
+                CourseSection.course_offering_id == offering.id)):
+            if not db.scalar(select(func.count(ElectiveAllocation.id)).where(
+                    ElectiveAllocation.section_id == section.id)):
+                db.delete(section)
+    if window.status == RegistrationWindowStatus.ALLOCATED:
+        transition(window, RegistrationWindowStatus.LOCKED)
+    db.flush()
+    return len(rows)
+
+
 # ── what a student may see of an allocation ───────────────────────────────
 #: A round's results reach students only once the coordinator publishes them.
 RESULTS_VISIBLE = (RegistrationWindowStatus.PUBLISHED, RegistrationWindowStatus.CLOSED)

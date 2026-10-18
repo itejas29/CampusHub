@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  BarChart3, BookOpen, CalendarClock, CheckCheck, Download, Eye, ListChecks, Lock, Pencil, Play,
+  BarChart3, BookOpen, CalendarClock, CheckCheck, Download, Undo2, Eye, ListChecks, Lock, Pencil, Play,
   Plus, RotateCcw, Trash2, Zap,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -53,7 +53,7 @@ function audience(round: RegistrationWindow): string {
   return ahead ? `${semesters} · choosing ahead` : semesters;
 }
 
-type Action = "OPEN" | "LOCKED" | "ALLOCATED" | "PUBLISHED" | "REOPEN" | "DELETE";
+type Action = "OPEN" | "LOCKED" | "ALLOCATED" | "PUBLISHED" | "REOPEN" | "DELETE" | "UNDO";
 
 /** Until allocation has run nobody holds a seat from a round, so it can go. */
 const DELETABLE = new Set(["DRAFT", "OPEN", "LOCKED"]);
@@ -107,6 +107,21 @@ export function RegistrationRoundsPage() {
     onError: (err) => {
       setConfirm(null);
       setBanner({ tone: "danger", text: errorText(err, "Could not delete the round.") });
+    },
+  });
+
+  // Takes back an unpublished run; the round returns to Locked to run again.
+  const undo = useMutation({
+    mutationFn: (round: RegistrationWindow) =>
+      api.post<RegistrationWindow>(`/electives/admin/windows/${round.id}/undo-allocation`),
+    onSuccess: (round) => {
+      setConfirm(null);
+      setBanner({ tone: "success", text: `Allocation undone for ${round.title}. The round is locked again — run it when ready.` });
+      refresh();
+    },
+    onError: (err) => {
+      setConfirm(null);
+      setBanner({ tone: "danger", text: errorText(err, "Could not undo the allocation.") });
     },
   });
 
@@ -349,6 +364,13 @@ export function RegistrationRoundsPage() {
                           </Button>
                         )}
                         {round.status === "ALLOCATED" && (
+                          <Button size="sm" variant="ghost"
+                                  onClick={() => setConfirm({ round, action: "UNDO" })}
+                                  icon={<Undo2 className="h-3.5 w-3.5" aria-hidden />}>
+                            Undo allocation
+                          </Button>
+                        )}
+                        {round.status === "ALLOCATED" && (
                           <Button size="sm"
                                   onClick={() => setConfirm({ round, action: "PUBLISHED" })}
                                   icon={<CheckCheck className="h-3.5 w-3.5" aria-hidden />}>
@@ -444,26 +466,35 @@ export function RegistrationRoundsPage() {
         <ConfirmDialog
           open
           onClose={() => setConfirm(null)}
-          onConfirm={() => (confirm.action === "DELETE"
-            ? remove.mutate(confirm.round) : move.mutate(confirm))}
-          loading={move.isPending || remove.isPending}
-          destructive={confirm.action === "DELETE"}
+          onConfirm={() => (confirm.action === "DELETE" ? remove.mutate(confirm.round)
+            : confirm.action === "UNDO" ? undo.mutate(confirm.round) : move.mutate(confirm))}
+          loading={move.isPending || remove.isPending || undo.isPending}
+          destructive={confirm.action === "DELETE" || confirm.action === "UNDO"}
           title={
-            confirm.action === "DELETE" ? "Delete this round?"
+            confirm.action === "UNDO" ? "Undo this allocation?"
+            : confirm.action === "DELETE" ? "Delete this round?"
             : confirm.action === "LOCKED" ? "Lock this round?"
             : confirm.action === "ALLOCATED" ? "Run allocation?"
             : confirm.action === "PUBLISHED" ? "Publish results?"
             : "Open this round?"
           }
           confirmLabel={
-            confirm.action === "DELETE" ? "Delete round"
+            confirm.action === "UNDO" ? "Undo allocation"
+            : confirm.action === "DELETE" ? "Delete round"
             : confirm.action === "LOCKED" ? "Lock round"
             : confirm.action === "ALLOCATED" ? "Run allocation"
             : confirm.action === "PUBLISHED" ? "Publish results"
             : "Open round"
           }
           message={
-            confirm.action === "DELETE" ? (
+            confirm.action === "UNDO" ? (
+              <>
+                Every seat this run gave in <strong>{confirm.round.title}</strong> is removed and
+                the class sections it formed are cleared. The round goes back to{" "}
+                <strong>Locked</strong> with everyone's choices intact, so you can run it again.
+                Students were never told, so nobody is notified. Recorded in the audit log.
+              </>
+            ) : confirm.action === "DELETE" ? (
               <>
                 <strong>{confirm.round.title}</strong> will be removed and its{" "}
                 {pluralise(confirm.round.offering_count, "course")} freed for a new round.

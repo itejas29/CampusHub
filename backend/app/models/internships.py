@@ -235,6 +235,26 @@ class InternshipGroup(PKMixin, TimestampMixin, Base):
     faculty: Mapped["Faculty | None"] = relationship(lazy="joined")  # noqa: F821
 
 
+class ProjectTeam(PKMixin, TimestampMixin, Base):
+    """Students doing one project together (Semester VII / VIII).
+
+    Not an `InternshipGroup`: a group is a faculty-led cohort the coordinator
+    forms (CSSI); a team is formed by the students themselves and shares one
+    guide. Marks stay individual.
+    """
+
+    __tablename__ = "project_teams"
+
+    program_id: Mapped[int] = mapped_column(
+        ForeignKey("internship_programs.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    leader_enrollment_id: Mapped[int | None] = mapped_column(
+        ForeignKey("internship_enrollments.id", ondelete="SET NULL", use_alter=True,
+                   name="fk_project_teams_leader_enrollment_id")
+    )
+
+
 class InternshipEnrollment(PKMixin, TimestampMixin, Base):
     """One student's participation in one internship programme."""
 
@@ -274,6 +294,12 @@ class InternshipEnrollment(PKMixin, TimestampMixin, Base):
     #: The track the student chose, for a programme that offers several
     #: (`config["tracks"]`) — Semester VIII: in-house project or industry.
     track: Mapped[str | None] = mapped_column(String(40))
+    #: The project team the student belongs to, if any.
+    team_id: Mapped[int | None] = mapped_column(
+        ForeignKey("project_teams.id", ondelete="SET NULL"), index=True
+    )
+    #: Faculty ids, most preferred first (`config["guide_preferences"]`).
+    guide_preferences: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
     industry_mentor_name: Mapped[str | None] = mapped_column(String(150))
     industry_mentor_email: Mapped[str | None] = mapped_column(String(255))
     industry_mentor_phone: Mapped[str | None] = mapped_column(String(20))

@@ -1135,19 +1135,20 @@ PROJECT_PROGRAMS = [
     ("MP7-2025", "Minor Project (Semester VII)", InternshipType.MINOR_PROJECT, 7, 3,
      {"to": 2023}, D.MINOR_PROJECT_STAGES, D.MINOR_PROJECT_CRITERIA,
      (ReportFrequency.NONE, 0), None,
-     ["credits", "stages", "rubric", "admission batches"],
+     ["credits", "stages", "rubric", "admission batches", "team size", "guide preferences"],
      "A guided project in Semester VII for the schemes before 2024-28. Register a "
      "topic, work with your faculty guide, and present at mid-semester and at the end."),
     ("SEM7-2025", "Seminar (Semester VII)", InternshipType.SEMINAR, 7, 1,
      {"from": 2024}, D.SEMINAR_STAGES, D.SEMINAR_CRITERIA,
      (ReportFrequency.NONE, 0), None,
-     ["stages", "rubric"],
+     ["stages", "rubric", "guide preferences"],
      "The 1-credit Semester VII Seminar of the 2024-28 scheme: a topic studied in "
      "depth under a faculty guide, written up and presented."),
     ("MP8-2025", "Major Project / Industry Internship (Semester VIII)",
      InternshipType.MAJOR_PROJECT, 8, 12, None, D.MAJOR_PROJECT_STAGES,
      D.MAJOR_PROJECT_CRITERIA, (ReportFrequency.MONTHLY, 4), D.MAJOR_PROJECT_TRACKS,
-     ["stages", "rubric", "report cadence", "credits for batches before 2024"],
+     ["stages", "rubric", "report cadence", "credits for batches before 2024", "team size",
+      "guide preferences"],
      "The 12-credit Semester VIII Major / Comprehensive Project. Take it as an "
      "in-house project with a faculty guide, or as a full-semester industry "
      "internship with a guide and a supervisor at the host."),
@@ -1160,7 +1161,17 @@ def seed_project_programs(db, year, semesters, departments, faculty_by_code,
     created = []
     for (code, name, ptype, sem, credits, batches, stages, criteria, (freq, count),
          tracks, unconfirmed, blurb) in PROJECT_PROGRAMS:
-        config = {"requires_faculty_confirmation": unconfirmed}
+        config = {"requires_faculty_confirmation": unconfirmed,
+                  # Rank up to three guides; a seminar is individual, a project
+                  # may be done in a team of up to four (or alone).
+                  "guide_preferences": 3}
+        if ptype != InternshipType.SEMINAR:
+            config["team_size"] = {"min": 1, "max": 4}
+        early = sem - 1 if tracks else None
+        if early:
+            # Semester VIII registration opens in Semester VII, so an
+            # industry-track student can line up a company ahead of time.
+            config["register_from_semester"] = early
         if batches:
             config["admission_years"] = batches
         if tracks:
@@ -1172,7 +1183,7 @@ def seed_project_programs(db, year, semesters, departments, faculty_by_code,
             # Offered in its own semester only; a student who registered keeps
             # their record afterwards. Left open-ended, the Semester VII Minor
             # Project was being offered to Semester VIII students as well.
-            announce_from_semester=sem, visible_to_semester=sem, credits=credits,
+            announce_from_semester=early or sem, visible_to_semester=sem, credits=credits,
             requires_group=False, default_group_size=0,
             # A track decides for Semester VIII; Semester VII has no host.
             requires_organization=False, allowed_organization_types=[],
