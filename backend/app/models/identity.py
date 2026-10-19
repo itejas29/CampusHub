@@ -5,7 +5,7 @@ import datetime as dt
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
-    Boolean, Date, Enum as SAEnum, ForeignKey, Index, Integer, Numeric, String,
+    Boolean, Date, DateTime, Enum as SAEnum, ForeignKey, Index, Integer, Numeric, String,
     Text, UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -34,6 +34,13 @@ class User(PKMixin, TimestampMixin, Base):
     avatar_url: Mapped[str | None] = mapped_column(String(500))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     last_login_at: Mapped[dt.datetime | None] = mapped_column()
+    #: Set when the registrar issues a temporary password; nothing but choosing
+    #: a new one is allowed until it is cleared (services/accounts.py).
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    #: Tokens issued before this moment are refused — a password change or reset
+    #: signs the account out everywhere.
+    sessions_valid_after: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+
 
     role_links: Mapped[list["UserRole"]] = relationship(
         back_populates="user", cascade="all, delete-orphan", lazy="selectin"

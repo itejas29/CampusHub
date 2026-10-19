@@ -484,6 +484,25 @@ Phase 4 closed two real vulnerabilities. Do not undo them.
    nothing over CSSI, and nothing over CSE. Mentor and Coordinator are
    independent grants; neither implies the other. Mentor access to a student
    record is earned **per student**, not per department.
+6. **Sign-in is throttled** (`services/accounts.py`, table `login_throttle`):
+   5 failures per account per address, 20 per account anywhere, 100 per
+   address, each in 15 minutes. The client address is the *last*
+   X-Forwarded-For entry (Railway's proxy adds it). Demo accounts, while
+   `DEMO_MODE` is on, count only under the address.
+7. **A password change ends every other session**: tokens carry the
+   account's session version (`sv`), bumped by any change or reset.
+8. **No email yet**, so a forgotten password is a one-time password issued by
+   the registrar (anyone but another registrar) or a department office (its own
+   students only), which must be replaced before anything else works.
+9. **`faculty:manage` never grants a system role** and never reaches another
+   department (`people._assert_manages_department`) — it used to let an
+   internship coordinator create a super admin. The HoD is set only through
+   `scope.set_hod`.
+10. **`DEMO_MODE`** (default on). Off: demo accounts are refused, the seed
+    refuses to run, new accounts start on a one-time password, and the first
+    real registrar is made with `python -m app.seed.create_registrar`. While it
+    is on, no real account can be given a password and demo passwords cannot
+    be changed. Production refuses to start with the development `SECRET_KEY`.
 
 ---
 

@@ -53,19 +53,22 @@ def _create_token(subject: str, token_type: TokenType, expires: dt.timedelta,
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
-def create_access_token(subject: str | int, roles: list[str] | None = None) -> str:
+def create_access_token(subject: str | int, roles: list[str] | None = None,
+                        session_version: int = 0) -> str:
     return _create_token(
         str(subject),
         "access",
         dt.timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
-        {"roles": roles or []},
+        {"roles": roles or [], "sv": session_version},
     )
 
 
-def create_refresh_token(subject: str | int) -> str:
+def create_refresh_token(subject: str | int, session_version: int = 0) -> str:
     return _create_token(
-        str(subject), "refresh", dt.timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+        str(subject), "refresh", dt.timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+        {"sv": session_version},
     )
+
 
 
 def decode_token(token: str, expected_type: TokenType | None = None) -> dict[str, Any]:

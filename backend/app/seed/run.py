@@ -2130,8 +2130,18 @@ def main() -> int:
                         help="Seed even if data already exists (may duplicate).")
     args = parser.parse_args()
 
+    from app.core.config import settings
+
+    if not settings.DEMO_MODE:
+        # DEMO_MODE off means real people's records: demo data never goes in,
+        # and --reset would drop every table.
+        print("Refusing to seed: demo accounts are switched off (DEMO_MODE=false), "
+              "so this database is for real records.")
+        return 1
+
     with SessionLocal() as db:
         if args.reset:
+
             reset(db)
         elif already_seeded(db) and not args.force:
             print("Database already contains data — nothing to do. "

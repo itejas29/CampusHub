@@ -82,6 +82,9 @@ class SemesterOut(ORMModel):
 
 class StudentOut(ORMModel):
     id: int
+    #: Only in the response that creates the account, once, when a one-time
+    #: password was generated; never stored or shown again.
+    temporary_password: str | None = None
     user_id: int
     full_name: str
     email: EmailStr
@@ -115,7 +118,8 @@ class StudentDetail(StudentOut):
 class StudentCreate(BaseModel):
     full_name: PersonName
     email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
+    #: Ignored once demo accounts are off — a one-time password is generated.
+    password: str | None = Field(default=None, max_length=128)
     roll_number: RollNumber
     enrollment_number: optional(identifier(30)) = None
     program_id: int
@@ -144,6 +148,9 @@ class StudentUpdate(BaseModel):
 
 class FacultyOut(ORMModel):
     id: int
+    #: Only in the response that creates the account, once, when a one-time
+    #: password was generated; never stored or shown again.
+    temporary_password: str | None = None
     user_id: int
     full_name: str
     email: EmailStr
@@ -171,7 +178,8 @@ class FacultyOut(ORMModel):
 class FacultyCreate(BaseModel):
     full_name: PersonName
     email: EmailStr
-    password: str = Field(default="Campus@123", min_length=8, max_length=128)
+    #: Ignored once demo accounts are off — a one-time password is generated.
+    password: str | None = Field(default=None, max_length=128)
     employee_code: identifier(30)
     department_id: int
     designation: line(100, min_length=2)
@@ -292,3 +300,10 @@ class RoleMatrix(BaseModel):
     #: One row per faculty member listing ALL their active grants, so a person
     #: holding Coordinator and Mentor roles reads as one entry, not two.
     faculty_summary: list[dict] = Field(default_factory=list)
+
+
+class TemporaryPassword(BaseModel):
+    """Shown once to the registrar or office, who passes it on; the person must
+    replace it at their next sign-in."""
+    temporary_password: str
+    login: str

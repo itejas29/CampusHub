@@ -94,6 +94,8 @@ export interface CurrentUser {
   student: StudentContext | null; faculty: FacultyContext | null;
   academic_year: string | null; current_semester_label: string | null;
   last_login_at: string | null;
+  /** A one-time password is in use; nothing else works until it is replaced. */
+  must_change_password?: boolean;
 }
 
 export interface TokenPair {

@@ -12,20 +12,19 @@ from app.core.deps import CurrentUser, DbSession, request_context
 from app.core.errors import AuthenticationError
 from app.core.rbac import permissions_for
 from app.core.security import (
-    create_access_token, create_refresh_token, decode_token, hash_password,
-    verify_password,
+    create_access_token, create_refresh_token, decode_token, verify_password,
 )
 from app.models.enums import AssignedRole, AuditAction
 from app.models.identity import AcademicYear, Faculty, Semester, Student, User
 from app.models.internships import InternshipEnrollment, InternshipProgram
 from app.models.minors import MinorApplication, MinorEnrollment, MinorProgram
 from app.schemas.auth import (
-    AuthResponse, ChangePasswordRequest, CoordinationOut,
-    CurrentUser as CurrentUserOut, FacultyContext, LoginRequest, RefreshRequest,
-    StudentContext, TokenPair,
+    AuthConfig, AuthResponse, ChangePasswordRequest, CoordinationOut,
+    CurrentUser as CurrentUserOut, FacultyContext, LoginRequest, PasswordChanged,
+    RefreshRequest, StudentContext, TokenPair,
 )
 from app.schemas.common import Message
-from app.services import audit, eligibility, registration, scope
+from app.services import accounts, audit, eligibility, registration, scope
 from app.services import internships as internship_service
 from app.services import minors as minor_service
 
@@ -35,8 +34,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def _tokens(user: User) -> TokenPair:
     roles = [r.value for r in user.roles]
     return TokenPair(
-        access_token=create_access_token(user.id, roles),
-        refresh_token=create_refresh_token(user.id),
+        access_token=create_access_token(user.id, roles, accounts.session_version(user)),
+        refresh_token=create_refresh_token(user.id, accounts.session_version(user)),
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
@@ -150,24 +149,33 @@ def build_current_user(db, user: User) -> CurrentUserOut:
             else (current_sem.label if current_sem else None)
         ),
         last_login_at=user.last_login_at,
+        must_change_password=user.must_change_password,
     )
 
 
-def _authenticate(db, email: str, password: str) -> User:
+
+def _authenticate(db, email: str, password: str, request: Request) -> User:
     user = db.scalar(
         select(User).where(func.lower(User.email) == email.strip().lower())
     )
+    address = accounts.client_address(request)
+    demo = user is not None and accounts.is_demo_account(user)
+    accounts.assert_not_throttled(db, email, address, demo=demo)
     if user is None or not verify_password(password, user.hashed_password):
+        accounts.record_failure(db, email, address, demo=demo)
+        db.commit()
         # Same message either way — never reveal which accounts exist.
         raise AuthenticationError("Incorrect email or password.")
     if not user.is_active:
         raise AuthenticationError("This account has been deactivated.")
+    accounts.assert_may_sign_in(user)
+    accounts.record_success(db, email, address)
     return user
 
 
 @router.post("/login", response_model=AuthResponse)
 def login(payload: LoginRequest, request: Request, db: DbSession) -> AuthResponse:
-    user = _authenticate(db, payload.email, payload.password)
+    user = _authenticate(db, payload.email, payload.password, request)
     user.last_login_at = dt.datetime.now(dt.timezone.utc)
     ctx = request_context(request)
     audit.record(db, action=AuditAction.LOGIN, entity_type="user", entity_id=user.id,
@@ -177,9 +185,10 @@ def login(payload: LoginRequest, request: Request, db: DbSession) -> AuthRespons
 
 
 @router.post("/token", response_model=TokenPair, include_in_schema=False)
-def token(db: DbSession, form: OAuth2PasswordRequestForm = Depends()) -> TokenPair:
+def token(request: Request, db: DbSession,
+          form: OAuth2PasswordRequestForm = Depends()) -> TokenPair:
     """OAuth2 password flow — powers the "Authorize" button in /docs."""
-    user = _authenticate(db, form.username, form.password)
+    user = _authenticate(db, form.username, form.password, request)
     db.commit()
     return _tokens(user)
 
@@ -193,6 +202,10 @@ def refresh(payload: RefreshRequest, db: DbSession) -> TokenPair:
     user = db.get(User, int(claims["sub"]))
     if user is None or not user.is_active:
         raise AuthenticationError("Account is unavailable.")
+    if not accounts.token_still_valid(user, claims):
+
+        raise AuthenticationError("Your password was changed. Please sign in again.")
+    accounts.assert_may_sign_in(user)
     return _tokens(user)
 
 
@@ -201,17 +214,24 @@ def me(db: DbSession, user: CurrentUser) -> CurrentUserOut:
     return build_current_user(db, user)
 
 
-@router.post("/change-password", response_model=Message,
+@router.post("/change-password", response_model=PasswordChanged,
              status_code=status.HTTP_200_OK)
 def change_password(payload: ChangePasswordRequest, db: DbSession,
-                    user: CurrentUser) -> Message:
+                    user: CurrentUser) -> PasswordChanged:
     if not verify_password(payload.current_password, user.hashed_password):
         raise AuthenticationError("Your current password is incorrect.")
-    user.hashed_password = hash_password(payload.new_password)
-    audit.record(db, action=AuditAction.UPDATE, entity_type="user", entity_id=user.id,
-                 actor=user, description="Changed password")
+    accounts.set_password(db, user, payload.new_password, actor=user)
     db.commit()
-    return Message(message="Password updated.")
+    # Every earlier session has just ended — this one continues on new tokens.
+    return PasswordChanged(message="Password updated. You were signed out everywhere else.",
+                           tokens=_tokens(user))
+
+
+@router.get("/config", response_model=AuthConfig)
+def auth_config() -> AuthConfig:
+    """What the sign-in page needs before anyone signs in."""
+    return AuthConfig(demo_mode=settings.DEMO_MODE)
+
 
 
 @router.post("/logout", response_model=Message)

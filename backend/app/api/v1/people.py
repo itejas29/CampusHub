@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, or_, select
 
 from app.core.deps import CurrentUser, DbSession, require_permission
-from app.core.errors import ConflictError, NotFoundError
+from app.core.config import settings
+from app.core.errors import ConflictError, NotFoundError, PermissionDeniedError
 from app.core.rbac import P
 from app.core.security import hash_password
 from app.models.academics import Program
@@ -17,10 +18,37 @@ from app.schemas.identity import (
     AcademicYearOut, DepartmentCreate, DepartmentHodUpdate, DepartmentOut,
     DepartmentUpdate, FacultyCreate,
     FacultyOut, FacultyUpdate, ProfileUpdate, SemesterOut, StudentCreate, StudentDetail,
-    StudentOut, StudentUpdate,
+    StudentOut, StudentUpdate, TemporaryPassword,
 )
-from app.services import audit, scope
+from app.services import accounts, audit, scope
 from app.services.serializers import faculty_out, student_out
+
+def _assert_manages_department(db, user: User, department_id: int | None) -> None:
+    """Student and faculty records are managed department by department.
+
+    `students:manage` and `faculty:manage` are held by department offices and
+    internship coordinators; neither may touch another department's people.
+    The registrar may act anywhere.
+    """
+    if user.has_role(Role.SUPER_ADMIN):
+        return
+    own = db.scalar(select(Faculty.department_id).where(Faculty.user_id == user.id))
+    if own is None or own != department_id:
+        raise PermissionDeniedError("You can manage people in your own department only.")
+
+
+def _initial_password(chosen: str | None) -> tuple[str, str | None]:
+    """(password to store, temporary password to hand over once).
+
+    Once demo accounts are switched off, a new account always starts on a
+    one-time password the person must replace — the faculty form's default was
+    the demo password published in the README.
+    """
+    if settings.DEMO_MODE:
+        return chosen or settings.SEED_DEFAULT_PASSWORD, None
+    temporary = accounts.temporary_password()
+    return temporary, temporary
+
 
 students_router = APIRouter(prefix="/students", tags=["students"])
 faculty_router = APIRouter(prefix="/faculty", tags=["faculty"])
@@ -93,10 +121,13 @@ def create_student(
         raise ConflictError("A user with that email address already exists.")
     if db.scalar(select(Student).where(Student.roll_number == payload.roll_number)):
         raise ConflictError("That roll number is already in use.")
+    _assert_manages_department(db, user, payload.department_id)
 
+    password, temporary = _initial_password(payload.password)
     account = User(email=payload.email.lower(),
-                   hashed_password=hash_password(payload.password),
-                   full_name=payload.full_name, phone=payload.phone)
+                   hashed_password=hash_password(password),
+                   full_name=payload.full_name, phone=payload.phone,
+                   must_change_password=temporary is not None)
     db.add(account)
     db.flush()
     db.add(UserRole(user_id=account.id, role=Role.STUDENT))
@@ -115,7 +146,9 @@ def create_student(
                  description=f"Created student {student.roll_number}")
     db.commit()
     db.refresh(student)
-    return student_out(student)
+    out = student_out(student)
+    out.temporary_password = temporary
+    return out
 
 
 @students_router.patch("/{student_id}", response_model=StudentOut)
@@ -126,6 +159,7 @@ def update_student(
     student = db.get(Student, student_id)
     if student is None:
         raise NotFoundError("Student not found.")
+    _assert_manages_department(db, user, student.department_id)
     changes = payload.model_dump(exclude_unset=True)
     for field in ("full_name", "phone"):
         if field in changes:
@@ -187,16 +221,25 @@ def create_faculty(
 ) -> FacultyOut:
     if db.scalar(select(User).where(func.lower(User.email) == payload.email.lower())):
         raise ConflictError("A user with that email address already exists.")
+    _assert_manages_department(db, user, payload.department_id)
+    extra = [r for r in payload.extra_roles if r != Role.FACULTY]
+    # Only the registrar grants a system role, and the HoD is appointed through
+    # scope.set_hod alone. `faculty:manage` is held by department offices and
+    # internship coordinators — this used to let either create a super admin.
+    if Role.HOD in extra:
+        raise PermissionDeniedError("Appoint a Head of Department from the department, not here.")
+    if extra and not user.has_role(Role.SUPER_ADMIN):
+        raise PermissionDeniedError("Only the registrar can give a new account extra roles.")
 
+    password, temporary = _initial_password(payload.password)
     account = User(email=payload.email.lower(),
-                   hashed_password=hash_password(payload.password),
-                   full_name=payload.full_name)
+                   hashed_password=hash_password(password),
+                   full_name=payload.full_name, must_change_password=temporary is not None)
     db.add(account)
     db.flush()
     db.add(UserRole(user_id=account.id, role=Role.FACULTY))
-    for role in payload.extra_roles:
-        if role != Role.FACULTY:
-            db.add(UserRole(user_id=account.id, role=role))
+    for role in extra:
+        db.add(UserRole(user_id=account.id, role=role))
 
     faculty = Faculty(
         user_id=account.id, employee_code=payload.employee_code,
@@ -213,10 +256,41 @@ def create_faculty(
                  description=f"Created faculty {faculty.employee_code}")
     db.commit()
     db.refresh(faculty)
-    return faculty_out(faculty)
+    out = faculty_out(faculty)
+    out.temporary_password = temporary
+    return out
+
+
+@students_router.post("/{student_id}/reset-password", response_model=TemporaryPassword)
+def reset_student_password(
+    student_id: int, db: DbSession,
+    user: User = Depends(require_permission(P["STUDENT_MANAGE"])),
+) -> TemporaryPassword:
+    student = db.get(Student, student_id)
+    if student is None:
+        raise NotFoundError("Student not found.")
+    _assert_manages_department(db, user, student.department_id)
+    password = accounts.issue_temporary_password(db, student.user, actor=user)
+    db.commit()
+    return TemporaryPassword(temporary_password=password, login=student.user.email)
+
+
+@faculty_router.post("/{faculty_id}/reset-password", response_model=TemporaryPassword)
+def reset_faculty_password(
+    faculty_id: int, db: DbSession,
+    user: User = Depends(require_permission(P["FACULTY_MANAGE"])),
+) -> TemporaryPassword:
+    faculty = db.get(Faculty, faculty_id)
+    if faculty is None:
+        raise NotFoundError("Faculty member not found.")
+    _assert_manages_department(db, user, faculty.department_id)
+    password = accounts.issue_temporary_password(db, faculty.user, actor=user)
+    db.commit()
+    return TemporaryPassword(temporary_password=password, login=faculty.user.email)
 
 
 @faculty_router.patch("/{faculty_id}", response_model=FacultyOut)
+
 def update_faculty(
     faculty_id: int, payload: FacultyUpdate, db: DbSession,
     user: User = Depends(require_permission(P["FACULTY_MANAGE"])),
@@ -224,6 +298,7 @@ def update_faculty(
     faculty = db.get(Faculty, faculty_id)
     if faculty is None:
         raise NotFoundError("Faculty member not found.")
+    _assert_manages_department(db, user, faculty.department_id)
     changes = payload.model_dump(exclude_unset=True)
     if changes.get("is_mentor"):
         # The mentor flag is how the rest of the portal offers someone as a
@@ -248,7 +323,13 @@ def delete_faculty(
     faculty = db.get(Faculty, faculty_id)
     if faculty is None:
         raise NotFoundError("Faculty member not found.")
+    _assert_manages_department(db, user, faculty.department_id)
+    if not user.has_role(Role.SUPER_ADMIN, Role.DEPARTMENT_ADMIN):
+        raise PermissionDeniedError("Only the registrar or the department office can deactivate faculty.")
+    if faculty.user_id == user.id:
+        raise PermissionDeniedError("You can't deactivate your own account.")
     name = faculty.user.full_name
+
     code = faculty.employee_code
     faculty.user.is_active = False
     audit.record(db, action=AuditAction.DELETE, entity_type="faculty",

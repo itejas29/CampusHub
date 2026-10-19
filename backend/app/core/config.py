@@ -4,8 +4,11 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import computed_field
+from pydantic import computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+_DEV_SECRET = "dev-only-insecure-secret-change-me"
 
 
 class Settings(BaseSettings):
@@ -27,7 +30,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str | None = None
 
     # --- auth ---------------------------------------------------------------
-    SECRET_KEY: str = "dev-only-insecure-secret-change-me"
+    SECRET_KEY: str = _DEV_SECRET
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 14
@@ -68,6 +71,24 @@ class Settings(BaseSettings):
     #: confirms which rule applies, so the choice stays a policy decision rather
     #: than an assumption baked into the code.
     MINOR_COORDINATOR_SCOPE: str = "EITHER"
+
+    #: Whether the demo accounts (one shared, published password) may sign in.
+    #: Switch it off before real people use the portal: demo accounts are then
+    #: refused, the sign-in shortcuts disappear, and the registrar may issue
+    #: passwords to real accounts (services/accounts.py). While it is on, a real
+    #: account cannot be given a password — anyone with the demo password could
+    #: otherwise take it over.
+    DEMO_MODE: bool = True
+
+    @model_validator(mode="after")
+    def _production_needs_a_real_secret(self) -> "Settings":
+        # Every token is signed with SECRET_KEY; the default is in a public repo.
+        if self.ENVIRONMENT == "production" and (
+                self.SECRET_KEY == _DEV_SECRET or len(self.SECRET_KEY) < 32):
+            raise ValueError("Set SECRET_KEY to a random value of at least 32 characters "
+                             "before running in production.")
+        return self
+
 
     @computed_field  # type: ignore[prop-decorator]
     @property

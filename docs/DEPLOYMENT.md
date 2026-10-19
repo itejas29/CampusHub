@@ -163,12 +163,17 @@ resolve.
 
 Not yet done, and not safe to skip:
 
-- [ ] **Rate limiting on `/auth/login`.** Nothing currently throttles password
-      attempts. Add it at the ALB (WAF rate rule) or in front of the endpoint.
-      **FUTURE INFRASTRUCTURE.**
+- [x] **Rate limiting on `/auth/login`** — in the app (`services/accounts.py`):
+      per account, per address, per account-and-address. A WAF rule in front
+      is still worth adding.
 - [ ] **Upload malware scanning** (§4).
-- [ ] **A real password policy and reset flow.** Seeded accounts share one
-      password by design; that is a demo affordance, not a production one.
+- [x] **A password policy and a reset flow without email** — one-time
+      passwords from the registrar or department office, replaced at first
+      sign-in; a change ends every session. Self-service reset by email waits
+      for an email service.
+- [ ] **Switch demo accounts off** (`DEMO_MODE=false`, `SEED_ON_START=false`)
+      on a database holding only real records, then create the first registrar:
+      `python -m app.seed.create_registrar --email … --name …`.
 - [ ] **Backup restore rehearsal.** An untested backup is a hope.
 - [ ] **CloudWatch alarms** on 5xx rate, database connections, disk, and failed
       logins.

@@ -11,6 +11,7 @@ import { TBody, TD, TH, THead, TR, TableEmpty, TableWrap } from "@/components/ui
 import { api, qs } from "@/lib/api";
 import type { DepartmentRow, FacultyRow } from "@/types";
 import { AddFacultyModal, DeleteFacultyModal, EditFacultyModal } from "./FacultyFormModals";
+import { ResetPasswordButton } from "./ResetPasswordButton";
 
 export function FacultyAdminPage() {
   const [search, setSearch] = useState("");
@@ -138,8 +139,10 @@ export function FacultyAdminPage() {
                         >
                           Edit
                         </Button>
+                        <ResetPasswordButton kind="faculty" id={member.id} name={member.full_name} />
                         <Button
                           variant="danger"
+
                           size="sm"
                           icon={<Trash2 className="h-3.5 w-3.5" />}
                           onClick={() => setDeleteMember(member)}

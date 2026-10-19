@@ -32,7 +32,9 @@ PY
 echo "==> Applying database migrations"
 alembic upgrade head
 
-if [ "${SEED_ON_START:-false}" = "true" ]; then
+# Never with demo accounts switched off: that database holds real people.
+if [ "${SEED_ON_START:-false}" = "true" ] && [ "${DEMO_MODE:-true}" != "false" ]; then
+
   echo "==> Seeding demo data"
   python -m app.seed.run || echo "    seed skipped (data already present)"
 fi

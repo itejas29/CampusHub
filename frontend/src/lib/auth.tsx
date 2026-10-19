@@ -20,6 +20,9 @@ interface AuthValue {
    */
   lastSession: () => { userId: number | null; signedOut: boolean };
   refresh: () => Promise<void>;
+  /** Sets a new password. Every other session ends; this one carries on with
+   *  the fresh tokens the server returns. Throws ApiError on refusal. */
+  changePassword: (current: string, next: string) => Promise<void>;
   /** Mirrors the backend permission matrix served by /auth/me. */
   can: (permission: string) => boolean;
   hasRole: (...roles: Role[]) => boolean;
@@ -86,6 +89,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus("authenticated");
   }, [queryClient]);
 
+  const changePassword = useCallback(async (current: string, next: string) => {
+    const response = await api.post<{ tokens: AuthResponse["tokens"] }>(
+      "/auth/change-password", { current_password: current, new_password: next });
+    tokenStore.rotate(response.tokens.access_token, response.tokens.refresh_token);
+    await load();
+  }, [load]);
+
   const signOut = useCallback(() => {
     // A deliberate sign-out leaves nothing to return to: whoever signs in next
     // starts on their own dashboard, not the page the last person had open.
@@ -110,6 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut,
       lastSession: () => lastSessionRef.current,
       refresh: load,
+      changePassword,
       can: (permission) => permissions.has("*") || permissions.has(permission),
       hasRole: (...list) => list.some((role) => roles.has(role)),
       mentorsProgram: (type) => mentored.has(type),
@@ -117,7 +128,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isStaff: Boolean(user && !(roles.size === 1 && roles.has("STUDENT"))),
       isAdmin: ADMIN_ROLES.some((role) => roles.has(role)),
     };
-  }, [user, status, signIn, signOut, load]);
+  }, [user, status, signIn, signOut, load, changePassword]);
+
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -19,7 +19,7 @@ class RefreshRequest(BaseModel):
 
 class ChangePasswordRequest(BaseModel):
     current_password: str = Field(min_length=1)
-    new_password: str = Field(min_length=8, max_length=128)
+    new_password: str = Field(min_length=1, max_length=128)   # the rules: services/accounts.py
 
 
 class TokenPair(BaseModel):
@@ -92,8 +92,22 @@ class CurrentUser(ORMModel):
     academic_year: str | None = None
     current_semester_label: str | None = None
     last_login_at: dt.datetime | None = None
+    #: A temporary password is in use: the screens allow nothing but choosing
+    #: a new one, and so does the API.
+    must_change_password: bool = False
 
 
 class AuthResponse(BaseModel):
     tokens: TokenPair
     user: CurrentUser
+
+
+class PasswordChanged(BaseModel):
+    message: str
+    #: Every earlier session ended with the change; the caller continues on these.
+    tokens: TokenPair
+
+
+class AuthConfig(BaseModel):
+    demo_mode: bool
+

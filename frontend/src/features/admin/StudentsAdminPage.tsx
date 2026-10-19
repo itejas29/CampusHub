@@ -10,11 +10,16 @@ import { Avatar, PageHeader, SearchInput } from "@/components/ui/Misc";
 import { ErrorState, LoadingState } from "@/components/ui/States";
 import { TBody, TD, TH, THead, TR, TableEmpty, TableWrap } from "@/components/ui/Table";
 import { api, qs } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { ResetPasswordButton } from "./ResetPasswordButton";
 import { roman } from "@/lib/utils";
 import type { DepartmentRow, Page, StudentRow } from "@/types";
 
 export function StudentsAdminPage() {
+  const { can } = useAuth();
+  const canManage = can("students:manage");
   const [search, setSearch] = useState("");
+
   const [departmentId, setDepartmentId] = useState("");
   const [semester, setSemester] = useState("");
   const [page, setPage] = useState(1);
@@ -98,10 +103,11 @@ export function StudentsAdminPage() {
                 <TH width="10%" align="right">CPI</TH>
                 <TH width="10%" align="right">Backlogs</TH>
                 <TH width="12%">Status</TH>
+                {canManage && <TH width="10%" align="right">Account</TH>}
               </THead>
               <TBody>
                 {!data?.items.length ? (
-                  <TableEmpty colSpan={8}>No students match these filters.</TableEmpty>
+                  <TableEmpty colSpan={canManage ? 9 : 8}>No students match these filters.</TableEmpty>
                 ) : (
                   data.items.map((student) => (
                     <TR key={student.id}>
@@ -133,7 +139,13 @@ export function StudentsAdminPage() {
                           : <span className="text-ink-subtle">0</span>}
                       </TD>
                       <TD><StatusBadge status={student.status} /></TD>
+                      {canManage && (
+                        <TD align="right">
+                          <ResetPasswordButton kind="students" id={student.id} name={student.full_name} />
+                        </TD>
+                      )}
                     </TR>
+
                   ))
                 )}
               </TBody>

@@ -12,10 +12,10 @@ import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 import { formatDateTime } from "@/lib/format";
 import { humanise, roman } from "@/lib/utils";
-import { personNameError, phoneError, textError } from "@/lib/validation";
+import { newPasswordError, personNameError, phoneError, textError } from "@/lib/validation";
 
 export function ProfilePage() {
-  const { user, refresh } = useAuth();
+  const { user, refresh, changePassword: setNewPassword_ } = useAuth();
   const { theme, toggle } = useTheme();
   const queryClient = useQueryClient();
 
@@ -61,17 +61,15 @@ export function ProfilePage() {
   });
 
   const changePassword = useMutation({
-    mutationFn: () =>
-      api.post("/auth/change-password", {
-        current_password: currentPassword, new_password: newPassword,
-      }),
+    mutationFn: () => setNewPassword_(currentPassword, newPassword),
     onSuccess: () => {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
       setPasswordError(null);
-      setBanner({ tone: "success", text: "Password updated." });
+      setBanner({ tone: "success", text: "Password updated. You were signed out on every other device." });
     },
+
     onError: (err) => {
       setPasswordError(err instanceof ApiError ? err : null);
       setBanner({
@@ -163,8 +161,8 @@ export function ProfilePage() {
                          autoComplete="current-password" />
                 </FormField>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <FormField label="New password" required hint="At least 8 characters."
-                             error={passwordError?.fieldError("new_password")}>
+                  <FormField label="New password" required hint="At least 10 characters, with letters and digits."
+                             error={newPasswordError(newPassword, user) ?? passwordError?.fieldError("new_password")}>
                     <Input type="password" value={newPassword}
                            onChange={(e) => setNewPassword(e.target.value)}
                            autoComplete="new-password" />
@@ -180,7 +178,8 @@ export function ProfilePage() {
                   <Button
                     type="submit" size="sm" loading={changePassword.isPending}
                     disabled={
-                      !currentPassword || newPassword.length < 8 || mismatch
+                      !currentPassword || Boolean(newPasswordError(newPassword, user)) || !newPassword || mismatch
+
                     }
                   >
                     Update password

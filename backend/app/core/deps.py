@@ -26,7 +26,12 @@ oauth2_scheme = OAuth2PasswordBearer(
 DbSession = Annotated[Session, Depends(get_db)]
 
 
+#: All a person may do while a temporary password is in use.
+_WHILE_PASSWORD_MUST_CHANGE = ("/auth/me", "/auth/change-password", "/auth/logout")
+
+
 def get_current_user(
+    request: Request,
     db: DbSession,
     token: Annotated[str | None, Depends(oauth2_scheme)] = None,
 ) -> User:
@@ -44,7 +49,17 @@ def get_current_user(
         raise AuthenticationError("Account no longer exists.")
     if not user.is_active:
         raise PermissionDeniedError("This account has been deactivated.")
+    from app.services import accounts
+
+    if not accounts.token_still_valid(user, payload):
+
+        raise AuthenticationError("Your password was changed. Please sign in again.")
+    accounts.assert_may_sign_in(user)
+    if user.must_change_password and not request.url.path.endswith(_WHILE_PASSWORD_MUST_CHANGE):
+        raise PermissionDeniedError("Choose a new password before continuing.",
+                                    code="password_change_required")
     return user
+
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]

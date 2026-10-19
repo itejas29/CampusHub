@@ -3,11 +3,12 @@ import { Navigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState, LoadingState } from "@/components/ui/States";
+import { ForcePasswordChange } from "@/features/auth/ForcePasswordChange";
 import { useAuth } from "@/lib/auth";
 import type { CoordinationDomain, Role } from "@/types";
 
 export function RequireAuth({ children }: { children: ReactNode }) {
-  const { status, lastSession } = useAuth();
+  const { status, lastSession, user } = useAuth();
   const location = useLocation();
 
   if (status === "loading") {
@@ -30,7 +31,10 @@ export function RequireAuth({ children }: { children: ReactNode }) {
                 state={{ from: location.pathname + location.search, forUser: last.userId }} />
     );
   }
+  // A one-time password: nothing else works until it is replaced.
+  if (user?.must_change_password) return <ForcePasswordChange />;
   return <>{children}</>;
+
 }
 
 /**

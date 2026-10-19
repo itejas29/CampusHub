@@ -76,3 +76,31 @@ export function placeError(value: string): string | undefined {
 export function textError(value: string): string | undefined {
   return /[<>]/.test(value) ? "Remove the < and > characters." : undefined;
 }
+
+const COMMON_PASSWORDS = new Set([
+  "password", "password1", "password123", "12345678", "123456789", "1234567890",
+  "qwerty123", "campus@123", "campushub", "pdeu@123", "pdeu1234", "pdpu@123",
+  "welcome@123", "admin@123", "abcd@1234", "iloveyou", "india@123",
+]);
+
+/** The server's password policy (services/accounts.check_password_policy). */
+export function newPasswordError(
+  password: string, person?: { email?: string; full_name?: string } | null,
+): string | undefined {
+  if (!password) return undefined;
+  const missing = [
+    password.length < 10 && "at least 10 characters",
+    !(/[A-Za-z]/.test(password) && /\d/.test(password)) && "both letters and digits",
+  ].filter(Boolean);
+  if (missing.length) return `Use a password with ${missing.join(" and ")}.`;
+  const lowered = password.toLowerCase();
+  if (COMMON_PASSWORDS.has(lowered)) return "That password is too common — choose another.";
+  const personal = [
+    (person?.email ?? "").split("@")[0].toLowerCase(),
+    ...(person?.full_name ?? "").split(/[\s.]+/).filter((p) => p.length >= 4).map((p) => p.toLowerCase()),
+  ];
+  if (personal.some((p) => p.length >= 4 && lowered.includes(p))) {
+    return "Don't use your name or email in your password.";
+  }
+  return undefined;
+}

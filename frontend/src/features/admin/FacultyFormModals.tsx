@@ -42,9 +42,12 @@ export function AddFacultyModal({
     }
   }, [departments.data, departmentId]);
 
+  // Once demo accounts are off the server issues a one-time password instead
+  // of the one typed here, and returns it once.
+  const [issued, setIssued] = useState<string | null>(null);
   const addFaculty = useMutation({
     mutationFn: () =>
-      api.post("/faculty", {
+      api.post<{ temporary_password?: string | null }>("/faculty", {
         full_name: fullName.trim(),
         email: email.trim().toLowerCase(),
         employee_code: employeeCode.trim().toUpperCase(),
@@ -54,15 +57,17 @@ export function AddFacultyModal({
         specialization: specialization.trim() || null,
         public_phone: phone.trim() || null,
         public_email: email.trim().toLowerCase(),
-        password: password || "Campus@123",
+        password: password || null,
         is_mentor: true,
       }),
-    onSuccess: () => {
+    onSuccess: (created) => {
       void queryClient.invalidateQueries({ queryKey: ["faculty-admin"] });
       void queryClient.invalidateQueries({ queryKey: ["faculty"] });
       void queryClient.invalidateQueries({ queryKey: ["mentor-capacity"] });
-      onDone();
+      if (created.temporary_password) setIssued(created.temporary_password);
+      else onDone();
     },
+
     onError: (err) => {
       setError(err instanceof ApiError ? err.message : "Failed to add faculty member.");
     },
@@ -75,7 +80,9 @@ export function AddFacultyModal({
       title="Add New Teacher / Faculty"
       description="Create a faculty account with academic credentials and contact details."
       size="md"
-      footer={
+      footer={issued ? (
+        <Button size="sm" onClick={() => { setIssued(null); onDone(); }}>Done</Button>
+      ) : (
         <>
           <Button variant="secondary" size="sm" onClick={onClose}>
             Cancel
@@ -91,10 +98,17 @@ export function AddFacultyModal({
             Create Faculty
           </Button>
         </>
-      }
+      )}
     >
       <div className="space-y-4">
         {error && <Alert variant="danger">{error}</Alert>}
+        {issued && (
+          <Alert variant="success" title="Account created — one-time password">
+            <code className="font-semibold tracking-wider">{issued}</code> · shown once. Give it to
+            {" "}{fullName.trim()} in person or by phone; they choose their own at first sign-in.
+          </Alert>
+        )}
+
 
         <div className="grid gap-3 sm:grid-cols-2">
           <FormField label="Full Name" required error={personNameError(fullName)}>
@@ -178,7 +192,7 @@ export function AddFacultyModal({
 
         <FormField
           label="Temporary Password"
-          hint="Default university password will be set if left untouched."
+          hint="Used only while demo accounts are on. Otherwise the portal issues a one-time password the person replaces at first sign-in."
         >
           <Input
             type="password"

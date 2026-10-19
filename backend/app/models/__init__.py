@@ -26,7 +26,7 @@ from app.models.internships import (
 from app.models.minors import (
     MinorApplication, MinorCourse, MinorEnrollment, MinorProgram,
 )
-from app.models.system import AuditLog, StoredFile
+from app.models.system import AuditLog, LoginThrottle, StoredFile
 
 __all__ = [
     "Base",
@@ -53,5 +53,5 @@ __all__ = [
     # engagement
     "MentorAssignment", "MentorMeeting", "Announcement", "Notification",
     # system
-    "StoredFile", "AuditLog",
+    "StoredFile", "AuditLog", "LoginThrottle",
 ]

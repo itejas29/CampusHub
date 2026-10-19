@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight, BookOpen, Briefcase, Eye, EyeOff, ShieldCheck, Sparkles,
@@ -9,7 +10,7 @@ import { Alert } from "@/components/ui/Alert";
 import { CampusHubMark, EnergyGrid } from "@/components/brand/Brand";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import { ApiError } from "@/lib/api";
+import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { roman } from "@/lib/utils";
 
@@ -180,7 +181,7 @@ const DEMO_PASSWORD = "Campus@123";
  * by default on a production build, where they would publish working
  * credentials on the login screen.
  */
-const DEMO_MODE = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === "true";
+const DEMO_BUILD = import.meta.env.DEV || import.meta.env.VITE_DEMO_MODE === "true";
 
 type DemoCategory = "coordinators" | "students" | "admins";
 const DEMO_GROUPS: Record<DemoCategory, { label: string; accounts: DemoAccount[] }> = {
@@ -204,6 +205,14 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [openDemoModal, setOpenDemoModal] = useState(false);
   const [demoCategory, setDemoCategory] = useState<DemoCategory>("coordinators");
+  // The server decides too: once demo accounts are switched off there, their
+  // shortcuts would only lead to "demo accounts are switched off".
+  const authConfig = useQuery({
+    queryKey: ["auth-config"],
+    queryFn: () => api.get<{ demo_mode: boolean }>("/auth/config"),
+    staleTime: Infinity,
+  });
+  const DEMO_MODE = DEMO_BUILD && authConfig.data?.demo_mode !== false;
 
   if (status === "authenticated") {
     const state = location.state as { from?: string; forUser?: number | null } | null;

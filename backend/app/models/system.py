@@ -1,8 +1,10 @@
 """Stored files and the audit trail."""
 from __future__ import annotations
 
+import datetime as dt
+
 from sqlalchemy import (
-    JSON, BigInteger, Enum as SAEnum, ForeignKey, Index, Integer, String, Text,
+    JSON, BigInteger, DateTime, Enum as SAEnum, ForeignKey, Index, Integer, String, Text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -60,3 +62,15 @@ class AuditLog(PKMixin, TimestampMixin, Base):
     meta: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     ip_address: Mapped[str | None] = mapped_column(String(64))
     user_agent: Mapped[str | None] = mapped_column(String(300))
+
+
+class LoginThrottle(PKMixin, Base):
+    """Failed sign-ins counted per key — an account, an address and account, or
+    an address — so password guessing is slowed wherever it comes from
+    (services/accounts.py). Kept in the database so every API instance agrees."""
+    __tablename__ = "login_throttle"
+
+    key: Mapped[str] = mapped_column(String(320), unique=True, nullable=False)
+    failures: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    window_started_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    locked_until: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
