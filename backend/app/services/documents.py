@@ -26,8 +26,10 @@ from app.models.enums import (
 )
 from app.models.identity import Student, User
 from app.models.internships import (
-    InternshipDocument, InternshipEnrollment, InternshipReport, InternshipStage,
+    EnrollmentStageProgress, InternshipDocument, InternshipEnrollment, InternshipProgram,
+    InternshipReport, InternshipStage,
 )
+
 from app.core.config import settings
 from app.services import audit, notifications
 from app.services.internships import expected_report_schedule
@@ -285,39 +287,22 @@ def expected_documents(db: Session,
 
 
 # ── stage completion, driven by documents ─────────────────────────────────
-def stage_requirements_met(db: Session, enrollment: InternshipEnrollment,
-                           stage: InternshipStage) -> tuple[bool, str | None]:
-    """Can this stage be considered complete?
-
-    A stage that requires a document needs a *verified* one. A stage that
-    represents the reporting period needs every expected report satisfied, so a
-    missing Week 3 keeps it open.
-    """
+def _requirements(stage: InternshipStage, program: InternshipProgram,
+                  latest_document: InternshipDocument | None,
+                  reports: dict[int, InternshipReport]) -> tuple[bool, str | None]:
+    """The rule itself, on records already loaded — so one student's check and
+    a list of hundreds (`progress_many`) cannot disagree."""
     if stage.requires_document:
-        document = db.scalar(
-            select(InternshipDocument).where(
-                InternshipDocument.enrollment_id == enrollment.id,
-                InternshipDocument.stage_id == stage.id,
-            ).order_by(InternshipDocument.created_at.desc()).limit(1)
-        )
-        if document is None:
+        if latest_document is None:
             return False, f"{stage.name}: document not submitted."
-        if document.status not in SATISFYING_STATUSES:
+        if latest_document.status not in SATISFYING_STATUSES:
             return False, (f"{stage.name}: document is "
-                           f"{document.status.value.replace('_', ' ').lower()}.")
+                           f"{latest_document.status.value.replace('_', ' ').lower()}.")
         return True, None
 
     # The "in progress" stage of a reporting programme is gated on the reports.
-    schedule = expected_report_schedule(enrollment.program)
+    schedule = expected_report_schedule(program)
     if schedule and stage.code in {"IN_PROGRESS", "INTERNSHIP"}:
-        reports = {
-            r.sequence_number: r for r in db.scalars(
-                select(InternshipReport).where(
-                    InternshipReport.enrollment_id == enrollment.id,
-                    InternshipReport.report_type != "FINAL",
-                )
-            )
-        }
         missing = [
             slot["sequence_number"] for slot in schedule
             if slot["sequence_number"] not in reports
@@ -331,6 +316,63 @@ def stage_requirements_met(db: Session, enrollment: InternshipEnrollment,
     return True, None
 
 
+def _reports_of(db: Session, enrollment_ids) -> dict[int, dict[int, InternshipReport]]:
+    out: dict[int, dict[int, InternshipReport]] = {}
+    for r in db.scalars(select(InternshipReport).where(
+            InternshipReport.enrollment_id.in_(enrollment_ids),
+            InternshipReport.report_type != "FINAL")):
+        out.setdefault(r.enrollment_id, {})[r.sequence_number] = r
+    return out
+
+
+def stage_requirements_met(db: Session, enrollment: InternshipEnrollment,
+                           stage: InternshipStage) -> tuple[bool, str | None]:
+    """Can this stage be considered complete?
+
+    A stage that requires a document needs a *verified* one. A stage that
+    represents the reporting period needs every expected report satisfied, so a
+    missing Week 3 keeps it open.
+    """
+    document = db.scalar(
+        select(InternshipDocument).where(
+            InternshipDocument.enrollment_id == enrollment.id,
+            InternshipDocument.stage_id == stage.id,
+        ).order_by(InternshipDocument.created_at.desc()).limit(1)
+    ) if stage.requires_document else None
+    reports = {
+        r.sequence_number: r for r in db.scalars(select(InternshipReport).where(
+            InternshipReport.enrollment_id == enrollment.id,
+            InternshipReport.report_type != "FINAL"))
+    } if not stage.requires_document and expected_report_schedule(enrollment.program) else {}
+
+    return _requirements(stage, enrollment.program, document, reports)
+
+
+def _progress(timeline, requirements_met) -> dict:
+    if not timeline:
+        return {"completed": 0, "total": 0, "percent": 0, "blockers": []}
+    completed = 0
+    blockers: list[str] = []
+    for view in timeline:
+        if view.status == StageStatus.SKIPPED:
+            # Not part of this student's track: nothing to evidence.
+            completed += 1
+            continue
+        approved = view.status == StageStatus.APPROVED
+        met, reason = requirements_met(view.stage)
+        if approved and met:
+            completed += 1
+        elif reason and view.stage.is_mandatory:
+            blockers.append(reason)
+    total = len(timeline)
+    return {
+        "completed": completed,
+        "total": total,
+        "percent": round(completed * 100 / total) if total else 0,
+        "blockers": blockers,
+    }
+
+
 def progress(db: Session, enrollment: InternshipEnrollment) -> dict:
     """Document-driven progress.
 
@@ -340,31 +382,46 @@ def progress(db: Session, enrollment: InternshipEnrollment) -> dict:
     """
     from app.services.internships import stage_timeline
 
-    timeline = stage_timeline(db, enrollment)
-    if not timeline:
-        return {"completed": 0, "total": 0, "percent": 0, "blockers": []}
+    return _progress(stage_timeline(db, enrollment),
+                     lambda stage: stage_requirements_met(db, enrollment, stage))
 
-    completed = 0
-    blockers: list[str] = []
-    for view in timeline:
-        if view.status == StageStatus.SKIPPED:
-            # Not part of this student's track: nothing to evidence.
-            completed += 1
-            continue
-        approved = view.status == StageStatus.APPROVED
-        met, reason = stage_requirements_met(db, enrollment, view.stage)
-        if approved and met:
-            completed += 1
-        elif reason and view.stage.is_mandatory:
-            blockers.append(reason)
 
-    total = len(timeline)
-    return {
-        "completed": completed,
-        "total": total,
-        "percent": round(completed * 100 / total) if total else 0,
-        "blockers": blockers,
-    }
+def progress_many(db: Session, enrollments: list[InternshipEnrollment]) -> dict[int, dict]:
+    """`progress` for many records in a handful of queries.
+
+    Listing a programme's students used to run it once per student — about
+    nine queries each, 6,000 for ICT's Summer Internship list.
+    """
+    from app.services.internships import StageView
+
+    if not enrollments:
+        return {}
+    ids = [e.id for e in enrollments]
+    stages_by_program: dict[int, list[InternshipStage]] = {}
+    for stage in db.scalars(select(InternshipStage).where(
+            InternshipStage.program_id.in_({e.program_id for e in enrollments}))
+            .order_by(InternshipStage.sequence)):
+        stages_by_program.setdefault(stage.program_id, []).append(stage)
+    progress_rows: dict[int, dict[int, EnrollmentStageProgress]] = {}
+    for row in db.scalars(select(EnrollmentStageProgress).where(
+            EnrollmentStageProgress.enrollment_id.in_(ids))):
+        progress_rows.setdefault(row.enrollment_id, {})[row.stage_id] = row
+    latest: dict[int, dict[int, InternshipDocument]] = {}
+    for document in db.scalars(select(InternshipDocument).where(
+            InternshipDocument.enrollment_id.in_(ids)).order_by(InternshipDocument.created_at)):
+        latest.setdefault(document.enrollment_id, {})[document.stage_id] = document   # newest wins
+    reports = _reports_of(db, ids)
+
+    out = {}
+    for e in enrollments:
+        rows = progress_rows.get(e.id, {})
+        timeline = [StageView(stage=s, progress=rows.get(s.id))
+                    for s in stages_by_program.get(e.program_id, [])]
+        held, filed = latest.get(e.id, {}), reports.get(e.id, {})
+        out[e.id] = _progress(timeline, lambda stage, e=e, held=held, filed=filed:
+                              _requirements(stage, e.program, held.get(stage.id), filed))
+
+    return out
 
 
 # ── review workflow ───────────────────────────────────────────────────────

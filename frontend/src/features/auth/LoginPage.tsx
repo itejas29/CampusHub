@@ -101,6 +101,15 @@ const STUDENT_ACCOUNTS: DemoAccount[] = [
     semester: 6,
   },
   {
+    name: "Meera Joshi",
+    role: "Student (Sem VI)",
+    dept: "ICT",
+    roll: "22BIT004",
+    email: "meera.joshi.004@campushub.example.com",
+    domain: "3rd Year · Registers for Summer Internship",
+    semester: 6,
+  },
+  {
     name: "Arjun Verma",
     role: "Student (Sem VII)",
     dept: "ICT",

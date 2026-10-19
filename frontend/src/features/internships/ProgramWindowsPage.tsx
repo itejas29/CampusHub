@@ -350,10 +350,15 @@ function WindowFormModal({
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
+  // The semesters the server accepts (internship_windows.open_window): the one
+  // the programme is announced in and the one it runs in. CSSI: II and III;
+  // Summer Internship: VI only. Guessing "the semester before" offered V for
+  // Summer Internship, which the server then refused.
   const cohortOptions = Array.from(new Set(
-    [program.target_semester ? program.target_semester - 1 : null, program.target_semester]
+    [program.announce_from_semester ?? program.target_semester, program.target_semester]
       .filter((s): s is number => Boolean(s && s > 0)),
-  ));
+  )).sort((a, b) => a - b);
+
   const [form, setForm] = useState({
     title: window?.title ?? `${program.name} — ${STEP_COPY[kind].title.toLowerCase()}`,
     message: window?.message ?? "",
@@ -441,7 +446,8 @@ function WindowFormModal({
             <Input id="w-close" type="datetime-local" value={form.closes_at} onChange={set("closes_at")} />
           </FormField>
           {kind === "REGISTRATION" && !window && cohortOptions.length > 0 && (
-            <FormField label="Students in" htmlFor="w-cohort" hint="Registration may open the semester before the programme runs.">
+            <FormField label="Students in" htmlFor="w-cohort"
+                       hint={cohortOptions.length > 1 ? "Registration may open the semester before the programme runs." : undefined}>
               <Select id="w-cohort" value={form.cohort_semester} onChange={set("cohort_semester")}>
                 {cohortOptions.map((s) => <option key={s} value={s}>Semester {roman(s)}</option>)}
               </Select>

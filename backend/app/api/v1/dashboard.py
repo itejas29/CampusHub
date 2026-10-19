@@ -18,7 +18,7 @@ from app.models.community import Club, Event, EventRegistration
 from app.models.engagement import Announcement, MentorAssignment, MentorMeeting
 from app.models.enums import (
     AllocationStatus, ComponentType, EnrollmentStatus, EventStatus, MeetingStatus,
-    MinorApplicationStatus, PreferenceStatus, RegistrationStatus, StageStatus,
+    MinorApplicationStatus, PreferenceStatus, RegistrationStatus, Role, StageStatus,
     SubmissionStatus, VerificationStatus,
 )
 from app.models.identity import Department, Faculty, FacultyRoleAssignment, Student, User
@@ -354,7 +354,8 @@ def student_dashboard(db: DbSession, user: CurrentUser) -> StudentDashboard:
 
 # ── head of department ────────────────────────────────────────────────────
 @router.get("/hod", response_model=HodDashboard)
-def hod_dashboard(db: DbSession, user: CurrentUser) -> HodDashboard:
+def hod_dashboard(db: DbSession, user: CurrentUser,
+                  department_code: str | None = None) -> HodDashboard:
     """Who runs each module of the department, and which have nobody.
 
     Deliberately carries no mentee or review queue: a Head of Department has
@@ -364,7 +365,15 @@ def hod_dashboard(db: DbSession, user: CurrentUser) -> HodDashboard:
     from app.api.v1.roles import DOMAIN_LABELS
     from app.models.enums import AssignedRole, CoordinationDomain
 
-    department = scope.hod_department(db, user)
+    if user.has_role(Role.SUPER_ADMIN):
+        # The registrar oversees every department and may see what its Head
+        # sees — read-only here, as it is for the Head. (The HoD is a real
+        # person who cannot sign in to the demo; this is how their screen is
+        # shown.)
+        department = db.scalar(select(Department).where(
+            Department.code == (department_code or "ICT").upper()))
+    else:
+        department = scope.hod_department(db, user)
     if department is None:
         raise PermissionDeniedError(
             "This dashboard is only available to a Head of Department."
@@ -428,9 +437,12 @@ def hod_dashboard(db: DbSession, user: CurrentUser) -> HodDashboard:
         StatCard(key="open_rounds", label="Rounds accepting preferences",
                  value=sum(1 for r in rounds if r["is_accepting"])),
     ]
+    hod = db.get(Faculty, department.hod_faculty_id) if department.hod_faculty_id else None
     return HodDashboard(
         department={"id": department.id, "code": department.code,
                     "name": department.name},
+        hod_name=hod.user.full_name if hod else None,
+
         stats=stats, modules=modules, rounds=rounds,
         announcements=_announcement_dicts(db, user),
     )

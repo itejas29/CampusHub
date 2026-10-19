@@ -13,6 +13,7 @@ import { DashboardPage } from "@/features/dashboard/DashboardPage";
 // Every screen except sign-in and the dashboard loads on first visit, so the
 // initial bundle carries only what the first screen needs.
 const AdminDashboard = lazy(() => import("@/features/dashboard/AdminDashboard").then((m) => ({ default: m.AdminDashboard })));
+const HodDashboard = lazy(() => import("@/features/dashboard/HodDashboard").then((m) => ({ default: m.HodDashboard })));
 const CourseCataloguePage = lazy(() => import("@/features/academics/CourseCataloguePage").then((m) => ({ default: m.CourseCataloguePage })));
 const CurriculumExplorerPage = lazy(() => import("@/features/academics/CurriculumExplorerPage").then((m) => ({ default: m.CurriculumExplorerPage })));
 const CurriculumPage = lazy(() => import("@/features/academics/CurriculumPage").then((m) => ({ default: m.CurriculumPage })));
@@ -279,6 +280,16 @@ export default function App() {
                 <Route path="faculty" element={<FacultyDirectoryPage />} />
                 <Route path="announcements" element={<AnnouncementsPage />} />
                 <Route path="profile" element={<ProfilePage />} />
+                {/* The registrar's look at a department's Head-of-Department screen. */}
+                <Route
+                  path="hod-view"
+                  element={
+                    <RequireAccess roles={["SUPER_ADMIN"]}>
+                      <HodDashboard departmentCode="ICT" />
+                    </RequireAccess>
+                  }
+                />
+
 
                 {/* ── Administration ────────────────────────────────── */}
                 <Route

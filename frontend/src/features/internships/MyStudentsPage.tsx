@@ -183,7 +183,8 @@ export function MyStudentsPage({ scope = "mine", programType, title, description
                           <p className="truncate font-medium text-ink">{row.student_name}</p>
                           <p className="truncate text-2xs text-ink-subtle">
                             {row.department_code}
-                            {row.division && ` · Div ${row.division}`}
+                            {row.division && ` · ${/^div/i.test(row.division) ? "" : "Div "}${row.division}`}
+
                           </p>
                         </div>
                       </div>

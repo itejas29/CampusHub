@@ -246,7 +246,9 @@ export function StudentDetailDrawer({
           <Tabs
             tabs={TABS.map((t) =>
               // Outstanding required items, so the tab itself flags missing work.
-              t.key === "proof" ? { ...t, count: outstandingDocs || undefined } : t,
+              t.key === "proof"
+                ? { ...t, label: outstandingDocs ? `${t.label} · ${outstandingDocs} to do` : t.label } : t,
+
             )}
             active={tab}
             onChange={setTab}

@@ -1001,6 +1001,11 @@ def seed(db: Session) -> None:
         start_date=TODAY - dt.timedelta(days=35), end_date=TODAY + dt.timedelta(days=21),
         status=ProgramStatus.REGISTRATION_OPEN,
         coordinator_faculty_id=faculty_by_code["ICT-F-102"].id,
+        # Registration runs in a window the coordinator opens for the Semester VI
+        # cohort, as CSSI's does; no window, no registration. Marks keep the
+        # semester rules (no presentation window) until the department says
+        # how the Semester VII assessment is scheduled.
+        config={"windows": ["REGISTRATION"]},
     )
     db.add_all([cssi, summer])
     db.flush()
@@ -1093,14 +1098,19 @@ def seed(db: Session) -> None:
     log(f"  {len(extra)} programmes: "
         + ", ".join(sorted({p.name for p in extra}))[:150])
 
-    seed_internship_records(db, cssi, summer, cssi_groups, students, ngos, companies,
+    # Real students (seed/private) hold an account and appear in rosters, but
+    # are given no invented activity: no internship work, choices, seats,
+    # meetings or memberships. Only generated and named demo students are.
+    demo_students = [s for s in students if "@students." not in s.user.email]
+    seed_internship_records(db, cssi, summer, cssi_groups, demo_students, ngos, companies,
                             faculty_by_code, admin_user)
     log("Semester VII and VIII projects…")
     seed_project_programs(db, year, semesters, departments, faculty_by_code, students, companies)
-    seed_academic_activity(db, components, offerings, courses, students, elective_types,
+    seed_academic_activity(db, components, offerings, courses, demo_students, elective_types,
                            minors, faculty_by_code, admin_user)
-    seed_community(db, students, faculty_by_code, club_admin_user)
-    seed_engagement(db, students, faculty_by_code, admin_user, departments)
+    seed_community(db, demo_students, faculty_by_code, club_admin_user)
+    seed_engagement(db, demo_students, faculty_by_code, admin_user, departments)
+
 
     # The dataset must obey the rule it demonstrates: no HoD ends up with a
     # mentee, an internship student, a group or a scoped role.
@@ -1420,7 +1430,9 @@ def seed_internship_records(db, cssi, summer, cssi_groups, students, ngos, compa
         select(EvaluationCriteria).where(EvaluationCriteria.program_id == summer.id)
         .order_by(EvaluationCriteria.sequence)
     ))
-    summer_students = [s for s in students if s.current_semester >= 6]
+    summer_students = [s for s in students if s.current_semester >= 6
+                       and s.roll_number not in D.LEFT_TO_REGISTER_SUMMER]
+
     # Only faculty holding a Summer Internship *Mentor* grant take mentees. The
     # Summer coordinator (ICT-F-102) is not among them, so "SI Students" stays a
     # mentor screen rather than something every coordinator inherits.
@@ -1496,8 +1508,13 @@ def seed_internship_records(db, cssi, summer, cssi_groups, students, ngos, compa
              "Final internship report"),
             ("CERTIFICATE", DocumentType.CERTIFICATE, FileCategory.CERTIFICATE,
              "Completion certificate"),
+            # Without it an approved presentation counted as unevidenced, and a
+            # completed record showed "All stages complete" beside 88%.
+            ("PRESENTATION", DocumentType.PRESENTATION, FileCategory.OTHER,
+             "Presentation slides"),
         ]
         summer_stage_by_code = {stage.code: stage for stage in summer_stages}
+
         cleared = {
             stage.code for position, stage in enumerate(summer_stages)
             if completed or position < reached - 1

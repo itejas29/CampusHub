@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/Badge";
+import { LinkButton } from "@/components/ui/Button";
 import { Card, CardAction, CardBody, CardHeader } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/Misc";
 import { ProgressBar } from "@/components/ui/Stepper";
@@ -43,6 +44,12 @@ export function AdminDashboard() {
       <PageHeader
         title="Administration"
         description="Live counts from the portal database — no sampled or estimated figures."
+        actions={hasRole("SUPER_ADMIN") && (
+          <LinkButton to="/hod-view" size="sm" variant="secondary">
+            Head of Department view (ICT)
+          </LinkButton>
+        )}
+
         meta={
           <>
             {user?.academic_year && <Badge tone="brand">{user.academic_year}</Badge>}

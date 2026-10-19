@@ -114,6 +114,14 @@ export function InternshipsPage() {
   const shownPrograms = isStudent
     ? (programs.data ?? []).filter((p) => p.can_enroll && !p.my_enrollment_id)
     : programs.data ?? [];
+  // Programmes that concern the student but are not open to them yet — most
+  // often a registration window the coordinator has not opened. Hiding them
+  // left a Semester VI student with "nothing to enrol in" and no idea the
+  // Summer Internship was coming.
+  const upcomingPrograms = isStudent
+    ? (programs.data ?? []).filter((p) => !p.can_enroll && !p.my_enrollment_id
+        && p.phase !== "CONCLUDED" && p.enroll_blocked_reason)
+    : [];
 
       {/* Available programmes — for a student, only one they can register for */}
   const programmesSection = !(isStudent && !programs.isLoading && !programs.error && shownPrograms.length === 0) && (
@@ -247,6 +255,28 @@ export function InternshipsPage() {
           supervisor details are filled in once the coordinator opens it. */}
       {isStudent && programmesSection}
 
+      {upcomingPrograms.length > 0 && (
+        <section className="mb-6">
+          <h2 className="mb-3 text-md font-semibold text-ink">Coming up</h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            {upcomingPrograms.map((program) => (
+              <Card key={program.id}>
+                <CardBody className="space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-semibold text-ink">{program.name}</p>
+                    <Badge tone="neutral">Not open yet</Badge>
+                  </div>
+                  <p className="text-sm text-ink-muted">{program.enroll_blocked_reason}</p>
+                  <p className="text-xs text-ink-subtle">
+                    You will be notified when registration opens.
+                  </p>
+                </CardBody>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Active enrolments */}
       <section className="mb-6">
         <h2 className="mb-3 text-md font-semibold text-ink">My internships</h2>
@@ -261,6 +291,9 @@ export function InternshipsPage() {
               description={
                 shownPrograms.length > 0
                   ? "Register for the programme above to start the workflow."
+                  : upcomingPrograms.length > 0
+                  ? "Your record starts here once you register."
+
                   // Pointing at a programme list that is empty for this
                   // semester just sends the student looking for something that
                   // is not there.
@@ -287,7 +320,10 @@ export function InternshipsPage() {
 
                     <ProgressBar
                       className="mt-4"
-                      label={enrollment.current_stage ?? "All stages complete"}
+                      label={enrollment.current_stage
+                        ?? (enrollment.progress_percent === 100 ? "All stages complete"
+                          : "Waiting for documents to be verified")}
+
                       value={enrollment.progress_percent}
                       tone={enrollment.progress_percent === 100 ? "success" : "accent"}
                     />

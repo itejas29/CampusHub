@@ -14,11 +14,12 @@ from sqlalchemy.orm import Session
 from app.core.errors import BusinessRuleError, NotFoundError
 from app.models.enums import (
     AuditAction, EnrollmentStatus, EvaluationStatus, NotificationType, OrganizationType,
-    ProgramPhase, ReportFrequency, ReportType, StageStatus, SubmissionStatus,
+    PENDING_REVIEW_STATUSES, ProgramPhase, ReportFrequency, ReportType, StageStatus,
+    SubmissionStatus,
 )
 from app.models.identity import Faculty, Student, User
 from app.models.internships import (
-    EnrollmentStageProgress, EvaluationCriteria, InternshipEnrollment,
+    EnrollmentStageProgress, EvaluationCriteria, InternshipDocument, InternshipEnrollment,
     InternshipEvaluation, InternshipGroup, InternshipProgram, InternshipReport,
     InternshipStage,
 )
@@ -175,6 +176,7 @@ def enroll_student(
             enrollment.status = EnrollmentStatus.MENTOR_ASSIGNED
 
     initialise_stage_progress(db, enrollment=enrollment, program=program)
+    _complete_registration_stage(db, enrollment)
     audit.record(
         db, action=AuditAction.CREATE, entity_type="internship_enrollment",
         entity_id=enrollment.id, actor=actor,
@@ -182,6 +184,31 @@ def enroll_student(
         meta={"program": program.code, "student_id": student.id},
     )
     return enrollment
+
+
+def _complete_registration_stage(db: Session, enrollment: InternshipEnrollment) -> None:
+    """Registering *is* the registration stage.
+
+    The form already takes the host and its supervisor, yet the stage stayed
+    "In progress" for the student to mark complete and the mentor to approve —
+    a click and an approval with nothing to check, blocking the offer letter.
+    Only a student-owned stage coded REGISTRATION that asks for no document is
+    completed; no submission time is set, so it is never scored as a review.
+    """
+    db.flush()
+    for progress in db.scalars(select(EnrollmentStageProgress).where(
+            EnrollmentStageProgress.enrollment_id == enrollment.id)):
+        stage = progress.stage
+        if (stage.code == "REGISTRATION" and stage.owner_role == "STUDENT"
+
+                and not stage.requires_document and progress.status != StageStatus.APPROVED):
+            progress.status = StageStatus.APPROVED
+            progress.reviewed_at = utcnow()
+            db.flush()
+            db.refresh(enrollment, ["stage_progress"])
+            _advance_current_stage(db, enrollment)
+
+
 
 
 def assign_to_group(
@@ -317,8 +344,11 @@ def review_stage(
     progress.reviewed_at = utcnow()
     progress.reviewed_by_user_id = actor.id if actor else None
     progress.remarks = remarks
+    _review_stage_document(db, enrollment, progress.stage, approve=approve,
+                           remarks=remarks, actor=actor)
 
     if approve:
+
         _advance_current_stage(db, enrollment)
 
     student = db.get(Student, enrollment.student_id)
@@ -340,7 +370,33 @@ def review_stage(
     return progress
 
 
+def _review_stage_document(db: Session, enrollment: InternshipEnrollment, stage: InternshipStage,
+                           *, approve: bool, remarks: str | None, actor: User | None) -> None:
+    """Approving a stage that needs a document verifies the document waiting on
+    it; sending the stage back returns the document too.
+
+    The mentor reviews the letter by approving its stage. The document used to
+    keep its own status, so the stage showed approved while the student was
+    still told "Offer Letter: document is submitted" — and the mentor had to
+    verify the same file again on another tab.
+    """
+    if not stage.requires_document:
+        return
+    document = db.scalar(select(InternshipDocument).where(
+        InternshipDocument.enrollment_id == enrollment.id,
+        InternshipDocument.stage_id == stage.id,
+    ).order_by(InternshipDocument.created_at.desc()).limit(1))
+    if document is None or document.status not in PENDING_REVIEW_STATUSES:
+        return
+    document.status = SubmissionStatus.VERIFIED if approve else SubmissionStatus.REJECTED
+    document.reviewed_at = utcnow()
+    document.reviewed_by_user_id = actor.id if actor else None
+    document.review_comment = remarks or ("Verified with the stage." if approve
+                                          else "Revision requested.")
+
+
 def _advance_current_stage(db: Session, enrollment: InternshipEnrollment) -> None:
+
     timeline = stage_timeline(db, enrollment)
     for view in timeline:
         if view.status not in (StageStatus.APPROVED, StageStatus.SKIPPED):

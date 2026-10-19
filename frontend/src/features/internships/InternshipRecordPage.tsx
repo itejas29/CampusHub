@@ -317,7 +317,9 @@ export function InternshipRecordPage() {
       <Tabs
         tabs={TABS.map((t) =>
           t.key === "reports" ? { ...t, count: data.reports.length }
-          : t.key === "documents" ? { ...t, count: outstandingDocs || undefined }
+          // Outstanding, not held: a bare "12" read as twelve documents uploaded.
+          : t.key === "documents" ? { ...t, label: outstandingDocs ? `${t.label} · ${outstandingDocs} to do` : t.label }
+
           : t,
         )}
         active={tab}

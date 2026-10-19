@@ -83,8 +83,11 @@ class HodDashboard(BaseModel):
     """A department head's view: who runs each module, and what is in motion."""
 
     department: dict
+    #: Who heads it — the title when the registrar opens this view.
+    hod_name: str | None = None
     stats: list[StatCard]
     #: One row per coordination domain — its coordinators, mentors, or the gap.
+
     modules: list[dict] = Field(default_factory=list)
     #: Registration rounds belonging to the department, newest first.
     rounds: list[dict] = Field(default_factory=list)

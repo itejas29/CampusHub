@@ -498,7 +498,13 @@ export interface Evaluation {
 export interface InternshipProgram {
   id: number; code: string; name: string; type: string; description: string | null;
   department_id: number | null; target_semester: number | null; credits: number;
+  /** First semester the programme is shown in (CSSI: II, the semester before it runs). */
+  announce_from_semester?: number | null;
+  /** Where the programme stands for the signed-in student. */
+  phase?: "HIDDEN" | "ANNOUNCED" | "ACTIVE" | "CONCLUDED";
+
   requires_group: boolean; default_group_size: number; requires_organization: boolean;
+
   /** Students per mentor; `confirmed` is false while it is the portal default. */
   mentor_capacity: number; mentor_capacity_confirmed: boolean;
   /** Whether the signed-in person may manage it (their coordinator scope). */
@@ -896,6 +902,9 @@ export interface FacultyPortfolio {
 
 export interface HodDashboard {
   department: { id: number; code: string; name: string };
+  /** Who heads the department. */
+  hod_name?: string | null;
+
   stats: StatCard[];
   /** One row per module: who coordinates it, or that nobody does. */
   modules: {

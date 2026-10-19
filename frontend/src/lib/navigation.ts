@@ -131,8 +131,12 @@ export const NAVIGATION: NavSection[] = [
   {
     title: "Support",
     items: [
-      // A Head of Department has neither a mentor nor mentees.
-      { label: "Mentor–Mentee", to: "/mentorship", icon: UserSquare2, excludeRoles: ["HOD"] },
+      // Students have a mentor and faculty have mentees; nobody else has either
+      // (the registrar's and clubs office's page could only show an error).
+      // A Head of Department has neither.
+      { label: "Mentor–Mentee", to: "/mentorship", icon: UserSquare2, roles: ["STUDENT", "FACULTY"],
+        excludeRoles: ["HOD"] },
+
       { label: "Faculty Directory", to: "/faculty", icon: GraduationCap },
       { label: "Announcements", to: "/announcements", icon: Megaphone },
     ],

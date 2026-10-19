@@ -3,6 +3,7 @@ import {
   AlertTriangle, BookOpen, CalendarClock, GraduationCap, Megaphone, ShieldCheck,
   UserCog, Users,
 } from "lucide-react";
+import { Alert } from "@/components/ui/Alert";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
 import { Card, CardAction, CardHeader } from "@/components/ui/Card";
@@ -27,11 +28,14 @@ const STAT_ICONS = {
  * the people who run each module — and what they oversee. It has no mentee list
  * and no review queue on purpose: an HoD has neither.
  */
-export function HodDashboard() {
+export function HodDashboard({ departmentCode }: { departmentCode?: string }) {
   const { user } = useAuth();
+  // `departmentCode`: the registrar opening a department's Head-of-Department
+  // view (the HoD is a real person who cannot sign in to the demo).
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["dashboard", "hod"],
-    queryFn: () => api.get<Data>("/dashboard/hod"),
+    queryKey: ["dashboard", "hod", departmentCode ?? "own"],
+    queryFn: () => api.get<Data>(departmentCode
+      ? `/dashboard/hod?department_code=${encodeURIComponent(departmentCode)}` : "/dashboard/hod"),
   });
 
   if (isLoading) return <LoadingState rows={5} />;
@@ -46,8 +50,16 @@ export function HodDashboard() {
 
   return (
     <div className="space-y-6">
+      {departmentCode && (
+        <Alert variant="info">
+          You are seeing what the Head of Department of {data.department.name} sees. As
+          registrar you may also appoint here; the Head can only read their department and
+          appoint into it.
+        </Alert>
+      )}
       <PageHeader
-        title={user?.full_name ?? "Head of Department"}
+        title={(departmentCode ? data.hod_name : user?.full_name) ?? "Head of Department"}
+
         description={`Head of Department · ${data.department.name}`}
         meta={
           <>

@@ -11,6 +11,7 @@ import io
 
 from fastapi import APIRouter, Depends, File, Form, Query, Response, UploadFile
 from sqlalchemy import func, or_, select
+from sqlalchemy.orm import selectinload
 
 from app.core.deps import (
     CurrentUser, DbSession, get_optional_faculty, require_permission, request_context,
@@ -226,11 +227,35 @@ def _program_out(db, program: InternshipProgram,
     )
 
 
+def _summaries(db, rows: list[InternshipEnrollment]) -> list[EnrollmentSummary]:
+    """Many summaries at once: progress in one batch, related rows preloaded.
+    One `_summary` per row cost ~9 queries each — 6,000 for ICT's list."""
+    if not rows:
+        return []
+    ids = [r.id for r in rows]
+    db.scalars(select(InternshipEnrollment).where(InternshipEnrollment.id.in_(ids)).options(
+        selectinload(InternshipEnrollment.student).selectinload(Student.user),
+        selectinload(InternshipEnrollment.student).selectinload(Student.department),
+        selectinload(InternshipEnrollment.mentor).selectinload(Faculty.user),
+        selectinload(InternshipEnrollment.group),
+    )).all()
+    stage_ids = {r.current_stage_id for r in rows if r.current_stage_id}
+    stages = ({s.id: s for s in db.scalars(select(InternshipStage).where(InternshipStage.id.in_(stage_ids)))}
+              if stage_ids else {})
+    progress = docs.progress_many(db, rows)
+    return [_summary(db, r, stage=stages.get(r.current_stage_id),
+                     progress_percent=progress[r.id]["percent"]) for r in rows]
+
+
 def _summary(db, enrollment: InternshipEnrollment,
-             evaluation_status: EvaluationStatus | None = None) -> EnrollmentSummary:
+             evaluation_status: EvaluationStatus | None = None, *,
+             stage: InternshipStage | None = None,
+             progress_percent: int | None = None) -> EnrollmentSummary:
     student = enrollment.student
-    stage = (db.get(InternshipStage, enrollment.current_stage_id)
-             if enrollment.current_stage_id else None)
+    if stage is None and enrollment.current_stage_id:
+        stage = db.get(InternshipStage, enrollment.current_stage_id)
+    if progress_percent is None:
+        progress_percent = docs.progress(db, enrollment)["percent"]
     return EnrollmentSummary(
         id=enrollment.id, program_id=enrollment.program_id,
         program_code=enrollment.program.code if enrollment.program else None,
@@ -258,7 +283,7 @@ def _summary(db, enrollment: InternshipEnrollment,
                            if enrollment.organization else None),
         status=enrollment.status,
         current_stage=stage.name if stage else None,
-        progress_percent=docs.progress(db, enrollment)["percent"],
+        progress_percent=progress_percent,
         evaluation_status=evaluation_status,
         final_marks=(float(enrollment.final_marks)
                      if enrollment.final_marks is not None else None),
@@ -708,7 +733,7 @@ def list_enrollments(
             if needle in (r.student.user.full_name or "").lower()
             or needle in (r.student.roll_number or "").lower()
         ]
-    return [_summary(db, r) for r in rows]
+    return _summaries(db, rows)
 
 
 @router.get("/enrollments/me", response_model=list[EnrollmentSummary])
@@ -716,10 +741,11 @@ def my_enrollments(db: DbSession, user: CurrentUser) -> list[EnrollmentSummary]:
     student = db.scalar(select(Student).where(Student.user_id == user.id))
     if student is None:
         return []
-    rows = db.scalars(select(InternshipEnrollment).where(
+    rows = list(db.scalars(select(InternshipEnrollment).where(
         InternshipEnrollment.student_id == student.id
-    ))
-    return [_summary(db, r) for r in rows]
+    )))
+    return _summaries(db, rows)
+
 
 
 @router.get("/enrollments/{enrollment_id}", response_model=EnrollmentDetail)

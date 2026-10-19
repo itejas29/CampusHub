@@ -140,11 +140,10 @@ export function CurriculumAdminPage() {
           <CardBody className="overflow-x-auto p-0">
             <TableWrap>
               <THead>
-                <TR>
-                  <TH>Programme</TH><TH>Version</TH><TH>Batches</TH>
-                  <TH>Status</TH><TH>Components</TH><TH>Source</TH><TH>Actions</TH>
-                </TR>
+                <TH>Programme</TH><TH>Version</TH><TH>Batches</TH>
+                <TH>Status</TH><TH>Components</TH><TH>Source</TH><TH>Actions</TH>
               </THead>
+
               <TBody>
                 {rows.map((c) => (
                   <TR key={c.id}>

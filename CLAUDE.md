@@ -346,6 +346,27 @@ a programme that lists no windows keeps the semester-only rules. Enforced in
 6. The coordinator may extend, reschedule or reopen a window (audited, notifies);
    nobody else can.
 
+**Summer Internship registration** runs the same way (`config["windows"] =
+["REGISTRATION"]`), for the Semester VI cohort — the coordinator opens it,
+the cohort is notified. It lists no presentation window, so marks keep the
+semester rules until the department says how the Semester VII assessment is
+scheduled. A window's cohort may be only the programme's
+`announce_from_semester` or `target_semester` (the form offers exactly those).
+Live: `python -m app.seed.enable_summer_window`. Demo: Meera Joshi (22BIT004)
+is left unregistered to register live.
+
+Two things the engine does so nobody clicks twice:
+
+- **Registering completes the Registration stage** (a student-owned,
+  document-free stage coded `REGISTRATION`): the form is the registration.
+  No submission time is set, so it is never scored as a review.
+- **Approving a stage verifies the document waiting on it**, and sending it
+  back returns the document (`_review_stage_document`). The stage and its file
+  used to be reviewed separately.
+
+Lists of records compute progress with `documents.progress_many` (a handful
+of queries for any number of rows), never `progress()` per row.
+
 ## Semester VII and VIII projects
 
 Rows on the one internship engine (`seed/run.py` `PROJECT_PROGRAMS`), each
@@ -373,6 +394,12 @@ to the Summer Internship coordinator.
 - Assigning a mentor or guide completes the coordinator-owned, document-free
   allocation stage (`_sync_allocation_stage`), for every programme; taking the
   mentor away reopens it.
+- Real students (seed/private) get no seeded activity of any kind — internship
+  work, elective choices, seats, meetings, memberships (`demo_students` in
+  `seed/run.py`). They keep their account and appear in rosters.
+- The registrar can open a department's Head-of-Department screen read-only
+  (`/hod-view`, `GET /dashboard/hod?department_code=`): the ICT HoD is a real
+  person who cannot sign in to the demo.
 - Real students get no seeded project work. Demo: Dr. Rakesh Bhatt coordinates
   both roles; Arjun Verma (VII) and Pooja Shah (VIII) are left to register.
 

@@ -243,12 +243,18 @@ YEAR_GROUPS = [
 ]
 
 # Named students kept stable so the demo credentials in the README keep working.
+#: Named Semester VI students the seed leaves unregistered for Summer
+#: Internship, so the demo can show one registering once the coordinator opens
+#: the window.
+LEFT_TO_REGISTER_SUMMER = {"22BIT004"}
+
 NAMED_STUDENTS = [
     # (name, roll, semester, division, cpi, backlogs, admission year)
     ("Aarav Desai", "22BIT001", 6, "A", 8.42, 0, 2022),
     ("Ishita Rao", "22BIT002", 6, "A", 9.11, 0, 2022),
     ("Rohan Kulkarni", "22BIT003", 6, "A", 7.28, 1, 2022),
-    ("Meera Joshi", "22BIT004", 6, "B", 8.95, 0, 2022),
+    ("Meera Joshi", "22BIT004", 6, "B", 8.95, 0, 2022),     # registers for Summer Internship live
+
     ("Vivaan Patel", "22BIT005", 6, "B", 6.84, 2, 2022),
     ("Ananya Menon", "23BIT911", 4, "A", 8.63, 0, 2023),
     ("Kabir Sethi", "23BIT912", 4, "A", 7.95, 0, 2023),
