@@ -1,6 +1,7 @@
 # CampusHub QA — 19 October 2026
 
-Start with **`CampusHub_QA_Executive_Report.md`**.
+Start with **`CampusHub_QA_Report.pdf`** — every report below in one document (27 pages).
+Rebuild it with `python tools/build_pdf.py && node tools/render_pdf.mjs .` from this folder.
 
 | File | What it is |
 |---|---|
