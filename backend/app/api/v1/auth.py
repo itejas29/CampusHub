@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import datetime as dt
+import os
 
+import anyio
 import jwt
 from fastapi import APIRouter, Depends, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -9,7 +11,7 @@ from sqlalchemy import func, select
 
 from app.core.config import settings
 from app.core.deps import CurrentUser, DbSession, request_context
-from app.core.errors import AuthenticationError
+from app.core.errors import AppError, AuthenticationError
 from app.core.rbac import permissions_for
 from app.core.security import (
     create_access_token, create_refresh_token, decode_token, verify_password,
@@ -161,7 +163,18 @@ def _authenticate(db, email: str, password: str, request: Request) -> User:
     address = accounts.client_address(request)
     demo = user is not None and accounts.is_demo_account(user)
     accounts.assert_not_throttled(db, email, address, demo=demo)
-    if user is None or not verify_password(password, user.hashed_password):
+    hashed = user.hashed_password if user is not None else accounts.dummy_hash()
+    # bcrypt is ~0.25 s of CPU and needs no database: give the connection back
+    # first. Held through the hash, a burst of sign-ins exhausted the pool (QA
+    # load test: 250 users signing in at once → 30 s timeouts). An unknown
+    # email is checked against a dummy hash, so it takes as long as a real one
+    # and the timing no longer tells which addresses have accounts. (Nothing is
+    # written yet; ending the transaction only returns the connection.)
+    db.commit()
+
+    if not accounts.check_password(password, hashed) or user is None:
+
+
         accounts.record_failure(db, email, address, demo=demo)
         db.commit()
         # Same message either way — never reveal which accounts exist.
@@ -173,9 +186,30 @@ def _authenticate(db, email: str, password: str, request: Request) -> User:
     return user
 
 
+#: Sign-ins in progress at once. bcrypt is ~0.25 s of CPU; waiting sign-ins
+#: queue here, in the event loop, instead of holding the request threads every
+#: other page needs (QA spike test: 200 sign-ins in 5 s starved the portal).
+_SIGN_IN_SLOTS = anyio.CapacityLimiter(max(2, (os.cpu_count() or 4) // 2))
+_SIGN_IN_WAIT_S = 15
+
+
 @router.post("/login", response_model=AuthResponse)
-def login(payload: LoginRequest, request: Request, db: DbSession) -> AuthResponse:
+async def login(payload: LoginRequest, request: Request, db: DbSession) -> AuthResponse:
+    try:
+        with anyio.fail_after(_SIGN_IN_WAIT_S):
+            await _SIGN_IN_SLOTS.acquire()
+    except TimeoutError:
+        raise AppError("Sign-in is busy right now. Please try again in a moment.",
+                       code="busy", status_code=503) from None
+    try:
+        return await anyio.to_thread.run_sync(_login, payload, request, db)
+    finally:
+        _SIGN_IN_SLOTS.release()
+
+
+def _login(payload: LoginRequest, request: Request, db) -> AuthResponse:
     user = _authenticate(db, payload.email, payload.password, request)
+
     user.last_login_at = dt.datetime.now(dt.timezone.utc)
     ctx = request_context(request)
     audit.record(db, action=AuditAction.LOGIN, entity_type="user", entity_id=user.id,

@@ -1,0 +1,309 @@
+{
+ "project": "CampusHub",
+ "tested_on": "2026-10-19",
+ "baseline_commit": "44ccc2c",
+ "branch_with_fixes": "qa-mission",
+ "deployed": false,
+ "production_touched": false,
+ "overall_status": "CONDITIONAL PASS",
+ "recommendation": "READY FOR CONTROLLED PILOT",
+ "environment": {
+  "host": "Apple M2, 8 cores, 8 GB",
+  "database": "PostgreSQL 16.15 (Docker)",
+  "api": "uvicorn, 1 process (as production)",
+  "dataset": {
+   "students": 10000,
+   "mentor_assignments": 9334,
+   "internship_enrolments": 2699,
+   "stage_rows": 21574,
+   "synthetic_only": true
+  }
+ },
+ "tests": {
+  "backend_sqlite": {
+   "baseline": {
+    "run": 1017,
+    "passed": 1017,
+    "failed": 0,
+    "skipped": 0
+   },
+   "final": {
+    "run": 1026,
+    "passed": 1024,
+    "failed": 0,
+    "skipped": 2
+   }
+  },
+  "backend_postgresql": {
+   "baseline": {
+    "run": 1017,
+    "passed": 1017,
+    "failed": 0,
+    "skipped": 0
+   },
+   "final": {
+    "run": 1026,
+    "passed": 1026,
+    "failed": 0,
+    "skipped": 0
+   }
+  },
+  "frontend_typecheck_build": {
+   "baseline": "pass",
+   "final": "pass"
+  },
+  "e2e_playwright": {
+   "baseline": {
+    "passed": 15,
+    "failed": 0
+   },
+   "final": {
+    "passed": 15,
+    "failed": 0
+   }
+  },
+  "mobile_crawl_390px": {
+   "pages": 67,
+   "overflow": 0,
+   "script_errors": 0,
+   "unlabelled_controls": 0
+  },
+  "migrations_postgresql": {
+   "fresh_install": "pass",
+   "downgrade_to_base_and_up": "pass",
+   "repeat_upgrade_noop": "pass",
+   "migrations": 18
+  },
+  "race_probes": {
+   "before": {
+    "fail": [
+     "RACE-1",
+     "RACE-2",
+     "RACE-6"
+    ],
+    "intermittent_500": [
+     "RACE-4"
+    ],
+    "pass": [
+     "RACE-3",
+     "RACE-5"
+    ]
+   },
+   "after": {
+    "pass": 6,
+    "fail": 0
+   }
+  },
+  "security_probes": {
+   "before_fail": [
+    "SEC-4",
+    "SEC-6",
+    "SEC-9"
+   ],
+   "after_fail": [],
+   "open": [
+    "frontend security headers (QA-19)"
+   ]
+  }
+ },
+ "performance": {
+  "sustained_50vu_5min": {
+   "requests": 14249,
+   "rps": 43.4,
+   "p50_ms": 42.2,
+   "p95_ms": 365.7,
+   "p99_ms": 706.7,
+   "server_error_pct": 0.007
+  },
+  "final_build_100vu_60s": {
+   "rps": 51.7,
+   "p50_ms": 544.6,
+   "p95_ms": 1771.5,
+   "p99_ms": 3208.8,
+   "server_error_pct": 0.0
+  },
+  "spike_200vu_in_5s": {
+   "burst_failures_pct": {
+    "before": 90.11,
+    "after": 28.11
+   },
+   "recovery_s": {
+    "before": 153,
+    "after": 88
+   }
+  },
+  "n_plus_one_fixed": {
+   "my_mentees_queries": [
+    4676,
+    24
+   ],
+   "faculty_score_me_queries": [
+    276,
+    19
+   ],
+   "faculty_dashboard_ms": [
+    303,
+    52
+   ]
+  }
+ },
+ "defects": {
+  "total": 23,
+  "by_status": {
+   "Fixed and verified": 10,
+   "Fixed preventively": 1,
+   "Mitigated": 1,
+   "Fixed for the API": 1,
+   "Fixed": 2,
+   "Open": 7,
+   "Informational": 1
+  },
+  "items": [
+   {
+    "id": "QA-01",
+    "severity": "High",
+    "title": "Minor oversubscribed and seat counter corrupted under simultaneous allocation decisions",
+    "status": "Fixed and verified"
+   },
+   {
+    "id": "QA-02",
+    "severity": "Medium",
+    "title": "Event confirms more registrations than its capacity",
+    "status": "Fixed and verified"
+   },
+   {
+    "id": "QA-03",
+    "severity": "Medium",
+    "title": "Mentor cap (10 per mentor) exceeded by simultaneous assignments",
+    "status": "Fixed and verified (script)"
+   },
+   {
+    "id": "QA-04",
+    "severity": "Low",
+    "title": "Simultaneous preference submissions occasionally answered 500 although the write succeeded",
+    "status": "Fixed and verified (script)"
+   },
+   {
+    "id": "QA-05",
+    "severity": "Low",
+    "title": "Seat counters updated read-modify-write in manual allocation / section move / NPTEL registration",
+    "status": "Fixed preventively \u2014 not independently reproduced"
+   },
+   {
+    "id": "QA-06",
+    "severity": "High",
+    "title": "A mentor's mentee list ran ~2.4 queries per mentee",
+    "status": "Fixed and verified"
+   },
+   {
+    "id": "QA-07",
+    "severity": "Medium",
+    "title": "Coordinator portfolio loaded every mentor assignment of the department to take two counts",
+    "status": "Fixed and verified (profile)"
+   },
+   {
+    "id": "QA-08",
+    "severity": "Medium",
+    "title": "Faculty score loaded each student's account (and roles) per scored item",
+    "status": "Fixed and verified (profile)"
+   },
+   {
+    "id": "QA-09",
+    "severity": "Medium",
+    "title": "Login timing revealed which email addresses have accounts",
+    "status": "Fixed and verified"
+   },
+   {
+    "id": "QA-10",
+    "severity": "High",
+    "title": "A burst of sign-ins starves the portal; slow recovery",
+    "status": "Mitigated \u2014 capacity limit of one process remains (infrastructure decision)"
+   },
+   {
+    "id": "QA-11",
+    "severity": "Low",
+    "title": "A NUL byte in a search answered 500 on PostgreSQL",
+    "status": "Fixed and verified"
+   },
+   {
+    "id": "QA-12",
+    "severity": "Medium",
+    "title": "API responses carried no security headers",
+    "status": "Fixed for the API \u2014 frontend (Vercel) headers still open (QA-19)"
+   },
+   {
+    "id": "QA-13",
+    "severity": "Low",
+    "title": "Interactive API docs (/docs /redoc /openapi.json) public in production",
+    "status": "Fixed (not exercised against production)"
+   },
+   {
+    "id": "QA-14",
+    "severity": "Low",
+    "title": "Five data-changing routes wrote no audit row",
+    "status": "Fixed"
+   },
+   {
+    "id": "QA-15",
+    "severity": "Medium",
+    "title": "Unique (student_id academic_year_id) on mentor_assignments does not stop duplicates when academic_year_id is NULL",
+    "status": "Open \u2014 recommend a partial unique index on (student_id) WHERE is_active"
+   },
+   {
+    "id": "QA-16",
+    "severity": "Medium",
+    "title": "Internship student list is unpaginated",
+    "status": "Open"
+   },
+   {
+    "id": "QA-17",
+    "severity": "Low",
+    "title": "Score recomputes the whole department on every call",
+    "status": "Open"
+   },
+   {
+    "id": "QA-18",
+    "severity": "Low",
+    "title": "No server-side request timeout or load shedding; abandoned requests are still processed",
+    "status": "Open (infrastructure)"
+   },
+   {
+    "id": "QA-19",
+    "severity": "Medium",
+    "title": "Frontend pages set no security headers (frame-ancestors / nosniff / referrer)",
+    "status": "Open \u2014 not changed (affects deployed frontend; needs owner review of a CSP)"
+   },
+   {
+    "id": "QA-20",
+    "severity": "Info",
+    "title": "CI runs the backend suite on SQLite only; PostgreSQL and migrations untested",
+    "status": "Open \u2014 add a PostgreSQL CI job"
+   },
+   {
+    "id": "QA-21",
+    "severity": "Info",
+    "title": "12 columns have database server defaults the models do not declare",
+    "status": "Informational"
+   },
+   {
+    "id": "QA-22",
+    "severity": "Low",
+    "title": "Floating chatbot button overlaps card content at phone width",
+    "status": "Open (cosmetic)"
+   },
+   {
+    "id": "QA-23",
+    "severity": "Low",
+    "title": "Re-reading the event under a lock returned zone-less times on SQLite, breaking 2 waitlist tests",
+    "status": "Fixed and verified"
+   }
+  ]
+ },
+ "blockers": [
+  "database backups + restore rehearsal",
+  "monitoring/alerting",
+  "burst capacity (workers + pooler) measured on real hosting against an agreed SLO",
+  "clean real-data database with DEMO_MODE=false and SEED_ON_START=false",
+  "PDEU data-protection approval and policy confirmations"
+ ]
+}

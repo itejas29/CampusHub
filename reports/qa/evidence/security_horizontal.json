@@ -1,0 +1,61 @@
+{
+ "test": "SEC-7 horizontal / cross-scope access",
+ "owner_can_read_own_record": 200,
+ "victim_enrollment": 204,
+ "results": {
+  "another student": {
+   "GET /internships/enrollments/204": 403,
+   "GET /internships/enrollments/204/documents/expected": 403,
+   "GET /internships/enrollments/204/progress": 403,
+   "GET /student-profile/9": 403,
+   "GET /files/202": 403,
+   "GET /files/202/download": 403,
+   "PATCH /internships/enrollments/204": 403,
+   "POST /internships/enrollments/204/stages/submit": 403,
+   "POST /internships/enrollments/204/stages/review": 403,
+   "POST /internships/enrollments/204/evaluation": 403,
+   "POST /internships/enrollments/204/mentor": 403
+  },
+  "a faculty member with no relation to her (not mentor, academic mentor or coordinator)": {
+   "GET /internships/enrollments/204": 403,
+   "GET /internships/enrollments/204/documents/expected": 403,
+   "GET /internships/enrollments/204/progress": 403,
+   "GET /student-profile/9": 403,
+   "GET /files/202": 403,
+   "GET /files/202/download": 403,
+   "PATCH /internships/enrollments/204": 403,
+   "POST /internships/enrollments/204/stages/submit": 403,
+   "POST /internships/enrollments/204/stages/review": 403,
+   "POST /internships/enrollments/204/evaluation": 403,
+   "POST /internships/enrollments/204/mentor": 403
+  },
+  "CSE Summer Internship coordinator": {
+   "GET /internships/enrollments/204": 403,
+   "GET /internships/enrollments/204/documents/expected": 403,
+   "GET /internships/enrollments/204/progress": 403,
+   "GET /student-profile/9": 403,
+   "GET /files/202": 403,
+   "GET /files/202/download": 403,
+   "PATCH /internships/enrollments/204": 403,
+   "POST /internships/enrollments/204/stages/submit": 403,
+   "POST /internships/enrollments/204/stages/review": 403,
+   "POST /internships/enrollments/204/evaluation": 403,
+   "POST /internships/enrollments/204/mentor": 403
+  },
+  "ICT CSSI coordinator": {
+   "GET /internships/enrollments/204": 403,
+   "GET /internships/enrollments/204/documents/expected": 403,
+   "GET /internships/enrollments/204/progress": 403,
+   "GET /student-profile/9": 403,
+   "GET /files/202": 403,
+   "GET /files/202/download": 403,
+   "PATCH /internships/enrollments/204": 403,
+   "POST /internships/enrollments/204/stages/submit": 403,
+   "POST /internships/enrollments/204/stages/review": 403,
+   "POST /internships/enrollments/204/evaluation": 403,
+   "POST /internships/enrollments/204/mentor": 403
+  }
+ },
+ "breaches_or_5xx": [],
+ "verdict": "PASS"
+}

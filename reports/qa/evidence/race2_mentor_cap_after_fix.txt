@@ -1,0 +1,6 @@
+{"test": "RACE-2 mentor cap", "cap": 10, "concurrent_requests": 15, "responses": {"200": 10, "409": 5}, "mentor_students_after": 10, "over_cap_by": 0, "verdict": "PASS"}
+{"test": "RACE-2 mentor cap", "cap": 10, "concurrent_requests": 15, "responses": {"200": 10, "409": 5}, "mentor_students_after": 10, "over_cap_by": 0, "verdict": "PASS"}
+{"test": "RACE-2 mentor cap", "cap": 10, "concurrent_requests": 15, "responses": {"200": 10, "409": 5}, "mentor_students_after": 10, "over_cap_by": 0, "verdict": "PASS"}
+{"test": "RACE-2 mentor cap", "cap": 10, "concurrent_requests": 15, "responses": {"200": 10, "409": 5}, "mentor_students_after": 10, "over_cap_by": 0, "verdict": "PASS"}
+{"test": "RACE-2 mentor cap", "cap": 10, "concurrent_requests": 15, "responses": {"200": 10, "409": 5}, "mentor_students_after": 10, "over_cap_by": 0, "verdict": "PASS"}
+{"test": "RACE-2 mentor cap", "cap": 10, "concurrent_requests": 15, "responses": {"200": 10, "409": 5}, "mentor_students_after": 10, "over_cap_by": 0, "verdict": "PASS"}

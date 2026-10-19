@@ -1,0 +1,42 @@
+{
+ "SEC-1 unauthenticated": {
+  "routes_probed": 230,
+  "not_401": [],
+  "verdict": "PASS"
+ },
+ "SEC-2 student vs permission-guarded routes": {
+  "routes_probed": 92,
+  "student_got_2xx": [],
+  "server_errors": [],
+  "verdict": "PASS"
+ },
+ "SEC-3 token tampering": {
+  "responses": {
+   "modified claims, original signature": 401,
+   "alg=none, no signature": 401,
+   "expired claim, original signature": 401,
+   "refresh token used as access token": 401,
+   "garbage": 401
+  },
+  "verdict": "PASS"
+ },
+ "SEC-4 injection strings in search": {
+  "routes": 64,
+  "payloads": 7,
+  "server_errors": [],
+  "verdict": "PASS"
+ },
+ "SEC-5 oversized payloads": {
+  "2 MB chat query": 422,
+  "2000-deep JSON": 400,
+  "16 MB upload (limit 15)": 422,
+  "verdict": "PASS"
+ },
+ "SEC-6 API response headers": {
+  "strict-transport-security": null,
+  "x-content-type-options": "nosniff",
+  "x-frame-options": "DENY",
+  "content-security-policy": "default-src 'none'; frame-ancestors 'none'",
+  "referrer-policy": "no-referrer"
+ }
+}

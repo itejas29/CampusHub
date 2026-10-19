@@ -1,0 +1,5 @@
+ramp-10        VU=  10 req=   676 rps=    8.6 err=  0.3% p50=30.5 p95=136.5 p99=296.6 (non-login p95=122.9) cpu_max=78.0 rss=228.0MB pg_conn=6 locks=0 ops={'event registrations': 18, 'preference lists saved': 1}
+ramp-25        VU=  25 req=  1546 rps=   20.7 err= 1.42% p50=32.0 p95=236.2 p99=461.8 (non-login p95=189.5) cpu_max=92.5 rss=284.6MB pg_conn=10 locks=0 ops={'event registrations': 24, 'preference lists saved': 4}
+ramp-50        VU=  50 req=  2976 rps=   37.9 err=  0.3% p50=78.1 p95=483.1 p99=1799.8 (non-login p95=467.0) cpu_max=215.2 rss=352.2MB pg_conn=23 locks=0 ops={'preference lists saved': 8, 'event registrations': 50}
+ramp-100       VU= 100 req=  4251 rps=   53.6 err= 0.92% p50=444.6 p95=1414.3 p99=5156.1 (non-login p95=1425.9) cpu_max=378.6 rss=404.3MB pg_conn=31 locks=0 ops={'event registrations': 74, 'preference lists saved': 10}
+ramp-250       VU= 250 req=   718 rps=    3.7 err=71.45% p50=30005.1 p95=30050.9 p99=30209.3 (non-login p95=30020.7) cpu_max=571.3 rss=279.1MB pg_conn=31 locks=0 ops={}

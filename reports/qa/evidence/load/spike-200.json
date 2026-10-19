@@ -1,0 +1,395 @@
+{
+ "label": "spike-200",
+ "virtual_users": 200,
+ "duration_s": 40,
+ "ramp_s": 5.0,
+ "think_time_mean_s": 1.0,
+ "elapsed_s": 124.2,
+ "requests": 273,
+ "throughput_rps": 2.2,
+ "error_rate_pct": 90.11,
+ "latency_ms_all": {
+  "p50": 30006.0,
+  "p90": 30015.5,
+  "p95": 30040.4,
+  "p99": 30175.5,
+  "max": 30226.7
+ },
+ "latency_ms_excluding_login": {
+  "p50": 30005.7,
+  "p95": 30024.3,
+  "p99": 30040.4
+ },
+ "per_endpoint": {
+  "WRITE event registration": {
+   "n": 1,
+   "p50": 30015.2,
+   "p95": 30015.2,
+   "p99": 30015.2,
+   "mean": 30015.2
+  },
+  "admin dashboard": {
+   "n": 2,
+   "p50": 30022.9,
+   "p95": 30022.9,
+   "p99": 30022.9,
+   "mean": 30013.5
+  },
+  "announcements": {
+   "n": 4,
+   "p50": 30008.0,
+   "p95": 30026.2,
+   "p99": 30026.2,
+   "mean": 30010.8
+  },
+  "department scores": {
+   "n": 2,
+   "p50": 30011.6,
+   "p95": 30011.6,
+   "p99": 30011.6,
+   "mean": 30007.3
+  },
+  "events": {
+   "n": 3,
+   "p50": 30005.0,
+   "p95": 30037.4,
+   "p99": 30037.4,
+   "mean": 30015.3
+  },
+  "faculty dashboard": {
+   "n": 1,
+   "p50": 30024.3,
+   "p95": 30024.3,
+   "p99": 30024.3,
+   "mean": 30024.3
+  },
+  "faculty score": {
+   "n": 1,
+   "p50": 30009.4,
+   "p95": 30009.4,
+   "p99": 30009.4,
+   "mean": 30009.4
+  },
+  "internships": {
+   "n": 6,
+   "p50": 30007.5,
+   "p95": 30013.0,
+   "p99": 30013.0,
+   "mean": 30007.9
+  },
+  "login": {
+   "n": 200,
+   "p50": 30006.1,
+   "p95": 30072.5,
+   "p99": 30200.8,
+   "mean": 26669.6
+  },
+  "mentor meetings": {
+   "n": 2,
+   "p50": 30007.6,
+   "p95": 30007.6,
+   "p99": 30007.6,
+   "mean": 30006.3
+  },
+  "my electives": {
+   "n": 5,
+   "p50": 30006.6,
+   "p95": 30012.6,
+   "p99": 30012.6,
+   "mean": 30007.3
+  },
+  "my internship": {
+   "n": 1,
+   "p50": 30004.7,
+   "p95": 30004.7,
+   "p99": 30004.7,
+   "mean": 30004.7
+  },
+  "my internship students": {
+   "n": 1,
+   "p50": 30008.9,
+   "p95": 30008.9,
+   "p99": 30008.9,
+   "mean": 30008.9
+  },
+  "notifications": {
+   "n": 21,
+   "p50": 30005.4,
+   "p95": 30022.1,
+   "p99": 30023.8,
+   "mean": 30008.1
+  },
+  "student dashboard": {
+   "n": 21,
+   "p50": 30004.2,
+   "p95": 30022.3,
+   "p99": 30040.4,
+   "mean": 25821.7
+  },
+  "students page": {
+   "n": 2,
+   "p50": 30006.2,
+   "p95": 30006.2,
+   "p99": 30006.2,
+   "mean": 30005.3
+  }
+ },
+ "errors": {
+  "login": {
+   "ReadTimeout": 176
+  },
+  "student dashboard": {
+   "ReadTimeout": 18
+  },
+  "notifications": {
+   "ReadTimeout": 21
+  },
+  "admin dashboard": {
+   "ReadTimeout": 2
+  },
+  "faculty dashboard": {
+   "ReadTimeout": 1
+  },
+  "my electives": {
+   "ReadTimeout": 5
+  },
+  "internships": {
+   "ReadTimeout": 6
+  },
+  "students page": {
+   "ReadTimeout": 2
+  },
+  "my internship students": {
+   "ReadTimeout": 1
+  },
+  "department scores": {
+   "ReadTimeout": 2
+  },
+  "announcements": {
+   "ReadTimeout": 4
+  },
+  "my internship": {
+   "ReadTimeout": 1
+  },
+  "events": {
+   "ReadTimeout": 3
+  },
+  "mentor meetings": {
+   "ReadTimeout": 2
+  },
+  "faculty score": {
+   "ReadTimeout": 1
+  },
+  "WRITE event registration": {
+   "ReadTimeout": 1
+  }
+ },
+ "business_operations": {},
+ "resources": {
+  "server_cpu_pct_max": 519.6,
+  "server_rss_mb_max": 304.0,
+  "pg_connections_max": 31,
+  "pg_active_max": 2,
+  "pg_lock_waits_max": 0,
+  "samples": [
+   {
+    "t": 1792424575.0,
+    "server_cpu_pct": 22.6,
+    "server_rss_mb": 101.5,
+    "pg_active": 1,
+    "pg_idle_in_tx": 0,
+    "pg_connections": 11,
+    "pg_lock_waits": 0
+   },
+   {
+    "t": 1792424577.1,
+    "server_cpu_pct": 519.6,
+    "server_rss_mb": 113.3,
+    "pg_active": 1,
+    "pg_idle_in_tx": 23,
+    "pg_connections": 26,
+    "pg_lock_waits": 0
+   },
+   {
+    "t": 1792424579.4,
+    "server_cpu_pct": 314.4,
+    "server_rss_mb": 264.4,
+    "pg_active": 1,
+    "pg_idle_in_tx": 30,
+    "pg_connections": 31,
+    "pg_lock_waits": 0
+   },
+   {
+    "t": 1792424581.5,
+    "server_cpu_pct": 1.2,
+    "server_rss_mb": 304.0,
+    "pg_active": 1,
+    "pg_idle_in_tx": 30,
+    "pg_connections": 31,
+    "pg_lock_waits": 0
+   },
+   {
+    "t": 1792424583.6,
+    "server_cpu_pct": 0.1,
+    "server_rss_mb": 134.9,
+    "pg_active": 1,
+    "pg_idle_in_tx": 30,
+    "pg_connections": 31,
+    "pg_lock_waits": 0
+   },
+   {
+    "t": 1792424585.7,
+    "server_cpu_pct": 0.1,
+    "server_rss_mb": 97.6,
+    "pg_active": 1,
+    "pg_idle_in_tx": 30,
+    "pg_connections": 31,
+    "pg_lock_waits": 0
+   },
+   {
+    "t": 1792424587.8,
+    "server_cpu_pct": 0.1,
+    "server_rss_mb": 36.8,
+    "pg_active": 1,
+    "pg_idle_in_tx": 30,
+    "pg_connections": 31,
+    "pg_lock_waits": 0
+   },
+   {
+    "t": 1792424589.9,
+    "server_cpu_pct": 0.1,
+    "server_rss_mb": 30.1,
+    "pg_active": 1,
+    "pg_idle_in_tx": 30,
+    "pg_connections": 31,
+    "pg_lock_waits": 0
+   },
+   {
+    "t": 1792424592.1,
+    "server_cpu_pct": 0.1,
+    "server_rss_mb": 17.8,
+    "pg_active": 1,
+    "pg_idle_in_tx": 30,
+    "pg_connections": 31,
+    "pg_lock_waits": 0
+   },
+   {
+    "t": 1792424594.2,
+    "server_cpu_pct": 0.1,
+    "server_rss_mb": 17.8,
+    "pg_active": 1,
+    "pg_idle_in_tx": 30,
+    "pg_connections": 31,
+    "pg_lock_waits": 0
+   },
+   {
+    "t": 1792424596.3,
+    "server_cpu_pct": 0.1,
+    "server_rss_mb": 17.4,
+    "pg_active": 1,
+    "pg_idle_in_tx": 30,
+    "pg_connections": 31,
+    "pg_lock_waits": 0
+   },
+   {
+    "t": 1792424598.4,
+    "server_cpu_pct": 0.1,
+    "server_rss_mb": 17.4,
+    "pg_active": 1,
+    "pg_idle_in_tx": 30,
+    "pg_connections": 31,
+    "pg_lock_waits": 0
+   },
+   {
+    "t": 1792424600.6,
+    "server_cpu_pct": 0.1,
+    "server_rss_mb": 17.1,
+    "pg_active": 1,
+    "pg_idle_in_tx": 30,
+    "pg_connections": 31,
+    "pg_lock_waits": 0
+   },
+   {
+    "t": 1792424602.7,
+    "server_cpu_pct": 0.1,
+    "server_rss_mb": 17.5,
+    "pg_active": 1,
+    "pg_idle_in_tx": 30,
+    "pg_connections": 31,
+    "pg_lock_waits": 0
+   },
+   {
+    "t": 1792424604.8,
+    "server_cpu_pct": 0.1,
+    "server_rss_mb": 17.6,
+    "pg_active": 1,
+    "pg_idle_in_tx": 30,
+    "pg_connections": 31,
+    "pg_lock_waits": 0
+   },
+   {
+    "t": 1792424607.0,
+    "server_cpu_pct": 0.9,
+    "server_rss_mb": 33.0,
+    "pg_active": 1,
+    "pg_idle_in_tx": 30,
+    "pg_connections": 31,
+    "pg_lock_waits": 0
+   },
+   {
+    "t": 1792424609.1,
+    "server_cpu_pct": 286.7,
+    "server_rss_mb": 106.5,
+    "pg_active": 2,
+    "pg_idle_in_tx": 27,
+    "pg_connections": 31,
+    "pg_lock_waits": 0
+   },
+   {
+    "t": 1792424611.3,
+    "server_cpu_pct": 0.9,
+    "server_rss_mb": 70.7,
+    "pg_active": 1,
+    "pg_idle_in_tx": 30,
+    "pg_connections": 31,
+    "pg_lock_waits": 0
+   },
+   {
+    "t": 1792424613.5,
+    "server_cpu_pct": 0.4,
+    "server_rss_mb": 52.5,
+    "pg_active": 1,
+    "pg_idle_in_tx": 30,
+    "pg_connections": 31,
+    "pg_lock_waits": 0
+   },
+   {
+    "t": 1792424615.6,
+    "server_cpu_pct": 0.1,
+    "server_rss_mb": 55.5,
+    "pg_active": 1,
+    "pg_idle_in_tx": 30,
+    "pg_connections": 31,
+    "pg_lock_waits": 0
+   },
+   {
+    "t": 1792424617.7,
+    "server_cpu_pct": 0.1,
+    "server_rss_mb": 34.0,
+    "pg_active": 1,
+    "pg_idle_in_tx": 30,
+    "pg_connections": 31,
+    "pg_lock_waits": 0
+   },
+   {
+    "t": 1792424619.9,
+    "server_cpu_pct": 0.1,
+    "server_rss_mb": 24.0,
+    "pg_active": 1,
+    "pg_idle_in_tx": 30,
+    "pg_connections": 31,
+    "pg_lock_waits": 0
+   }
+  ]
+ }
+}

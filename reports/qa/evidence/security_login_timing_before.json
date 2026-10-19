@@ -1,0 +1,1 @@
+{"test": "SEC-9 login timing", "label": "before-fix", "existing_account_median_ms": 249.9, "unknown_email_median_ms": 34.4, "gap_ms": 215.5, "verdict": "FAIL"}

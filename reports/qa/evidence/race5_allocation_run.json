@@ -1,0 +1,17 @@
+{
+ "test": "RACE-5 concurrent allocation runs",
+ "concurrent_requests": 3,
+ "responses": {
+  "200": 1,
+  "409": 2
+ },
+ "error_messages": [
+  "That operation conflicts with existing data (a duplicate, or a referenced record is missing)."
+ ],
+ "seats_held": 205,
+ "students_with_two_seats": 0,
+ "sections_with_wrong_counter": 0,
+ "offerings_with_wrong_counter": 0,
+ "round_status_after": "LOCKED",
+ "verdict": "PASS"
+}

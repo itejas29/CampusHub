@@ -1,0 +1,1 @@
+{"test": "SEC-8 mass assignment on PATCH /me/profile", "status": 200, "protected_fields_changed": {}, "semester_after": 5, "verdict": "PASS"}

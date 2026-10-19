@@ -1,0 +1,16 @@
+module,test_files,sqlite_passed,sqlite_failed,sqlite_skipped,postgresql_passed,postgresql_failed,postgresql_skipped,additional_qa_evidence,status
+"Authentication, sessions & accounts",test_security test_account_security test_rbac test_cors test_hardening,54,0,0,54,0,0,SEC-1/3/9; spike & stress load,PASS
+"Authorisation & scope (HoD, coordinators, departments)",test_scope test_hod test_hod_view test_divisions_and_scope test_api_security test_minor_scope,117,0,0,117,0,0,SEC-1 230 routes; SEC-2 92 routes; SEC-7; SEC-8,PASS
+Input validation & CSV safety,test_input_validation,39,0,0,39,0,0,,PASS
+"Uploads, downloads & documents",test_file_security test_documents test_progress,62,0,0,62,0,0,,PASS
+"Curriculum (data-driven, batch-scoped)",test_curriculum_import test_curriculum_versioning test_curriculum_lifecycle test_program_curricula test_semester_requirements test_eligibility test_student_visibility,212,0,0,212,0,0,,PASS
+"Electives: rounds, preferences, allocation, sections",test_registration_windows test_registration_rounds_api test_round_allocation test_round_deletion test_two_stage_rounds test_allocation test_sections test_exports_and_allocations_view,209,0,0,209,0,0,RACE-4 preferences 30/30; RACE-5 allocation runs PASS; query profile,PASS
+NPTEL / NCC,test_nptel_rounds,35,0,0,35,0,0,,PASS
+Minor specialisation,test_minor_ranking test_minor_portal,20,0,0,20,0,0,RACE-6 minor seats 6/6 after fix (6/6 failed before),PASS
+"Internship engine (CSSI, Summer, projects)",test_internship_engine test_internship_windows test_program_phase test_project_modules test_coordinator_tools test_registration_stage test_module_audit_fixes,96,0,0,96,0,0,RACE-2 mentor cap 6/6 after fix; RACE-3 double submit PASS; SEC-7 horizontal 44/44 refused; browser side-by-side SI demo,PASS
+Mentor allocation & mentoring,test_mentor_allocation test_mentor_allocation_lock,33,0,0,33,0,0,"Query profile: my-mentees 4,676 → 24 queries",PASS
+Faculty performance score,test_faculty_scoring test_real_faculty_roster,25,0,0,25,0,0,Query profile: 276 → 19 queries,PASS
+"Dashboards, profiles, announcements, chatbot",test_student_dashboard test_student_profile test_announcement_audience test_chatbot test_chatbot_answers,63,0,0,63,0,0,Browser crawl 200 pages desktop + 67 pages at 390 px; load journeys,PASS
+Cross-module journeys,test_e2e_scenarios test_academic_tracks_e2e,57,0,0,57,0,0,,PASS
+Performance regressions (query counts),test_query_counts,2,0,0,2,0,0,,PASS
+Concurrency (PostgreSQL only),test_pg_concurrency,0,0,2,2,0,0,,PASS

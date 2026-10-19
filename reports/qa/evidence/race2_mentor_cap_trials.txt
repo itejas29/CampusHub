@@ -1,0 +1,8 @@
+{"test": "RACE-2 mentor cap", "cap": 10, "concurrent_requests": 15, "responses": {"200": 13, "409": 2}, "mentor_students_after": 13, "over_cap_by": 3, "verdict": "FAIL"}
+{"test": "RACE-2 mentor cap", "cap": 10, "concurrent_requests": 15, "responses": {"200": 15}, "mentor_students_after": 15, "over_cap_by": 5, "verdict": "FAIL"}
+{"test": "RACE-2 mentor cap", "cap": 10, "concurrent_requests": 15, "responses": {"200": 15}, "mentor_students_after": 15, "over_cap_by": 5, "verdict": "FAIL"}
+{"test": "RACE-2 mentor cap", "cap": 10, "concurrent_requests": 15, "responses": {"200": 14, "409": 1}, "mentor_students_after": 14, "over_cap_by": 4, "verdict": "FAIL"}
+{"test": "RACE-2 mentor cap", "cap": 10, "concurrent_requests": 15, "responses": {"200": 15}, "mentor_students_after": 15, "over_cap_by": 5, "verdict": "FAIL"}
+{"test": "RACE-2 mentor cap", "cap": 10, "concurrent_requests": 15, "responses": {"200": 15}, "mentor_students_after": 15, "over_cap_by": 5, "verdict": "FAIL"}
+{"test": "RACE-2 mentor cap", "cap": 10, "concurrent_requests": 15, "responses": {"200": 15}, "mentor_students_after": 15, "over_cap_by": 5, "verdict": "FAIL"}
+{"test": "RACE-2 mentor cap", "cap": 10, "concurrent_requests": 15, "responses": {"200": 15}, "mentor_students_after": 15, "over_cap_by": 5, "verdict": "FAIL"}

@@ -42,9 +42,52 @@ def now():
 # though, is a question about rows — which version governs which batch, and
 # whether one programme's structure can leak into another's — so it needs a real
 # session. SQLite in memory keeps it fast and dependency-free.
-@pytest.fixture
-def db():
+#
+# Production runs PostgreSQL, so the same suite can run there too:
+#     CAMPUSHUB_TEST_DATABASE_URL=postgresql://user:pass@host:port/db pytest
+# The schema is built once; each test runs in a transaction that is rolled back,
+# the app's own commits becoming savepoints inside it. Use a database that holds
+# nothing else — it is dropped and rebuilt.
+_PG_URL = __import__("os").environ.get("CAMPUSHUB_TEST_DATABASE_URL")
+
+
+@pytest.fixture(scope="session")
+def _pg_engine():
     from sqlalchemy import create_engine
+
+    import app.models  # noqa: F401  (registers every mapper)
+    from app.core.config import Settings
+    from app.db.base import Base
+
+    url = Settings(DATABASE_URL=_PG_URL).sqlalchemy_url
+    engine = create_engine(url, future=True)
+    Base.metadata.drop_all(engine)
+    Base.metadata.create_all(engine)
+    yield engine
+    Base.metadata.drop_all(engine)
+    engine.dispose()
+
+
+@pytest.fixture
+def db(request):
+    if _PG_URL:
+        from sqlalchemy.orm import Session
+
+        engine = request.getfixturevalue("_pg_engine")
+        connection = engine.connect()
+        outer = connection.begin()
+        session = Session(bind=connection, join_transaction_mode="create_savepoint",
+                          expire_on_commit=False)
+        try:
+            yield session
+        finally:
+            session.close()
+            outer.rollback()
+            connection.close()
+        return
+
+    from sqlalchemy import create_engine
+
     from sqlalchemy.orm import sessionmaker
     from sqlalchemy.pool import StaticPool
 

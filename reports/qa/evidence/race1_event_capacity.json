@@ -1,0 +1,14 @@
+{
+ "test": "RACE-1 event capacity",
+ "event_id": 2,
+ "capacity": 12,
+ "confirmed_before": 7,
+ "concurrent_requests": 40,
+ "responses": {
+  "200": 40
+ },
+ "confirmed_after": 12,
+ "waitlisted_after": 35,
+ "oversubscribed_by": 0,
+ "verdict": "PASS"
+}

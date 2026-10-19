@@ -160,7 +160,44 @@ def record_success(db: Session, email: str, address: str) -> None:
     db.flush()
 
 
+# ── password checks under load ───────────────────────────────────────────
+#: bcrypt is deliberately slow (~0.25 s of CPU). Unlimited, a burst of sign-ins
+#: — a cohort told "results are out" — takes every core and starves every other
+#: request (QA spike test: 200 users in 5 s, 90% failed, everyone else's
+#: requests timed out, 153 s to recover). At most this many run at once; the
+#: rest wait their turn, and give up with a clear 503 rather than a timeout.
+_HASH_SLOTS = __import__("threading").BoundedSemaphore(max(2, (__import__("os").cpu_count() or 4) // 2))
+_HASH_WAIT_S = 15
+
+
+def check_password(password: str, hashed: str) -> bool:
+    from app.core.errors import AppError
+    from app.core.security import verify_password
+
+    if not _HASH_SLOTS.acquire(timeout=_HASH_WAIT_S):
+        raise AppError("Sign-in is busy right now. Please try again in a moment.",
+                       code="busy", status_code=503)
+    try:
+        return verify_password(password, hashed)
+    finally:
+        _HASH_SLOTS.release()
+
+
+_DUMMY_HASH: str | None = None
+
+
+
+def dummy_hash() -> str:
+    """A bcrypt hash of nothing anyone knows, for unknown emails to be checked
+    against — so a wrong address costs as long as a wrong password."""
+    global _DUMMY_HASH
+    if _DUMMY_HASH is None:
+        _DUMMY_HASH = hash_password(secrets.token_urlsafe(24))
+    return _DUMMY_HASH
+
+
 def assert_may_sign_in(user: User) -> None:
+
     if not settings.DEMO_MODE and is_demo_account(user):
         raise AuthenticationError("Demo accounts are switched off on this portal.")
 

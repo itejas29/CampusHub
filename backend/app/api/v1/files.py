@@ -19,9 +19,10 @@ from fastapi.responses import Response
 
 from app.core.deps import CurrentUser, DbSession
 from app.core.errors import NotFoundError, PermissionDeniedError
-from app.models.enums import FileCategory
+from app.models.enums import AuditAction, FileCategory
 from app.models.system import StoredFile
 from app.schemas.admin import FileOut
+from app.services import audit
 from app.services import documents as docs
 from app.services.files import save_upload, signed_url, verify_file_token
 from app.storage import get_storage
@@ -49,7 +50,10 @@ async def upload(db: DbSession, user: CurrentUser, file: UploadFile = File(...),
     the filename is sanitised before it is ever stored or echoed back.
     """
     stored = await save_upload(db, file, category=category, uploaded_by=user)
+    audit.record(db, action=AuditAction.UPLOAD, entity_type="file", entity_id=stored.id,
+                 actor=user, description=f"Uploaded {stored.original_name}")
     db.commit()
+
     db.refresh(stored)
     return _file_out(stored)
 

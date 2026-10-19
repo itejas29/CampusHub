@@ -28,6 +28,7 @@ from dataclasses import dataclass, field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.db.locking import locked
 from app.core.errors import BusinessRuleError, NotFoundError
 from app.models.academics import (
     CourseOffering, CourseSection, ElectiveAllocation, ElectivePreference,
@@ -273,9 +274,13 @@ def move_student(db: Session, *, allocation_id: int, section_id: int,
     allocation = db.get(ElectiveAllocation, allocation_id)
     if allocation is None:
         raise NotFoundError("Allocation not found.")
+    # Both section counters change: lock in id order, then read current counts.
+    for sid in sorted({section_id, allocation.section_id} - {None}):
+        locked(db, CourseSection, sid)
     target = db.get(CourseSection, section_id)
     if target is None:
         raise NotFoundError("Section not found.")
+
     if target.course_offering_id != allocation.course_offering_id:
         raise BusinessRuleError(
             "A student can only be moved between sections of the same course."

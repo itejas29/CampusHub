@@ -1,0 +1,5 @@
+2026-10-19T16:29:58Z
+tsc exit 0
+dist/assets/vendor-react-UGSxfrvm.js            174.78 kB │ gzip: 57.74 kB
+✓ built in 2.25s
+build exit 0

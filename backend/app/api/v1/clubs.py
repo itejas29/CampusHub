@@ -174,8 +174,11 @@ def leave_club(club_id: int, db: DbSession, user: CurrentUser) -> Message:
     if membership is None:
         raise BusinessRuleError("You are not a member of this club.")
     membership.is_active = False
+    audit.record(db, action=AuditAction.UPDATE, entity_type="club_member", entity_id=club_id,
+                 actor=user, description="Left the club")
     db.commit()
     return Message(message="Membership removed.")
+
 
 
 @router.post("", response_model=ClubOut, status_code=201)

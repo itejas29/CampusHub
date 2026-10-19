@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1 import api_router
 from app.core.config import settings
 from app.core.errors import register_exception_handlers
+from app.core.hardening import HardeningMiddleware
 
 DESCRIPTION = """
 CampusHub — PDEU centralised student portal.
@@ -22,13 +23,17 @@ grade boundaries — are intentionally **not** implemented; they plug into
 `app/services/allocation` once the department confirms them.
 """
 
+# The interactive docs publish every route and schema; useful in development,
+# not something to hand the internet in production.
+_DOCS = settings.ENVIRONMENT != "production"
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description=DESCRIPTION,
     version="1.0.0-phase1",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json",
+    docs_url="/docs" if _DOCS else None,
+    redoc_url="/redoc" if _DOCS else None,
+    openapi_url="/openapi.json" if _DOCS else None,
 )
 
 app.add_middleware(
@@ -42,7 +47,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Outermost: security headers on every response, CORS ones included.
+app.add_middleware(HardeningMiddleware)
+
 register_exception_handlers(app)
+
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
 # Uploads are NOT mounted as static files.

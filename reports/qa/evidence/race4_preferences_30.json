@@ -1,0 +1,310 @@
+{
+ "test": "RACE-4 concurrent preference lists",
+ "student": "ananya.menon.911",
+ "offerings": 5,
+ "trials": [
+  {
+   "trial": 1,
+   "responses": {
+    "200": 1,
+    "409": 3
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 2,
+   "responses": {
+    "409": 3,
+    "200": 1
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 3,
+   "responses": {
+    "409": 3,
+    "200": 1
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 4,
+   "responses": {
+    "409": 3,
+    "200": 1
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 5,
+   "responses": {
+    "409": 3,
+    "200": 1
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 6,
+   "responses": {
+    "409": 3,
+    "200": 1
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 7,
+   "responses": {
+    "409": 3,
+    "200": 1
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 8,
+   "responses": {
+    "200": 1,
+    "409": 3
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 9,
+   "responses": {
+    "409": 3,
+    "200": 1
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 10,
+   "responses": {
+    "200": 1,
+    "409": 3
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 11,
+   "responses": {
+    "409": 3,
+    "200": 1
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 12,
+   "responses": {
+    "200": 1,
+    "409": 3
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 13,
+   "responses": {
+    "409": 3,
+    "200": 1
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 14,
+   "responses": {
+    "200": 1,
+    "409": 3
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 15,
+   "responses": {
+    "409": 3,
+    "200": 1
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 16,
+   "responses": {
+    "200": 1,
+    "409": 2,
+    "500": 1
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "FAIL"
+  },
+  {
+   "trial": 17,
+   "responses": {
+    "409": 3,
+    "200": 1
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 18,
+   "responses": {
+    "409": 3,
+    "200": 1
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 19,
+   "responses": {
+    "409": 3,
+    "200": 1
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 20,
+   "responses": {
+    "200": 1,
+    "409": 3
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 21,
+   "responses": {
+    "200": 1,
+    "409": 3
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 22,
+   "responses": {
+    "200": 1,
+    "409": 3
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 23,
+   "responses": {
+    "200": 1,
+    "409": 3
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 24,
+   "responses": {
+    "200": 1,
+    "409": 3
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 25,
+   "responses": {
+    "409": 2,
+    "500": 1,
+    "200": 1
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "FAIL"
+  },
+  {
+   "trial": 26,
+   "responses": {
+    "409": 3,
+    "200": 1
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 27,
+   "responses": {
+    "409": 3,
+    "200": 1
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 28,
+   "responses": {
+    "409": 3,
+    "200": 1
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 29,
+   "responses": {
+    "409": 3,
+    "200": 1
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  },
+  {
+   "trial": 30,
+   "responses": {
+    "409": 3,
+    "200": 1
+   },
+   "rows": 5,
+   "matches_a_submitted_list": true,
+   "verdict": "PASS"
+  }
+ ],
+ "verdict": "FAIL"
+}

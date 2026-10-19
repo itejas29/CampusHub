@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from slugify import slugify
 from sqlalchemy import func, or_, select
 
+from app.db.locking import locked
 from app.core.deps import CurrentUser, DbSession, require_permission
 from app.core.errors import BusinessRuleError, NotFoundError
 from app.core.rbac import P
@@ -26,6 +27,12 @@ router = APIRouter(prefix="/events", tags=["events"])
 
 def utcnow() -> dt.datetime:
     return dt.datetime.now(dt.timezone.utc)
+
+
+def _aware(value: dt.datetime) -> dt.datetime:
+    """Stored times are UTC; a database that drops the zone (SQLite) returns
+    them naive once a row is re-read under a lock."""
+    return value if value.tzinfo else value.replace(tzinfo=dt.timezone.utc)
 
 
 def _student_context(db, student: Student | None, event_ids: list[int]):
@@ -115,7 +122,9 @@ def get_event(event_id: int, db: DbSession, user: CurrentUser) -> EventOut:
 
 @router.post("/{event_id}/register", response_model=EventOut)
 def register(event_id: int, db: DbSession, user: CurrentUser) -> EventOut:
-    event = db.get(Event, event_id)
+    # Held while seats are counted, so a full event cannot be over-booked.
+    event = locked(db, Event, event_id)
+
     if event is None:
         raise NotFoundError("Event not found.")
     student = db.scalar(select(Student).where(Student.user_id == user.id))
@@ -127,7 +136,7 @@ def register(event_id: int, db: DbSession, user: CurrentUser) -> EventOut:
         raise BusinessRuleError("This event does not require registration.")
 
     deadline = event.registration_deadline or event.start_at
-    if utcnow() > deadline:
+    if utcnow() > _aware(deadline):
         raise BusinessRuleError("The registration deadline has passed.")
 
     existing = db.scalar(select(EventRegistration).where(
@@ -179,8 +188,10 @@ def cancel_registration(event_id: int, db: DbSession, user: CurrentUser) -> Even
     ))
     if registration is None:
         raise BusinessRuleError("You are not registered for this event.")
-    event = db.get(Event, event_id)
-    if event and event.start_at < utcnow():
+    # Held while the waitlist is promoted, as registration holds it.
+    event = locked(db, Event, event_id)
+    if event and _aware(event.start_at) < utcnow():
+
         raise BusinessRuleError("This event has already taken place.")
 
     registration.status = RegistrationStatus.CANCELLED
@@ -205,8 +216,11 @@ def cancel_registration(event_id: int, db: DbSession, user: CurrentUser) -> Even
                     message=f"You are now registered for {event.title}.",
                     link=f"/events/{event.id}",
                 )
+    audit.record(db, action=AuditAction.UPDATE, entity_type="event_registration",
+                 entity_id=event_id, actor=user, description="Cancelled registration")
     db.commit()
     return get_event(event_id, db, user)
+
 
 
 @router.post("/{event_id}/interest", response_model=EventOut)
@@ -227,8 +241,11 @@ def toggle_interest(event_id: int, payload: InterestRequest, db: DbSession,
                              is_interested=payload.interested))
     else:
         row.is_interested = payload.interested
+    audit.record(db, action=AuditAction.UPDATE, entity_type="event_interest", entity_id=event_id,
+                 actor=user, description=f"{'Marked' if payload.interested else 'Cleared'} interest")
     db.commit()
     return get_event(event_id, db, user)
+
 
 
 @router.get("/{event_id}/registrations", response_model=list[EventRegistrationOut])

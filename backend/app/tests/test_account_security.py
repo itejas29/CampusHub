@@ -200,3 +200,30 @@ def test_typos_never_lock_a_shared_demo_login(api, db, world):
     for _ in range(8):
         attempt(api, user.email, "typo")
     assert attempt(api, user.email, world.password).status_code == 200
+
+
+def test_an_unknown_email_costs_a_password_check_too(api, world, monkeypatch):
+    # Skipping the hash for unknown addresses answered in ~5 ms instead of ~250,
+    # telling anyone which emails have accounts (QA probe SEC-9).
+    import app.core.security as security
+
+    checked = []
+    real = security.verify_password
+    monkeypatch.setattr(security, "verify_password", lambda p, h: checked.append(h) or real(p, h))
+
+    assert attempt(api, "nobody.here@test.example.com", "whatever-1").status_code == 401
+    assert len(checked) == 1
+
+
+def test_a_sign_in_that_cannot_get_a_slot_is_told_to_retry(api, world, monkeypatch):
+    # bcrypt runs a few at a time so a burst of sign-ins cannot starve the
+    # rest of the portal (QA spike test); one that waits too long gets a 503.
+    import threading
+
+    from app.services import accounts
+
+    monkeypatch.setattr(accounts, "_HASH_SLOTS", threading.BoundedSemaphore(1))
+    monkeypatch.setattr(accounts, "_HASH_WAIT_S", 0.05)
+    accounts._HASH_SLOTS.acquire()
+    response = attempt(api, world.student_a.email, world.password)
+    assert response.status_code == 503 and response.json()["error"]["code"] == "busy"

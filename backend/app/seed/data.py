@@ -360,10 +360,13 @@ def generate_program_cohort(rng, prefix, admission_year, semester, divisions,
 # and cannot sign in; without it, the demo is fully generated as before.
 # Demo personas above moved to 9xx rolls so no real roll number is reused.
 _PRIVATE = _Path(__file__).parent / "private"
-REAL_STUDENTS = [
+# CAMPUSHUB_SEED_SKIP_PRIVATE=1 seeds a fully synthetic database (staging, load
+# and concurrency tests) even on a machine that holds the private lists.
+REAL_STUDENTS = [] if __import__("os").environ.get("CAMPUSHUB_SEED_SKIP_PRIVATE") == "1" else [
     s for f in sorted(_PRIVATE.glob("ict_students_*.json"))
     for s in _json.loads(f.read_text(encoding="utf-8"))["students"]
 ]
+
 REAL_SEMESTERS = {s["semester"] for s in REAL_STUDENTS}
 #: Marks a generated student a real list replaced. The seed still makes the
 #: same random draws for it, so every later generated value is unchanged.

@@ -1,0 +1,2 @@
+final-50       VU=  50 req=  2891 rps=   37.7 err= 0.93% p50=110.2 p95=613.0 p99=1181.1 (non-login p95=607.1) cpu_max=208.1 rss=366.4MB pg_conn=21 locks=0 ops={'event registrations': 30, 'preference lists saved': 14}
+final-100      VU= 100 req=  4083 rps=   51.7 err= 0.59% p50=544.6 p95=1771.5 p99=3208.8 (non-login p95=1725.8) cpu_max=292.6 rss=403.5MB pg_conn=31 locks=0 ops={'event registrations': 60, 'preference lists saved': 13}

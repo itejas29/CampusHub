@@ -1,0 +1,45 @@
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running downgrade 0018_account_security -> 0017_nptel_ncc_rounds, account security: login throttling, forced password change, session revocation
+INFO  [alembic.runtime.migration] Running downgrade 0017_nptel_ncc_rounds -> 0016_course_syllabus, NPTEL / NCC rounds: approved list, choice, outcome, carry-over
+INFO  [alembic.runtime.migration] Running downgrade 0016_course_syllabus -> 0015_minor_results_and_fees, structured course syllabus (units, outcomes, references) with its revision date
+INFO  [alembic.runtime.migration] Running downgrade 0015_minor_results_and_fees -> 0014_project_teams, minor course results and semester fee payments
+INFO  [alembic.runtime.migration] Running downgrade 0014_project_teams -> 0013_enrollment_track, project teams and guide preferences (Semester VII / VIII)
+INFO  [alembic.runtime.migration] Running downgrade 0013_enrollment_track -> 0012_two_stage_rounds, record the track a student chose (Semester VIII project or industry)
+INFO  [alembic.runtime.migration] Running downgrade 0012_two_stage_rounds -> 0011_meeting_responded_at, two-stage elective rounds: an interest round, a shortlist, a final round
+INFO  [alembic.runtime.migration] Running downgrade 0011_meeting_responded_at -> 0010_faculty_is_demo, record when a mentor answers a meeting request
+INFO  [alembic.runtime.migration] Running downgrade 0010_faculty_is_demo -> 0009_internship_windows, mark demo personas apart from real faculty
+INFO  [alembic.runtime.migration] Running downgrade 0009_internship_windows -> 0008_registration_windows, coordinator-run windows on internship programmes
+INFO  [alembic.runtime.migration] Running downgrade 0008_registration_windows -> 0007_curriculum_versioning, elective registration rounds, and the indexes the real queries need
+INFO  [alembic.runtime.migration] Running downgrade 0007_curriculum_versioning -> 0006_assigned_roles, multi-programme curriculum: versioning, source traceability, divisions
+INFO  [alembic.runtime.migration] Running downgrade 0006_assigned_roles -> 0005_semester_windows, coordinator and mentor as separately assignable scoped roles
+INFO  [alembic.runtime.migration] Running downgrade 0005_semester_windows -> 0004_document_lifecycle, semester windows and presentation slots
+INFO  [alembic.runtime.migration] Running downgrade 0004_document_lifecycle -> 0003_elective_sections, document lifecycle review metadata
+INFO  [alembic.runtime.migration] Running downgrade 0003_elective_sections -> 0002_faculty_roles, elective sections and per-family capacity
+INFO  [alembic.runtime.migration] Running downgrade 0002_faculty_roles -> 0001_initial, faculty role assignments
+INFO  [alembic.runtime.migration] Running downgrade 0001_initial -> , initial campushub schema
+DOWNGRADE OK
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 0001_initial, initial campushub schema
+INFO  [alembic.runtime.migration] Running upgrade 0001_initial -> 0002_faculty_roles, faculty role assignments
+INFO  [alembic.runtime.migration] Running upgrade 0002_faculty_roles -> 0003_elective_sections, elective sections and per-family capacity
+INFO  [alembic.runtime.migration] Running upgrade 0003_elective_sections -> 0004_document_lifecycle, document lifecycle review metadata
+INFO  [alembic.runtime.migration] Running upgrade 0004_document_lifecycle -> 0005_semester_windows, semester windows and presentation slots
+INFO  [alembic.runtime.migration] Running upgrade 0005_semester_windows -> 0006_assigned_roles, coordinator and mentor as separately assignable scoped roles
+INFO  [alembic.runtime.migration] Running upgrade 0006_assigned_roles -> 0007_curriculum_versioning, multi-programme curriculum: versioning, source traceability, divisions
+INFO  [alembic.runtime.migration] Running upgrade 0007_curriculum_versioning -> 0008_registration_windows, elective registration rounds, and the indexes the real queries need
+INFO  [alembic.runtime.migration] Running upgrade 0008_registration_windows -> 0009_internship_windows, coordinator-run windows on internship programmes
+INFO  [alembic.runtime.migration] Running upgrade 0009_internship_windows -> 0010_faculty_is_demo, mark demo personas apart from real faculty
+INFO  [alembic.runtime.migration] Running upgrade 0010_faculty_is_demo -> 0011_meeting_responded_at, record when a mentor answers a meeting request
+INFO  [alembic.runtime.migration] Running upgrade 0011_meeting_responded_at -> 0012_two_stage_rounds, two-stage elective rounds: an interest round, a shortlist, a final round
+INFO  [alembic.runtime.migration] Running upgrade 0012_two_stage_rounds -> 0013_enrollment_track, record the track a student chose (Semester VIII project or industry)
+INFO  [alembic.runtime.migration] Running upgrade 0013_enrollment_track -> 0014_project_teams, project teams and guide preferences (Semester VII / VIII)
+INFO  [alembic.runtime.migration] Running upgrade 0014_project_teams -> 0015_minor_results_and_fees, minor course results and semester fee payments
+INFO  [alembic.runtime.migration] Running upgrade 0015_minor_results_and_fees -> 0016_course_syllabus, structured course syllabus (units, outcomes, references) with its revision date
+INFO  [alembic.runtime.migration] Running upgrade 0016_course_syllabus -> 0017_nptel_ncc_rounds, NPTEL / NCC rounds: approved list, choice, outcome, carry-over
+INFO  [alembic.runtime.migration] Running upgrade 0017_nptel_ncc_rounds -> 0018_account_security, account security: login throttling, forced password change, session revocation
+UPGRADE OK
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+REPEAT OK

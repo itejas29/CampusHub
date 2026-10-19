@@ -1,0 +1,15 @@
+{
+ "test": "RACE-3 double-submit enrolment",
+ "concurrent_requests": 10,
+ "responses": {
+  "409": 9,
+  "201": 1
+ },
+ "enrolments_after": 1,
+ "stage_rows": 8,
+ "organisations_named_Zenith": 1,
+ "error_messages": [
+  "That operation conflicts with existing data (a duplicate, or a referenced record is missin"
+ ],
+ "verdict": "PASS"
+}

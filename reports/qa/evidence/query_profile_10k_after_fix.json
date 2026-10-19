@@ -1,0 +1,226 @@
+[
+ {
+  "role": "student (Sem VI)",
+  "path": "/api/v1/dashboard/student",
+  "status": 200,
+  "queries": 45,
+  "ms": 62.7,
+  "bytes": 6650
+ },
+ {
+  "role": "student (Sem VI)",
+  "path": "/api/v1/internships/programs",
+  "status": 200,
+  "queries": 16,
+  "ms": 16.9,
+  "bytes": 4064
+ },
+ {
+  "role": "student (Sem VI)",
+  "path": "/api/v1/internships/enrollments/me",
+  "status": 200,
+  "queries": 19,
+  "ms": 31.4,
+  "bytes": 611
+ },
+ {
+  "role": "student (Sem VI)",
+  "path": "/api/v1/electives/allocations/me",
+  "status": 200,
+  "queries": 4,
+  "ms": 13.2,
+  "bytes": 2
+ },
+ {
+  "role": "student (Sem VI)",
+  "path": "/api/v1/notifications",
+  "status": 200,
+  "queries": 4,
+  "ms": 8.0,
+  "bytes": 5120
+ },
+ {
+  "role": "student (Sem VI)",
+  "path": "/api/v1/announcements",
+  "status": 200,
+  "queries": 15,
+  "ms": 11.6,
+  "bytes": 2435
+ },
+ {
+  "role": "student (Sem VI)",
+  "path": "/api/v1/events",
+  "status": 200,
+  "queries": 9,
+  "ms": 10.3,
+  "bytes": 8766
+ },
+ {
+  "role": "student (Sem VI)",
+  "path": "/api/v1/clubs",
+  "status": 200,
+  "queries": 30,
+  "ms": 20.8,
+  "bytes": 3749
+ },
+ {
+  "role": "student (Sem VI)",
+  "path": "/api/v1/mentorship/meetings",
+  "status": 200,
+  "queries": 8,
+  "ms": 7.5,
+  "bytes": 455
+ },
+ {
+  "role": "student (Sem VI)",
+  "path": "/api/v1/minors/workspace",
+  "status": 200,
+  "queries": 6,
+  "ms": 9.6,
+  "bytes": 245
+ },
+ {
+  "role": "SI coordinator",
+  "path": "/api/v1/dashboard/faculty",
+  "status": 200,
+  "queries": 40,
+  "ms": 45.1,
+  "bytes": 2906
+ },
+ {
+  "role": "SI coordinator",
+  "path": "/api/v1/internships/enrollments",
+  "status": 200,
+  "queries": 71,
+  "ms": 1058.9,
+  "bytes": 1487010
+ },
+ {
+  "role": "SI coordinator",
+  "path": "/api/v1/internships/programs",
+  "status": 200,
+  "queries": 210,
+  "ms": 178.6,
+  "bytes": 77102
+ },
+ {
+  "role": "SI coordinator",
+  "path": "/api/v1/internships/programs/2/windows",
+  "status": 200,
+  "queries": 7,
+  "ms": 13.7,
+  "bytes": 435
+ },
+ {
+  "role": "SI coordinator",
+  "path": "/api/v1/internships/programs/2/mentor-capacity",
+  "status": 404,
+  "queries": 0,
+  "ms": 1.5,
+  "bytes": 52
+ },
+ {
+  "role": "SI coordinator",
+  "path": "/api/v1/mentorship/my-mentees",
+  "status": 200,
+  "queries": 24,
+  "ms": 282.8,
+  "bytes": 750200
+ },
+ {
+  "role": "SI coordinator",
+  "path": "/api/v1/minors",
+  "status": 200,
+  "queries": 23,
+  "ms": 20.6,
+  "bytes": 14796
+ },
+ {
+  "role": "mentor",
+  "path": "/api/v1/dashboard/faculty",
+  "status": 200,
+  "queries": 51,
+  "ms": 55.5,
+  "bytes": 4988
+ },
+ {
+  "role": "mentor",
+  "path": "/api/v1/internships/enrollments?mine=true",
+  "status": 200,
+  "queries": 61,
+  "ms": 149.6,
+  "bytes": 49512
+ },
+ {
+  "role": "mentor",
+  "path": "/api/v1/faculty-scores/me",
+  "status": 200,
+  "queries": 19,
+  "ms": 237.1,
+  "bytes": 7168
+ },
+ {
+  "role": "OE coordinator",
+  "path": "/api/v1/electives/admin/windows",
+  "status": 200,
+  "queries": 51,
+  "ms": 57.5,
+  "bytes": 3230
+ },
+ {
+  "role": "OE coordinator",
+  "path": "/api/v1/electives/admin/allocations?curriculum_component_id=503",
+  "status": 422,
+  "queries": 4,
+  "ms": 9.8,
+  "bytes": 142
+ },
+ {
+  "role": "registrar",
+  "path": "/api/v1/dashboard/admin",
+  "status": 200,
+  "queries": 57,
+  "ms": 42.4,
+  "bytes": 5428
+ },
+ {
+  "role": "registrar",
+  "path": "/api/v1/students?page=1&size=50",
+  "status": 200,
+  "queries": 56,
+  "ms": 48.4,
+  "bytes": 11902
+ },
+ {
+  "role": "registrar",
+  "path": "/api/v1/faculty",
+  "status": 200,
+  "queries": 102,
+  "ms": 105.0,
+  "bytes": 42518
+ },
+ {
+  "role": "registrar",
+  "path": "/api/v1/faculty-scores/department",
+  "status": 200,
+  "queries": 78,
+  "ms": 293.3,
+  "bytes": 10308
+ },
+ {
+  "role": "registrar",
+  "path": "/api/v1/dashboard/hod?department_code=ICT",
+  "status": 200,
+  "queries": 31,
+  "ms": 25.0,
+  "bytes": 3866
+ },
+ {
+  "role": "registrar",
+  "path": "/api/v1/admin/audit-logs",
+  "status": 200,
+  "queries": 4,
+  "ms": 6.7,
+  "bytes": 6613
+ }
+]

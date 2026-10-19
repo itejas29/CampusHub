@@ -681,15 +681,20 @@ def _coordination_portfolios(db, user: User) -> list[dict]:
             base["stats"] = [_stat("Certificates to verify", pending,
                                    tone="warning" if pending else "success")]
         elif c.domain == D.MENTORSHIP:
-            stmt = select(MentorAssignment).where(MentorAssignment.is_active.is_(True))
+            # Counted in the database: this loaded every assignment of the
+            # department (9,334 rows at 10k students) to take two lengths.
+            stmt = select(func.count(MentorAssignment.id),
+                          func.count(func.distinct(MentorAssignment.faculty_id))) \
+                .where(MentorAssignment.is_active.is_(True))
             if in_dept:
                 stmt = stmt.join(Student, Student.id == MentorAssignment.student_id) \
                            .where(in_dept(Student.department_id))
-            pairs = list(db.scalars(stmt))
+            students_with_mentor, mentors = db.execute(stmt).one()
             base["stats"] = [
-                _stat("Students with a mentor", len(pairs)),
-                _stat("Faculty mentors", len({a.faculty_id for a in pairs})),
+                _stat("Students with a mentor", int(students_with_mentor)),
+                _stat("Faculty mentors", int(mentors)),
             ]
+
         out.append(base)
     return out
 

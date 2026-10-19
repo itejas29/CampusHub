@@ -12,6 +12,7 @@ import io
 from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import func, select
 
+from app.db.locking import locked
 from app.core.deps import (
     CurrentStudent, CurrentUser, DbSession, require_permission,
     require_permission_or_coordination, request_context,
@@ -490,7 +491,10 @@ def submit_preferences(payload: PreferenceSubmit, db: DbSession,
                 f"Registration for {offering.course.code} is not open."
             )
 
-    # Replace the whole set — a preference list is submitted atomically.
+    # Replace the whole set — a preference list is submitted atomically. Two
+    # submissions at once (a double-click) take turns on the student's row; the
+    # later one replaces the earlier whole.
+    locked(db, Student, student.id)
     for old in db.scalars(select(ElectivePreference).where(
         ElectivePreference.student_id == student.id,
         ElectivePreference.curriculum_component_id == component.id,
@@ -523,10 +527,13 @@ def submit_preferences(payload: PreferenceSubmit, db: DbSession,
         description=f"Submitted {len(created)} preferences for {component.code}",
         meta={"offering_ids": offering_ids},
     )
+    db.flush()
+    # Built before the commit: once committed, a simultaneous submission may
+    # already be replacing these rows, and re-reading them failed with a 500.
+    out = [_preference_out(p) for p in created]
     db.commit()
-    for pref in created:
-        db.refresh(pref)
-    return [_preference_out(p) for p in created]
+    return out
+
 
 
 @router.delete("/preferences/{component_id}", response_model=Message)
@@ -893,11 +900,20 @@ def manual_allocation(
     request_ctx=Depends(request_context),
     user: User = Depends(_manages_electives),
 ) -> AllocationOut:
+    current = db.scalar(select(ElectiveAllocation.course_offering_id).where(
+        ElectiveAllocation.student_id == payload.student_id,
+        ElectiveAllocation.curriculum_component_id == payload.curriculum_component_id,
+    ))
+    # Both seat counters change: lock the offerings in id order (no deadlock
+    # between two opposite moves), then read the current counts.
+    for offering_id in sorted({payload.course_offering_id, current} - {None}):
+        locked(db, CourseOffering, offering_id)
     offering = db.get(CourseOffering, payload.course_offering_id)
     student = db.get(Student, payload.student_id)
     if offering is None or student is None:
         raise NotFoundError("Student or course offering not found.")
     _managed_offering(db, user, offering.id)
+
     # Open Electives have no course-wide ceiling — a full section simply means
     # another section is opened, so only a single-section capped course blocks.
     if (offering.section_capacity is not None

@@ -1,0 +1,10 @@
+trial 1: capacity=5 confirmed=8 over=3 FAIL
+trial 2: capacity=5 confirmed=8 over=3 FAIL
+trial 3: capacity=5 confirmed=5 over=0 PASS
+trial 4: capacity=5 confirmed=8 over=3 FAIL
+trial 5: capacity=5 confirmed=9 over=4 FAIL
+trial 6: capacity=5 confirmed=8 over=3 FAIL
+trial 7: capacity=5 confirmed=8 over=3 FAIL
+trial 8: capacity=5 confirmed=8 over=3 FAIL
+trial 9: capacity=5 confirmed=7 over=2 FAIL
+trial 10: capacity=5 confirmed=7 over=2 FAIL

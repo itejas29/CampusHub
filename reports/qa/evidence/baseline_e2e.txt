@@ -1,0 +1,26 @@
+2026-10-19T14:25:06Z
+[WebServer] INFO:     Started server process [7498]
+[WebServer] INFO:     Waiting for application startup.
+[WebServer] INFO:     Application startup complete.
+[WebServer] INFO:     Uvicorn running on http://127.0.0.1:8100 (Press CTRL+C to quit)
+
+Running 15 tests using 1 worker
+
+  ✓   1 e2e/1-sign-in.spec.ts:3:1 › a wrong password is refused with a message, and the user stays on sign-in (2.5s)
+  ✓   2 e2e/1-sign-in.spec.ts:18:1 › an empty form explains what is missing instead of doing nothing (1.2s)
+  ✓   3 e2e/1-sign-in.spec.ts:28:1 › a coordinator signs in and sees their own module's live figures (2.3s)
+  ✓   4 e2e/1-sign-in.spec.ts:42:1 › there is no fake single-sign-on button on the sign-in page (677ms)
+  ✓   5 e2e/2-allocate-mentors.spec.ts:3:1 › a CSSI coordinator re-allocates every student without overloading a mentor (7.5s)
+  ✓   6 e2e/2-allocate-mentors.spec.ts:86:1 › a coordinator cannot open another module's allocation (1.8s)
+  ✓   7 e2e/2-allocate-mentors.spec.ts:100:1 › an unconfirmed cap is flagged, and confirming it is what the allocator then uses (3.2s)
+  ✓   8 e2e/3-review-submission.spec.ts:8:1 › a mentor opens the longest-waiting submission from the dashboard and approves it (1.9s)
+  ✓   9 e2e/3-review-submission.spec.ts:37:1 › closing the record drawer clears it from the URL, so Back works (1.6s)
+  ✓  10 e2e/4-cssi-windows.spec.ts:18:1 › the coordinator opens presentations, and a student is told their mentor (4.5s)
+  ✓  11 e2e/5-role-board.spec.ts:5:1 › a role is given and taken away from its card (2.7s)
+  ✓  12 e2e/6-project-tracks.spec.ts:5:1 › a final-year student registers for the in-house Major Project track (2.2s)
+  ✓  13 e2e/7-coordinator-tools.spec.ts:5:1 › a coordinator edits the rubric and confirms it (2.3s)
+  ✓  14 e2e/7-coordinator-tools.spec.ts:41:1 › a student forms a team and ranks guides (2.6s)
+  ✓  15 e2e/8-switch-account.spec.ts:6:1 › the next person to sign in does not land on the last person's page (2.5s)
+
+  15 passed (2.1m)
+e2e exit 0

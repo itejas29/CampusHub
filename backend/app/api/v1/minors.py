@@ -6,6 +6,7 @@ import datetime as dt
 from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy import func, select
 
+from app.db.locking import locked
 from app.core.deps import CurrentStudent, CurrentUser, DbSession, require_permission
 from app.core.errors import BusinessRuleError, NotFoundError, PermissionDeniedError
 from app.core.rbac import P, has_permission
@@ -369,7 +370,12 @@ def decide(
         scope.student_department_id(db, application.student_id),
     )
     if payload.status == MinorApplicationStatus.ALLOCATED:
+        # Checked, then taken: hold the programme (its seat count) and the
+        # student (one minor each) so simultaneous decisions cannot both pass.
+        program = locked(db, MinorProgram, program.id)
+        locked(db, Student, application.student_id)
         if program.seats_available <= 0:
+
             raise BusinessRuleError("No seats remain in this minor programme.")
         existing = db.scalar(select(MinorEnrollment).where(
             MinorEnrollment.student_id == application.student_id,

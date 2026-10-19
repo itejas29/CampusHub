@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.db.locking import locked
 from app.core.errors import BusinessRuleError, NotFoundError
 from app.models.enums import (
     AuditAction, EnrollmentStatus, EvaluationStatus, NotificationType, OrganizationType,
@@ -701,8 +702,12 @@ def override_mentor(
         program = getattr(enrollment, "program", None)
         assert_eligible_mentor(db, program, mentor)
     if new_faculty_id is not None and enforce_capacity:
+        # Held while the mentor's students are counted: simultaneous
+        # assignments to one mentor used to pass the cap together.
+        locked(db, Faculty, new_faculty_id)
         program = getattr(enrollment, "program", None)
         capacity = mentor_capacity(program) if program else DEFAULT_MENTOR_CAPACITY
+
         current_count = db.scalar(
             select(func.count(InternshipEnrollment.id)).where(
                 InternshipEnrollment.program_id == enrollment.program_id,

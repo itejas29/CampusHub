@@ -30,14 +30,14 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import settings
 from app.models.engagement import MentorMeeting
 from app.models.enums import (
     EvaluationStatus, InternshipWindowKind, MeetingStatus, Role, StageStatus, SubmissionStatus,
 )
-from app.models.identity import Faculty, Student
+from app.models.identity import Faculty, Student, User
 from app.models.internships import (
     EnrollmentStageProgress, InternshipDocument, InternshipEnrollment, InternshipEvaluation,
     InternshipGroup, InternshipProgram, InternshipReport, InternshipStage, InternshipWindow,
@@ -196,7 +196,8 @@ def department_scores(db: Session, department_id: int, *, now: dt.datetime | Non
     now = now or utcnow()
     since = now - dt.timedelta(days=period_days or POLICY["period_days"])
     faculty = [f for f in db.scalars(select(Faculty).where(
-        Faculty.department_id == department_id, Faculty.is_active.is_(True))) if is_scorable(f)]
+        Faculty.department_id == department_id, Faculty.is_active.is_(True))
+        .options(selectinload(Faculty.user).selectinload(User.role_links))) if is_scorable(f)]
     scores = {f.id: Score(faculty_id=f.id) for f in faculty}
     if not scores:
         return scores
@@ -213,10 +214,16 @@ def department_scores(db: Session, department_id: int, *, now: dt.datetime | Non
             return None
         return e.mentor_faculty_id or (group_lead.get(e.group_id) if e.group_id else None)
 
+    # One query for every label. Loading each student's account per scored
+    # item was ~260 queries a call (QA query profile, 10k-student dataset).
+    names = {eid: f"{name} ({roll})" for eid, name, roll in db.execute(
+        select(InternshipEnrollment.id, User.full_name, Student.roll_number)
+        .join(Student, Student.id == InternshipEnrollment.student_id)
+        .join(User, User.id == Student.user_id))}
+
     def student_name(enrollment_id: int) -> str:
-        e = enrollments.get(enrollment_id)
-        s = db.get(Student, e.student_id) if e else None
-        return f"{s.user.full_name} ({s.roll_number})" if s else "a student"
+        return names.get(enrollment_id, "a student")
+
 
     def credit(enrollment_id: int, reviewer_user_id: int | None, submitted, reviewed, what: str):
         submitted, reviewed = _aware(submitted), _aware(reviewed)

@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, File, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 
+from app.db.locking import locked
 from app.core.deps import CurrentStudent, CurrentUser, DbSession, require_permission
 from app.core.errors import (
     BusinessRuleError, ConflictError, NotFoundError, PermissionDeniedError, ValidationError,
@@ -158,7 +159,8 @@ def register(payload: MoocRegisterRequest, db: DbSession, student: CurrentStuden
         status=MoocStatus.REGISTERED,
     )
     db.add(registration)
-    offering.seats_filled += 1
+    locked(db, CourseOffering, offering.id).seats_filled += 1     # no lost increments
+
     db.flush()
     notifications.notify(
         db, user_id=user.id, type=NotificationType.REGISTRATION_CONFIRMED,
@@ -620,7 +622,10 @@ def copy_round_courses(round_id: int, source_id: int, db: DbSession,
     source = _get_round(db, source_id)
     _assert_views_round(db, user, source)
     added = mooc_rounds.copy_list(db, round_, source)
+    audit.record(db, action=AuditAction.UPDATE, entity_type="mooc_round", entity_id=round_.id,
+                 actor=user, description=f"Copied {added} course(s) from {source.title}")
     db.commit()
+
     return Message(message=f"{added} course(s) copied from {source.title}.")
 
 

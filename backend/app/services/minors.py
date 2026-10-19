@@ -31,6 +31,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.db.locking import locked
 from app.core.errors import BusinessRuleError
 
 from app.models.enums import MinorApplicationStatus, MinorEnrollmentStatus
@@ -239,7 +240,10 @@ def rank(db: Session, program: MinorProgram) -> list[RankedApplicant]:
 
 def allocate(db: Session, program: MinorProgram) -> tuple[list[RankedApplicant], int]:
     """Commit one allocation round. Returns the ranking and the seats granted."""
+    # Seats are counted from the programme row: hold it, current, for the round.
+    program = locked(db, MinorProgram, program.id)
     ranked = rank(db, program)
+
     granted = 0
     now = utcnow()
     for entry in ranked:
