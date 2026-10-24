@@ -23,7 +23,7 @@ from app.core.rbac import P
 from app.models.enums import (
     SATISFYING_STATUSES,
     AuditAction, DocumentType, EnrollmentStatus, EvaluationStatus, EvaluatorRole,
-    FileCategory, NotificationType, ProgramPhase, ProgramStatus, Role,
+    FileCategory, InternshipType, NotificationType, ProgramPhase, ProgramStatus, Role,
     SubmissionStatus,
 )
 from app.models.identity import Faculty, Student, User
@@ -35,7 +35,7 @@ from app.models.internships import (
     InternshipProject, InternshipReport, InternshipStage, Organization,
 )
 from app.schemas.fields import csv_safe
-from app.schemas.common import Message
+from app.schemas.common import Message, Page
 from app.schemas.internships import (
     DocumentGroupOut, DocumentReviewRequest, ExpectedDocumentOut, ProgressOut,
     DocumentOut, EnrollRequest, EnrollmentDetail, EnrollmentSummary, EnrollmentUpdate,
@@ -693,14 +693,19 @@ def create_group(
 
 
 # ── enrolment ─────────────────────────────────────────────────────────────
-@router.get("/enrollments", response_model=list[EnrollmentSummary])
-def list_enrollments(
-    db: DbSession, user: CurrentUser, faculty=Depends(get_optional_faculty),
-    program_id: int | None = Query(None), group_id: int | None = Query(None),
-    status: EnrollmentStatus | None = Query(None),
-    mine: bool = Query(False, description="Faculty: only my assigned students"),
-    q: str | None = Query(None),
-) -> list[EnrollmentSummary]:
+#: Largest page the paged student list serves (QA-16).
+MAX_PAGE_SIZE = 200
+
+
+def _enrollment_query(db, user: User, faculty, *, program_id: int | None,
+                      group_id: int | None, status: EnrollmentStatus | None, mine: bool,
+                      q: str | None, program_types: str | None):
+    """The students this caller may list, filtered and searched in SQL.
+
+    The search used to run in Python over every row the database returned —
+    the whole cohort loaded to find one name. It is a WHERE clause now, over the
+    student's name, roll number and organisation.
+    """
     stmt = select(InternshipEnrollment)
     if program_id:
         stmt = stmt.where(InternshipEnrollment.program_id == program_id)
@@ -708,6 +713,15 @@ def list_enrollments(
         stmt = stmt.where(InternshipEnrollment.group_id == group_id)
     if status:
         stmt = stmt.where(InternshipEnrollment.status == status)
+    if program_types:
+        try:
+            types = [InternshipType(t.strip()) for t in program_types.split(",")
+                     if t.strip()]
+        except ValueError as exc:
+            raise ValidationError("Unknown programme type.") from exc
+        if types:
+            stmt = stmt.where(InternshipEnrollment.program_id.in_(
+                select(InternshipProgram.id).where(InternshipProgram.type.in_(types))))
 
     managed = scope.managed_program_ids(db, user)
     if managed is not None and not managed:
@@ -725,15 +739,56 @@ def list_enrollments(
             conditions.append(InternshipEnrollment.mentor_faculty_id == faculty.id)
         stmt = stmt.where(or_(*conditions))
 
-    rows = list(db.scalars(stmt.order_by(InternshipEnrollment.id)))
-    if q:
-        needle = q.strip().lower()
-        rows = [
-            r for r in rows
-            if needle in (r.student.user.full_name or "").lower()
-            or needle in (r.student.roll_number or "").lower()
-        ]
-    return _summaries(db, rows)
+    needle = (q or "").strip().lower()
+    if needle:
+        stmt = (stmt.join(Student, Student.id == InternshipEnrollment.student_id)
+                .join(User, User.id == Student.user_id)
+                .outerjoin(Organization, Organization.id == InternshipEnrollment.organization_id)
+                .where(or_(func.lower(User.full_name).contains(needle, autoescape=True),
+                           func.lower(Student.roll_number).contains(needle, autoescape=True),
+                           func.lower(Organization.name).contains(needle, autoescape=True))))
+    # Stable order: a page is the same rows however often it is asked for, and
+    # a row added meanwhile lands at the end rather than shifting earlier pages.
+    return stmt.order_by(InternshipEnrollment.id)
+
+
+@router.get("/enrollments", response_model=list[EnrollmentSummary])
+def list_enrollments(
+    db: DbSession, user: CurrentUser, faculty=Depends(get_optional_faculty),
+    program_id: int | None = Query(None), group_id: int | None = Query(None),
+    status: EnrollmentStatus | None = Query(None),
+    mine: bool = Query(False, description="Faculty: only my assigned students"),
+    q: str | None = Query(None, max_length=100),
+    program_types: str | None = Query(None, max_length=200),
+) -> list[EnrollmentSummary]:
+    """Every matching student, unpaged — kept for screens that need the whole
+    cohort at once (mentor allocation). Lists use `/enrollments/page`."""
+    stmt = _enrollment_query(db, user, faculty, program_id=program_id, group_id=group_id,
+                             status=status, mine=mine, q=q, program_types=program_types)
+    return _summaries(db, list(db.scalars(stmt)))
+
+
+@router.get("/enrollments/page", response_model=Page[EnrollmentSummary])
+def page_enrollments(
+    db: DbSession, user: CurrentUser, faculty=Depends(get_optional_faculty),
+    program_id: int | None = Query(None), group_id: int | None = Query(None),
+    status: EnrollmentStatus | None = Query(None),
+    mine: bool = Query(False, description="Faculty: only my assigned students"),
+    q: str | None = Query(None, max_length=100),
+    program_types: str | None = Query(None, max_length=200,
+                                      description="Comma-separated programme types"),
+    page: int = Query(1, ge=1, le=100_000),
+    page_size: int = Query(50, ge=1, le=MAX_PAGE_SIZE),
+) -> Page[EnrollmentSummary]:
+    """One page of the students this caller may list (QA-16): counted and
+    sliced in SQL, so a page costs the same however large the cohort is."""
+    stmt = _enrollment_query(db, user, faculty, program_id=program_id, group_id=group_id,
+                             status=status, mine=mine, q=q, program_types=program_types)
+    total = int(db.scalar(select(func.count()).select_from(
+        stmt.order_by(None).subquery())) or 0)
+    rows = list(db.scalars(stmt.offset((page - 1) * page_size).limit(page_size)))
+    return Page[EnrollmentSummary](items=_summaries(db, rows), total=total, page=page,
+                                   page_size=page_size)
 
 
 @router.get("/enrollments/me", response_model=list[EnrollmentSummary])
