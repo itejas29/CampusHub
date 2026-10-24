@@ -1,0 +1,120 @@
+# Checks every pull request and branch push. Deploys nothing.
+#
+# QA-20: the deploy workflow ran the backend suite on SQLite only, so the
+# PostgreSQL-only behaviour — row locks, partial unique indexes, migrations —
+# was never checked automatically. This adds:
+#   * the full suite on SQLite (fast feedback);
+#   * PostgreSQL 16: migrations from an empty database, a downgrade/upgrade
+#     cycle of the latest revision, the full suite, and the concurrency tests
+#     on their own so their result is visible;
+#   * the frontend type-check and production build.
+# The databases are throwaway service containers. No production credential is
+# used or needed: the workflow reads no secrets.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [master]   # master is checked by deploy-backend.yml
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend-sqlite:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - run: pytest -q -p no:cacheprovider --junitxml=junit-sqlite.xml
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-sqlite
+          path: backend/junit-sqlite.xml
+
+  backend-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: campushub_tests
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ci" --health-interval 5s
+          --health-timeout 5s --health-retries 20
+    env:
+      # Migrations run in their own database; the suite builds and drops its own.
+      MIGRATE_URL: postgresql://ci:ci@localhost:5432/campushub_migrate
+      CAMPUSHUB_TEST_DATABASE_URL: postgresql://ci:ci@localhost:5432/campushub_tests
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - name: Create the migration database
+        run: PGPASSWORD=ci psql -h localhost -U ci -d postgres -c "CREATE DATABASE campushub_migrate"
+      - name: Migrations from an empty database
+        run: DATABASE_URL="$MIGRATE_URL" alembic upgrade head 2>&1 | tee migrate-fresh.log
+      - name: Latest migration down and up again
+        run: |
+          set -o pipefail
+          {
+            DATABASE_URL="$MIGRATE_URL" alembic downgrade -1
+            DATABASE_URL="$MIGRATE_URL" alembic upgrade head
+          } 2>&1 | tee migrate-cycle.log
+      - name: Schema against the models (QA-21)
+        run: DATABASE_URL="$MIGRATE_URL" alembic check 2>&1 | tee alembic-check.log
+      - name: Full suite on PostgreSQL
+        run: pytest -q -p no:cacheprovider --junitxml=junit-postgres.xml
+      - name: Concurrency tests on PostgreSQL
+        run: >-
+          pytest -q -p no:cacheprovider --junitxml=junit-concurrency.xml
+          app/tests/test_pg_concurrency.py app/tests/test_mentor_one_active.py
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: postgres-results
+          path: |
+            backend/junit-postgres.xml
+            backend/junit-concurrency.xml
+            backend/migrate-fresh.log
+            backend/migrate-cycle.log
+            backend/alembic-check.log
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build
