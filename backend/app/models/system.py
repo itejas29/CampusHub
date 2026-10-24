@@ -71,6 +71,6 @@ class LoginThrottle(PKMixin, Base):
     __tablename__ = "login_throttle"
 
     key: Mapped[str] = mapped_column(String(320), unique=True, nullable=False)
-    failures: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    failures: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
     window_started_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     locked_until: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))

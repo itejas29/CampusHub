@@ -178,7 +178,8 @@ class MinorCourseResult(PKMixin, TimestampMixin, Base):
     grade: Mapped[str | None] = mapped_column(String(4))
     status: Mapped[MinorCourseResultStatus] = mapped_column(
         _enum(MinorCourseResultStatus, "minor_course_result_status"),
-        default=MinorCourseResultStatus.IN_PROGRESS, nullable=False,
+        default=MinorCourseResultStatus.IN_PROGRESS, server_default="IN_PROGRESS",
+        nullable=False,
     )
     recorded_by_user_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL")
