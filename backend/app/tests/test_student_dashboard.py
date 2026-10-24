@@ -16,8 +16,13 @@ from app.models.academics import (
     Course, CourseOffering, CurriculumComponent, ElectiveAllocation, ElectivePreference,
     MoocRegistration,
 )
-from app.models.enums import AllocationStatus, MoocStatus, PreferenceStatus, SemesterTerm
+from app.models.enums import (
+    AllocationStatus, InternshipType, MinorEnrollmentStatus, MoocStatus, PreferenceStatus,
+    SemesterTerm,
+)
 from app.models.identity import AcademicYear, Semester
+from app.models.internships import InternshipEnrollment, InternshipProgram, InternshipStage
+from app.models.minors import MinorEnrollment, MinorProgram
 
 #: The shape of the ICT 2024-28 handbook, cut down to what the rule depends on:
 #: no elective slot until Semester IV, and the NPTEL slot beside PE1 in V.
@@ -223,6 +228,73 @@ def test_another_students_registration_settles_nothing_for_this_one(
     db.flush()
 
     assert statuses(dashboard(5))["OE2-MOOC"] == "Action needed"
+
+
+# ── what the dashboard's widgets read ──────────────────────────────────────
+# The screen marks a slot "waiting on you" and draws a card per programme. Both
+# are the server's judgement, sent as fields, so the screen never re-derives a
+# rule from a status string.
+def waiting(body):
+    return {c["code"]: c["needs_action"] for c in body["curriculum_semester"]["components"]}
+
+
+def test_each_slot_says_whether_it_waits_on_the_student(dashboard, campus, world, db):
+    register_mooc(db, world, campus, MoocStatus.REJECTED)
+
+    body = dashboard(5)
+    assert waiting(body) == {"OE2-MOOC": True, "PE1": True}
+    # The flags and the pending count are one judgement, not two.
+    assert sum(waiting(body).values()) == stat(body, "pending_electives")["value"]
+
+
+def test_a_core_course_and_an_allocated_elective_wait_on_nobody(dashboard, campus, world, db):
+    db.add(ElectiveAllocation(
+        student_id=world.student_a.student.id,
+        curriculum_component_id=campus.components["OE1"].id,
+        course_offering_id=campus.offering("OE1").id,
+        status=AllocationStatus.ALLOCATED))
+    db.flush()
+
+    assert waiting(dashboard(4)) == {"S4-01": False, "OE1": False}
+
+
+def test_an_internship_card_names_its_programme_type_status_and_stage(
+        dashboard, world, db, campus):
+    program = InternshipProgram(code="CSSI-D", name="CSSI", type=InternshipType.CSSI,
+                                department_id=world.departments["ICT"].id)
+    db.add(program)
+    db.flush()
+    stage = InternshipStage(program_id=program.id, code="POSTER", name="Poster", sequence=1)
+    db.add(stage)
+    db.flush()
+    db.add(InternshipEnrollment(program_id=program.id, student_id=world.student_a.student.id,
+                                current_stage_id=stage.id))
+    db.flush()
+
+    card = next(p for p in dashboard(3)["progress"] if p["label"] == "CSSI")
+    assert card["kind"] == "CSSI"
+    assert card["status"] == "REGISTERED"
+    assert card["stage"] == "Poster"
+    assert card["unit"] == "stages"
+    assert card["link"] == f"/internships/{program.id}"
+
+
+def test_a_minor_card_counts_credits_not_stages(dashboard, world, db, campus):
+    minor = MinorProgram(code="MIN-D", name="Minor in Testing",
+                         department_id=world.departments["CSE"].id, capacity=10,
+                         eligible_from_semester=3, total_credits=18)
+    db.add(minor)
+    db.flush()
+    db.add(MinorEnrollment(student_id=world.student_a.student.id, minor_program_id=minor.id,
+                           status=MinorEnrollmentStatus.ACTIVE, started_semester=3,
+                           credits_completed=6))
+    db.flush()
+
+    card = next(p for p in dashboard(4)["progress"] if p["kind"] == "MINOR")
+    assert (card["completed"], card["total"]) == (6, 18)
+    assert card["unit"] == "credits"
+    assert card["status"] == "ACTIVE"
+    assert card["stage"] is None
 
 
 # ── who may ask ────────────────────────────────────────────────────────────

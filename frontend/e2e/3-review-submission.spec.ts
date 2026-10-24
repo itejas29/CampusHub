@@ -10,15 +10,18 @@ test("a mentor opens the longest-waiting submission from the dashboard and appro
   const before = waiting(await apiGet<Dashboard>(page, "/dashboard/faculty"));
   expect(before, "the seed gives this mentor submissions to review").toBeGreaterThan(0);
 
+  // The queue is a table, longest waiting first: the first row with a Review link.
   const queue = page.locator("section", { has: page.getByRole("heading", { name: "Review queue" }) });
-  const first = queue.getByRole("link").filter({ hasText: "Review" }).first();
-  const student = (await first.locator("span[title]").nth(1).getAttribute("title")) ?? "";
-  await first.click();
+  const review = page.getByRole("link", { name: "Review", exact: true });
+  const first = queue.getByRole("row").filter({ has: review }).first();
+  const student = (await first.locator("span[title]").first().getAttribute("title")) ?? "";
+  expect(student, "the row names the student whose work it is").not.toBe("");
+  await first.getByRole("link", { name: "Review", exact: true }).click();
 
   // The link lands on *that* student's record — it used to drop them and
   // redirect to the CSSI list, even for a Summer intern.
   await expect(page).toHaveURL(/\/internships\/review\?record=\d+/);
-  if (student) await expect(page.getByText(student).first()).toBeVisible();
+  await expect(page.getByText(student).first()).toBeVisible();
 
   await page.getByRole("button", { name: "Approve" }).first().click();
   await expect(page.getByText("Stage approved.")).toBeVisible();

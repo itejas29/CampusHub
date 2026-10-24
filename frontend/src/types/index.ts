@@ -820,6 +820,11 @@ export interface DeadlineItem {
 }
 export interface ProgressItem {
   label: string; completed: number; total: number; link: string | null;
+  /** The programme type (CSSI, SUMMER, SEMINAR, MAJOR_PROJECT, …) or MINOR. */
+  kind?: string | null;
+  status?: string | null;
+  stage?: string | null;
+  unit?: "stages" | "credits";
 }
 export interface ActivityItem {
   id: number; actor: string | null; action: string; entity_type: string;
@@ -858,6 +863,8 @@ export interface StudentDashboard {
     components: {
       id: number; code: string; title: string; component_type: string;
       scope_label: string | null; credits: number; status: string;
+      /** The server's judgement that the slot waits on the student. */
+      needs_action?: boolean;
       allocated_course_code?: string | null;
       allocated_course_title?: string | null;
       allocated_section?: string | null;

@@ -54,6 +54,14 @@ class ProgressItem(BaseModel):
     completed: int
     total: int
     link: str | None = None
+    #: The programme type (``InternshipType``) or ``MINOR`` — how the card is drawn.
+    kind: str | None = None
+    #: The record's own status, as the programme's page shows it.
+    status: str | None = None
+    #: The stage the student is on, for a staged programme.
+    stage: str | None = None
+    #: What ``completed``/``total`` count: ``stages`` or ``credits``.
+    unit: str = "stages"
 
 
 class StudentDashboard(BaseModel):

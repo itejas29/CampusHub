@@ -2,8 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight, ArrowUpRight, Award, BadgeCheck, BookOpen, Briefcase, CalendarClock,
-  ClipboardCheck, Clock, FileText, FolderKanban, GraduationCap, Layers, Megaphone, Milestone,
-  Sparkles, UserCheck,
+  CheckCircle2, ClipboardCheck, Clock, FileText, FolderKanban, GraduationCap, Layers, Megaphone,
+  Milestone, Sparkles, UserCheck,
   Users, Users2, UserSquare2,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -15,13 +15,15 @@ import { CountUp } from "@/components/ui/CountUp";
 import { Avatar } from "@/components/ui/Misc";
 import { StatGrid, StatTile } from "@/components/ui/StatTile";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
+import { TableWrap, TBody, TD, TH, THead, TR } from "@/components/ui/Table";
 import { api } from "@/lib/api";
 import { MyScoreCard } from "./PerformanceScore";
+import { FocusBanner, GreetingHeader, HeaderChip } from "./widgets/GreetingHeader";
+import { ScheduleCard } from "./widgets/ScheduleCard";
 import { useAuth } from "@/lib/auth";
 import { formatDateTime, relativeTime } from "@/lib/format";
 
 import { cn, pluralise, roman } from "@/lib/utils";
-import { EnergyGrid } from "@/components/brand/Brand";
 import type {
   CoordinationDomain, FacultyDashboard as Data, FacultyPortfolio, PortfolioStat,
 } from "@/types";
@@ -111,13 +113,6 @@ const FALLBACK_META: DomainMeta = {
 function scopeLabel(p: { department_code: string | null; is_institution_wide: boolean }) {
   if (p.is_institution_wide) return "Institution-wide";
   return p.department_code ? `Dept. of ${p.department_code}` : "Department";
-}
-
-function greeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
 }
 
 function daysSince(iso: string | null): number | null {
@@ -297,6 +292,16 @@ export function FacultyDashboard() {
   const faculty = user?.faculty;
   const openMeetings = data.upcoming_meetings.filter((m) => m.status === "REQUESTED").length;
 
+  // Mentoring work is shown to someone who mentors — by appointment, or because
+  // students are already assigned to them. A coordinator who mentors nobody
+  // sees their portfolios, not a wall of zeroes.
+  const mentees = stat("mentees")?.value ?? 0;
+  const mentoring = Boolean(faculty?.is_mentor) || mentees > 0
+    || (stat("internship_students")?.value ?? 0) > 0 || reviews.length > 0
+    || data.internship_groups.length > 0;
+  const oldest = reviews[0];
+  const oldestAge = daysSince(oldest?.submitted_at ?? null);
+
   const STAT_ICONS: Record<string, { icon: LucideIcon; tone: "accent" | "success" | "warning" | "brand" }> = {
     mentees: { icon: Users2, tone: "accent" },
     internship_students: { icon: Briefcase, tone: "brand" },
@@ -306,75 +311,88 @@ export function FacultyDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden rounded-2xl bg-brand-gradient text-white shadow-lg animate-in">
-        <EnergyGrid tone="dark" className="absolute inset-y-0 right-0 h-full w-[70%] max-w-[44rem]" />
-        <div aria-hidden className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-electric/30 blur-3xl" />
-        <div aria-hidden className="absolute -bottom-24 right-1/3 h-56 w-56 rounded-full bg-violet/25 blur-3xl" />
-
-        <div className="relative grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/60">
-              Faculty portal
-              {user?.academic_year && <span> · {user.academic_year}</span>}
-              {user?.current_semester_label && <span> · {user.current_semester_label}</span>}
-            </p>
-            <h1 className="mt-2 font-heading text-2xl font-semibold leading-tight tracking-tight text-white sm:text-3xl">
-              {greeting()}, <span className="break-anywhere">{user?.full_name ?? "Faculty"}</span>
-            </h1>
-            <p className="mt-1.5 text-sm text-white/75">
-              {[faculty?.designation, faculty?.department_code && `Department of ${faculty.department_code}`, faculty?.cabin && `Cabin ${faculty.cabin}`]
-                .filter(Boolean).join(" · ") || "PDEU faculty"}
-            </p>
-
-            {data.portfolios.length > 0 && (
-              <ul className="mt-4 flex flex-wrap gap-2" aria-label="Your coordination roles">
-                {data.portfolios.map((p) => {
-                  const meta = DOMAIN_META[p.domain] ?? FALLBACK_META;
-                  return (
-                    <li key={`${p.domain}-${p.program_id ?? p.department_id ?? "all"}`}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-xs font-medium text-white/90">
-                      <meta.icon className="h-3.5 w-3.5 text-white/70" aria-hidden />
-                      {meta.label} coordinator
-                      <span className="text-white/50">· {scopeLabel(p)}</span>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-
-          {/* Today, at a glance — two real counts and the two most used doors. */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch lg:flex-col">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-sm">
-                <p className="text-2xs font-semibold uppercase tracking-wide text-white/60">To review</p>
-                <p className="mt-1 font-heading text-2xl font-semibold tabular-nums"><CountUp value={reviewCount} /></p>
-              </div>
-              <div className="rounded-xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-sm">
-                <p className="text-2xs font-semibold uppercase tracking-wide text-white/60">Meeting requests</p>
-                <p className="mt-1 font-heading text-2xl font-semibold tabular-nums"><CountUp value={openMeetings} /></p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Link
-                to="/announcements"
-                className="inline-flex h-9 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white px-3.5 text-sm font-semibold text-navy shadow-sm transition-all hover:-translate-y-px hover:shadow-md active:translate-y-0"
-              >
-                <Megaphone className="h-4 w-4" aria-hidden /> Announcements
-              </Link>
-              {(faculty?.is_mentor || (stat("mentees")?.value ?? 0) > 0) && (
-                <Link
-                  to="/mentorship/mentees"
-                  className="inline-flex h-9 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-white/25 bg-white/10 px-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/20"
+      <GreetingHeader
+        name={user?.full_name ?? "Faculty"}
+        context={
+          <>
+            Faculty portal
+            {user?.academic_year && ` · ${user.academic_year}`}
+            {user?.current_semester_label && ` · ${user.current_semester_label}`}
+          </>
+        }
+        subtitle={
+          [faculty?.designation, faculty?.department_code && `Department of ${faculty.department_code}`, faculty?.cabin && `Cabin ${faculty.cabin}`]
+            .filter(Boolean).join(" · ") || "PDEU faculty"
+        }
+        chips={(data.portfolios.length > 0 || faculty?.is_mentor) && (
+          <>
+            {data.portfolios.map((p) => {
+              const meta = DOMAIN_META[p.domain] ?? FALLBACK_META;
+              return (
+                <HeaderChip
+                  key={`${p.domain}-${p.program_id ?? p.department_id ?? "all"}`}
+                  icon={<meta.icon className="h-3.5 w-3.5 text-ink-subtle" aria-hidden />}
                 >
-                  <Users className="h-4 w-4" aria-hidden /> My mentees
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
+                  {meta.label} coordinator
+                  <span className="text-ink-subtle">· {scopeLabel(p)}</span>
+                </HeaderChip>
+              );
+            })}
+            {faculty?.is_mentor && (
+              <HeaderChip icon={<UserSquare2 className="h-3.5 w-3.5 text-ink-subtle" aria-hidden />}>
+                Faculty mentor
+              </HeaderChip>
+            )}
+          </>
+        )}
+        actions={
+          <>
+            <LinkButton to="/announcements" variant="secondary" icon={<Megaphone className="h-4 w-4" aria-hidden />}>
+              Announcements
+            </LinkButton>
+            {(faculty?.is_mentor || mentees > 0) && (
+              <LinkButton to="/mentorship/mentees" variant="accent" icon={<Users className="h-4 w-4" aria-hidden />}>
+                My mentees
+              </LinkButton>
+            )}
+          </>
+        }
+      />
+
+      {reviewCount > 0 && oldest ? (
+        <FocusBanner
+          tone={oldestAge !== null && oldestAge >= 7 ? "warning" : "iris"}
+          icon={<ClipboardCheck className="h-5 w-5" aria-hidden />}
+          title={`${pluralise(reviewCount, "submission")} waiting for your review`}
+          description={
+            <>
+              Longest waiting: <span className="font-medium text-ink">{oldest.label}</span> from {oldest.student}
+              {oldest.submitted_at && `, submitted ${relativeTime(oldest.submitted_at)}`}
+              {openMeetings > 0 && ` · ${pluralise(openMeetings, "meeting request")} to answer`}
+            </>
+          }
+          action={
+            <LinkButton to={oldest.link} variant="accent" iconRight={<ArrowRight className="h-4 w-4" aria-hidden />}>
+              Start reviewing
+            </LinkButton>
+          }
+        />
+      ) : openMeetings > 0 ? (
+        <FocusBanner
+          tone="iris"
+          icon={<CalendarClock className="h-5 w-5" aria-hidden />}
+          title={`${pluralise(openMeetings, "meeting request")} to answer`}
+          description="Your mentees are waiting to hear when you can meet."
+          action={<LinkButton to="/mentorship" variant="accent">Answer requests</LinkButton>}
+        />
+      ) : mentoring ? (
+        <FocusBanner
+          tone="success"
+          icon={<CheckCircle2 className="h-5 w-5" aria-hidden />}
+          title="You're all caught up"
+          description="No submissions or meeting requests are waiting on you."
+        />
+      ) : null}
 
       {/* ── Coordination portfolios ──────────────────────────────────────── */}
       {data.portfolios.length > 0 && (
@@ -399,128 +417,161 @@ export function FacultyDashboard() {
       )}
 
       {/* ── Your numbers ─────────────────────────────────────────────────── */}
-      <StatGrid columns={4}>
-        {data.stats.map((s) => (
-          <StatTile
-            key={s.key} label={s.label} value={s.value} hint={s.hint}
-            to={s.link} icon={STAT_ICONS[s.key]?.icon} tone={s.value > 0 ? STAT_ICONS[s.key]?.tone ?? "neutral" : "neutral"}
-          />
-        ))}
-      </StatGrid>
+      {mentoring && (
+        <StatGrid columns={4}>
+          {data.stats.map((s) => (
+            <StatTile
+              key={s.key} label={s.label} value={s.value} hint={s.hint}
+              to={s.link} icon={STAT_ICONS[s.key]?.icon} tone={s.value > 0 ? STAT_ICONS[s.key]?.tone ?? "neutral" : "neutral"}
+            />
+          ))}
+        </StatGrid>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-12">
         {/* ── Left: the work queue ───────────────────────────────────────── */}
         <div className="min-w-0 space-y-6 lg:col-span-8">
-          <Card>
-            <CardHeader
-              title="Review queue"
-              description="Milestones and reports your students submitted, longest waiting first."
-              icon={<ClipboardCheck className="h-4 w-4 text-warning" aria-hidden />}
-              action={
-                <div role="tablist" aria-label="Filter the review queue" className="inline-flex rounded-lg bg-surface-muted p-0.5">
-                  {([["all", "All"], ["stage", "Milestones"], ["report", "Reports"]] as const).map(([key, label]) => (
-                    <button
-                      key={key} type="button" role="tab" aria-selected={reviewFilter === key}
-                      onClick={() => setReviewFilter(key)}
-                      className={cn(
-                        "relative cursor-pointer whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition-colors",
-                        reviewFilter === key ? "text-ink" : "text-ink-subtle hover:text-ink",
-                      )}
-                    >
-                      {reviewFilter === key && (
-                        <span className="absolute inset-0 rounded-md bg-surface shadow-xs" aria-hidden />
-                      )}
-                      <span className="relative">{label} <span className="tabular-nums text-ink-subtle">{counts[key]}</span></span>
-                    </button>
-                  ))}
-                </div>
-              }
-            />
-            {shownReviews.length === 0 ? (
+          {!mentoring && data.portfolios.length === 0 && (
+            <Card>
               <EmptyState
-                compact
-                icon={<ClipboardCheck className="h-5 w-5" aria-hidden />}
-                title={reviews.length === 0 ? "You're all caught up" : "Nothing in this view"}
-                description="Submissions from students you mentor appear here as they arrive."
+                icon={<UserCheck className="h-5 w-5" aria-hidden />}
+                title="No coordination role or mentees yet"
+                description="Your Head of Department appoints coordinators and mentors. Your work appears here once they do."
               />
-            ) : (
-              <ul className="divide-y divide-line">
-                {shownReviews.map((review) => {
-                  const age = daysSince(review.submitted_at);
-                  const overdue = age !== null && age >= 7;
-                  const TypeIcon = review.type === "stage" ? Milestone : FileText;
-                  return (
-                    <li key={`${review.type}-${review.id}`}>
-                      <Link
-                        to={review.link}
-                        className="group flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-surface-soft/60 focus-visible:bg-surface-soft/60"
+            </Card>
+          )}
+
+          {mentoring && (
+            <Card>
+              <CardHeader
+                title="Review queue"
+                description="Milestones and reports your students submitted, longest waiting first."
+                icon={<ClipboardCheck className="h-4 w-4 text-warning" aria-hidden />}
+                action={
+                  <div role="tablist" aria-label="Filter the review queue" className="inline-flex rounded-lg bg-surface-muted p-0.5">
+                    {([["all", "All"], ["stage", "Milestones"], ["report", "Reports"]] as const).map(([key, label]) => (
+                      <button
+                        key={key} type="button" role="tab" aria-selected={reviewFilter === key}
+                        onClick={() => setReviewFilter(key)}
+                        className={cn(
+                          "relative cursor-pointer whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-semibold transition-colors",
+                          reviewFilter === key ? "text-ink" : "text-ink-subtle hover:text-ink",
+                        )}
                       >
-                        <span className={cn(
-                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
-                          review.type === "stage" ? "bg-iris-soft text-iris" : "bg-accent-soft text-accent",
-                        )}>
-                          <TypeIcon className="h-4 w-4" aria-hidden />
-                        </span>
+                        {reviewFilter === key && (
+                          <span className="absolute inset-0 rounded-md bg-surface shadow-xs" aria-hidden />
+                        )}
+                        <span className="relative">{label} <span className="tabular-nums text-ink-subtle">{counts[key]}</span></span>
+                      </button>
+                    ))}
+                  </div>
+                }
+              />
+              {shownReviews.length === 0 ? (
+                <EmptyState
+                  compact
+                  icon={<ClipboardCheck className="h-5 w-5" aria-hidden />}
+                  title={reviews.length === 0 ? "You're all caught up" : "Nothing in this view"}
+                  description="Submissions from students you mentor appear here as they arrive."
+                />
+              ) : (
+                <TableWrap>
+                  <THead>
+                    <TH>Student</TH>
+                    <TH>Submission</TH>
+                    <TH>Submitted</TH>
+                    {/* `relative` keeps the absolutely placed label inside the
+                        table's scroller; otherwise it widens the page on a phone. */}
+                    <TH className="relative"><span className="sr-only">Action</span></TH>
+                  </THead>
+                  <TBody>
+                    {shownReviews.map((review) => {
+                      const age = daysSince(review.submitted_at);
+                      const overdue = age !== null && age >= 7;
+                      const TypeIcon = review.type === "stage" ? Milestone : FileText;
+                      return (
+                        <TR key={`${review.type}-${review.id}`}>
+                          <TD>
+                            <span className="flex min-w-0 items-center gap-3">
+                              <Avatar name={review.student} size="sm" />
+                              <span className="min-w-0">
+                                <span className="block truncate font-medium text-ink" title={review.student}>{review.student}</span>
+                                <span className="block font-mono text-2xs text-ink-subtle">{review.roll_number}</span>
+                              </span>
+                            </span>
+                          </TD>
+                          <TD>
+                            <span className="flex min-w-0 items-center gap-2">
+                              <span className={cn(
+                                "flex h-7 w-7 shrink-0 items-center justify-center rounded-md",
+                                review.type === "stage" ? "bg-iris-soft text-iris" : "bg-accent-soft text-accent",
+                              )}>
+                                <TypeIcon className="h-3.5 w-3.5" aria-hidden />
+                              </span>
+                              <span className="truncate" title={review.label}>{review.label}</span>
+                            </span>
+                          </TD>
+                          <TD>
+                            <span className="flex flex-col items-start gap-1">
+                              <span className={cn("inline-flex items-center gap-1 whitespace-nowrap text-xs", overdue ? "font-semibold text-warning" : "text-ink-subtle")}>
+                                <Clock className="h-3 w-3" aria-hidden />
+                                {relativeTime(review.submitted_at)}
+                              </span>
+                              {overdue && <Badge tone="warning">Waiting {age} days</Badge>}
+                            </span>
+                          </TD>
+                          <TD align="right">
+                            <LinkButton
+                              to={review.link} size="sm" variant="accent"
+                              iconRight={<ArrowRight className="h-3 w-3" aria-hidden />}
+                            >
+                              Review
+                            </LinkButton>
+                          </TD>
+                        </TR>
+                      );
+                    })}
+                  </TBody>
+                </TableWrap>
+              )}
+            </Card>
+          )}
+
+          {(faculty?.is_mentor || mentees > 0) && (
+            <Card>
+              <CardHeader
+                title="Your mentees"
+                description="Students assigned to you for academic mentoring."
+                icon={<Users2 className="h-4 w-4 text-accent" aria-hidden />}
+                action={data.mentees_preview.length > 0 && (
+                  <CardAction to="/mentorship/mentees" label="View all mentees">View all</CardAction>
+                )}
+              />
+              {data.mentees_preview.length === 0 ? (
+                <EmptyState compact title="No mentees assigned" description="Mentees appear here once your HoD's office allocates them." />
+              ) : (
+                <ul className="grid gap-3 p-5 sm:grid-cols-2">
+                  {data.mentees_preview.map((mentee) => (
+                    <li key={mentee.student_id} className="min-w-0">
+                      <Link
+                        to={`/people/students/${mentee.student_id}`}
+                        className="flex items-center gap-3 rounded-lg border border-line bg-surface p-3 transition-all hover:-translate-y-px hover:border-accent/40 hover:shadow-card-hover"
+                      >
+                        <Avatar name={mentee.name} src={mentee.avatar_url} size="md" />
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold text-ink" title={review.label}>
-                            {review.label}
-                          </span>
-                          <span className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 text-xs text-ink-muted">
-                            <span className="truncate" title={review.student}>{review.student}</span>
-                            <span className="font-mono text-2xs text-ink-subtle">{review.roll_number}</span>
+                          <span className="block truncate text-sm font-semibold text-ink" title={mentee.name}>{mentee.name}</span>
+                          <span className="block truncate text-xs text-ink-subtle">
+                            <span className="font-mono">{mentee.roll_number}</span> · Sem {roman(mentee.semester)}
                           </span>
                         </span>
-                        <span className="hidden shrink-0 flex-col items-end gap-1 sm:flex">
-                          <span className={cn("inline-flex items-center gap-1 text-xs", overdue ? "font-semibold text-warning" : "text-ink-subtle")}>
-                            <Clock className="h-3 w-3" aria-hidden />
-                            {relativeTime(review.submitted_at)}
-                          </span>
-                          {overdue && <Badge tone="warning">Waiting {age} days</Badge>}
-                        </span>
-                        <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-accent px-2.5 py-1.5 text-xs font-semibold text-accent-fg shadow-xs transition-all group-hover:bg-accent-hover group-hover:shadow-glow-accent">
-                          Review <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" aria-hidden />
-                        </span>
+                        <ArrowUpRight className="h-4 w-4 shrink-0 text-ink-subtle" aria-hidden />
                       </Link>
                     </li>
-                  );
-                })}
-              </ul>
-            )}
-          </Card>
-
-          <Card>
-            <CardHeader
-              title="Your mentees"
-              description="Students assigned to you for academic mentoring."
-              icon={<Users2 className="h-4 w-4 text-accent" aria-hidden />}
-              action={data.mentees_preview.length > 0 && (
-                <CardAction to="/mentorship/mentees" label="View all mentees">View all</CardAction>
+                  ))}
+                </ul>
               )}
-            />
-            {data.mentees_preview.length === 0 ? (
-              <EmptyState compact title="No mentees assigned" description="Mentees appear here once your HoD's office allocates them." />
-            ) : (
-              <ul className="grid gap-3 p-5 sm:grid-cols-2">
-                {data.mentees_preview.map((mentee) => (
-                  <li key={mentee.student_id} className="min-w-0">
-                    <Link
-                      to={`/people/students/${mentee.student_id}`}
-                      className="flex items-center gap-3 rounded-lg border border-line bg-surface p-3 transition-all hover:-translate-y-px hover:border-accent/40 hover:shadow-card-hover"
-                    >
-                      <Avatar name={mentee.name} src={mentee.avatar_url} size="md" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-ink" title={mentee.name}>{mentee.name}</span>
-                        <span className="block truncate text-xs text-ink-subtle">
-                          <span className="font-mono">{mentee.roll_number}</span> · Sem {roman(mentee.semester)}
-                        </span>
-                      </span>
-                      <ArrowUpRight className="h-4 w-4 shrink-0 text-ink-subtle" aria-hidden />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
+            </Card>
+          )}
 
           {data.internship_groups.length > 0 && (
             <Card>
@@ -556,37 +607,40 @@ export function FacultyDashboard() {
         {/* ── Right: schedule and notices ────────────────────────────────── */}
         <div className="min-w-0 space-y-6 lg:col-span-4">
           <MyScoreCard />
+          <ScheduleCard />
 
-          <Card>
-            <CardHeader
-              title="Meetings"
-              description="Requested and confirmed mentee meetings."
-              icon={<CalendarClock className="h-4 w-4 text-iris" aria-hidden />}
-              action={<CardAction to="/mentorship" label="Manage meetings">Manage</CardAction>}
-            />
-            {data.upcoming_meetings.length === 0 ? (
-              <EmptyState compact title="No open meeting requests" />
-            ) : (
-              <ul className="divide-y divide-line">
-                {data.upcoming_meetings.map((m) => (
-                  <li key={m.id} className="flex gap-3 px-5 py-3.5">
-                    <Avatar name={m.student} size="sm" />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="min-w-0 text-sm font-semibold leading-snug text-ink break-anywhere">{m.title}</p>
-                        <StatusBadge status={m.status} className="shrink-0" />
+          {mentoring && (
+            <Card>
+              <CardHeader
+                title="Meetings"
+                description="Requested and confirmed mentee meetings."
+                icon={<CalendarClock className="h-4 w-4 text-iris" aria-hidden />}
+                action={<CardAction to="/mentorship" label="Manage meetings">Manage</CardAction>}
+              />
+              {data.upcoming_meetings.length === 0 ? (
+                <EmptyState compact title="No open meeting requests" />
+              ) : (
+                <ul className="divide-y divide-line">
+                  {data.upcoming_meetings.map((m) => (
+                    <li key={m.id} className="flex gap-3 px-5 py-3.5">
+                      <Avatar name={m.student} size="sm" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="min-w-0 text-sm font-semibold leading-snug text-ink break-anywhere">{m.title}</p>
+                          <StatusBadge status={m.status} className="shrink-0" />
+                        </div>
+                        <p className="mt-0.5 truncate text-xs text-ink-muted" title={m.student}>{m.student}</p>
+                        <p className="mt-1 inline-flex items-center gap-1 text-xs text-ink-subtle">
+                          <Clock className="h-3 w-3" aria-hidden />
+                          {formatDateTime(m.scheduled_at ?? m.proposed_slot)}
+                        </p>
                       </div>
-                      <p className="mt-0.5 truncate text-xs text-ink-muted" title={m.student}>{m.student}</p>
-                      <p className="mt-1 inline-flex items-center gap-1 text-xs text-ink-subtle">
-                        <Clock className="h-3 w-3" aria-hidden />
-                        {formatDateTime(m.scheduled_at ?? m.proposed_slot)}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          )}
 
           <Card>
             <CardHeader

@@ -17,14 +17,14 @@ from app.models.academics import (
 from app.models.community import Club, Event, EventRegistration
 from app.models.engagement import Announcement, MentorAssignment, MentorMeeting
 from app.models.enums import (
-    AllocationStatus, ComponentType, EnrollmentStatus, EventStatus, MeetingStatus,
-    MinorApplicationStatus, PreferenceStatus, RegistrationStatus, Role, StageStatus,
-    SubmissionStatus, VerificationStatus,
+    AllocationStatus, ComponentType, EnrollmentStatus, EventStatus, InternshipType,
+    MeetingStatus, MinorApplicationStatus, MinorEnrollmentStatus, PreferenceStatus,
+    RegistrationStatus, Role, StageStatus, SubmissionStatus, VerificationStatus,
 )
 from app.models.identity import Department, Faculty, FacultyRoleAssignment, Student, User
 from app.models.internships import (
     EnrollmentStageProgress, InternshipEnrollment, InternshipGroup, InternshipProgram,
-    InternshipReport,
+    InternshipReport, InternshipStage,
 )
 from app.models.minors import MinorApplication, MinorEnrollment
 from app.models.system import AuditLog
@@ -232,10 +232,15 @@ def student_dashboard(db: DbSession, user: CurrentUser) -> StudentDashboard:
         # stored percentage: the count of stages actually evidenced and the
         # specific submissions holding the rest up.
         state = docs.progress(db, enrollment)
+        stage = (db.get(InternshipStage, enrollment.current_stage_id)
+                 if enrollment.current_stage_id else None)
         progress.append(ProgressItem(
             label=enrollment.program.name,
             completed=state["completed"], total=state["total"],
             link=f"/internships/{enrollment.program_id}",
+            kind=InternshipType(enrollment.program.type).value,
+            status=EnrollmentStatus(enrollment.status).value,
+            stage=stage.name if stage else None,
         ))
         for group in docs.expected_documents(db, enrollment):
             for item in group.items:
@@ -268,6 +273,8 @@ def student_dashboard(db: DbSession, user: CurrentUser) -> StudentDashboard:
             label=f"Minor · {minor.minor_program.name}",
             completed=int(float(minor.credits_completed)), total=int(total),
             link="/academics/minors",
+            kind="MINOR", status=MinorEnrollmentStatus(minor.status).value,
+            unit="credits",
         ))
 
     assignment = db.scalar(select(MentorAssignment).where(
@@ -318,6 +325,7 @@ def student_dashboard(db: DbSession, user: CurrentUser) -> StudentDashboard:
                     "scope_label": c.scope_label,
                     "credits": float(c.credits),
                     "status": states[c.id].label,
+                    "needs_action": states[c.id].needs_action,
                     "allocated_course_code": (
                         alloc_by_component[c.id].course_offering.course.code
                         if c.id in alloc_by_component and alloc_by_component[c.id].course_offering and alloc_by_component[c.id].course_offering.course
