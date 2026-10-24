@@ -128,4 +128,16 @@ def calendar(
                 link="/mentorship", status=meeting.status.value,
             ))
 
+    # SQLite returns these columns without their zone; the app stores UTC.
+    # Unzoned, they cannot be sorted beside the deadlines built above, and a
+    # browser would read them as local time.
+    for item in items:
+        item.start_at = _utc(item.start_at)
+        item.end_at = _utc(item.end_at)
     return sorted(items, key=lambda i: i.start_at)
+
+
+def _utc(value: dt.datetime | None) -> dt.datetime | None:
+    if value is None or value.tzinfo is not None:
+        return value
+    return value.replace(tzinfo=dt.timezone.utc)
