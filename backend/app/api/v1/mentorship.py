@@ -18,7 +18,7 @@ from app.schemas.common import Message
 from app.schemas.engagement import (
     MeetingDecision, MeetingOut, MeetingRequest, MenteeRow, MentorProfile,
 )
-from app.services import audit, notifications, scope
+from app.services import audit, mentoring, notifications, scope
 
 router = APIRouter(prefix="/mentorship", tags=["mentorship"])
 
@@ -249,23 +249,9 @@ def assign_mentor(
         raise NotFoundError("Student or faculty member not found.")
     scope.assert_can_mentor(db, faculty)
 
-    year = db.scalar(select(AcademicYear).where(AcademicYear.is_current.is_(True)))
-    existing = db.scalar(select(MentorAssignment).where(
-        MentorAssignment.student_id == student_id,
-        MentorAssignment.academic_year_id == (year.id if year else None),
-    ))
-    previous_faculty_id = existing.faculty_id if existing else None
-    if existing:
-        existing.faculty_id = faculty_id
-        existing.is_active = True
-        existing.assigned_by_user_id = user.id
-        existing.assigned_at = utcnow()
-    else:
-        db.add(MentorAssignment(
-            student_id=student_id, faculty_id=faculty_id,
-            academic_year_id=year.id if year else None,
-            assigned_by_user_id=user.id, assigned_at=utcnow(),
-        ))
+    # One active mentor per student, in any year: the old one is retired.
+    result = mentoring.assign(db, student, faculty, actor_user_id=user.id, now=utcnow())
+    previous_faculty_id = result.previous_faculty_id
 
     notifications.notify(
         db, user_id=student.user_id, type=NotificationType.MENTOR_ANNOUNCEMENT,

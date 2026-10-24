@@ -195,6 +195,11 @@ and each is enforced in one place.
   someone a coordinator, a mentor, a group lead or a student's mentor asks
   `scope.assert_can_hold_scoped_role` / `scope.assert_can_mentor` first. A new
   route that assigns a mentor must ask too.
+- **One active faculty mentor per student, in any academic year**
+  (`services/mentoring.assign`, confirmed by the project owner 24 Oct 2026,
+  QA-15). Assigning a new mentor retires the old assignment, which stays as
+  inactive history; a partial unique index (migration 0019) refuses a second
+  active row. Never create a `MentorAssignment` outside that service.
 - **The HoD reads their department and changes nothing** (`scope.oversees`).
   Read routes may admit them; a write route must still ask `coordinates()`,
   which an HoD never satisfies.

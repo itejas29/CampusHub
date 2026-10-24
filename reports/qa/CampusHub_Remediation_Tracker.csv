@@ -1,0 +1,24 @@
+id,severity,title,status_19oct,status_now,batch,fix_location,regression_test,verified_on,remaining_risk
+QA-01,High,Minor oversubscribed under simultaneous allocations,Fixed and verified,Fixed (re-verification in Phase D),,app/db/locking.py; services/minors.py,app/tests/test_pg_concurrency.py,,
+QA-02,Medium,Event confirms more registrations than capacity,Fixed and verified,Fixed (re-verification in Phase D),,app/db/locking.py; api/v1/events.py,app/tests/test_pg_concurrency.py,,
+QA-03,Medium,Mentor cap exceeded by simultaneous assignments,Fixed and verified (script),Fixed (needs a permanent test in Phase D),,services/internships.py,reports/qa/tools/race_mentor_cap.py (script only),,No automated test yet
+QA-04,Low,Simultaneous preference submissions answered 500,Fixed and verified (script),Fixed (needs a permanent test in Phase D),,api/v1/electives.py,reports/qa/tools/race_preferences.py (script only),,No automated test yet
+QA-05,Low,Seat counters read-modify-write in manual allocation / sections / NPTEL,Fixed preventively,Fixed preventively (not reproduced),,api/v1/electives.py; services/sections.py; api/v1/mooc.py,,,Never reproduced
+QA-06,High,Mentee list N+1 queries,Fixed and verified,Fixed (re-verification in Phase D),,api/v1/mentorship.py,app/tests/test_query_counts.py,,
+QA-07,Medium,Coordinator portfolio loaded every assignment,Fixed and verified (profile),Fixed (re-verification in Phase D),,api/v1/dashboard.py,app/tests/test_query_counts.py,,
+QA-08,Medium,Faculty score loaded accounts per item,Fixed and verified (profile),Fixed (re-verification in Phase D),,services/faculty_scoring.py,app/tests/test_query_counts.py,,
+QA-09,Medium,Login timing revealed existing emails,Fixed and verified,Fixed (re-verification in Phase D),,services/accounts.py; api/v1/auth.py,app/tests/test_account_security.py,,
+QA-10,High,Sign-in burst starves the portal,Mitigated,Mitigated (capacity of one process remains),,api/v1/auth.py,,,Infrastructure decision (QA-18 / Phase F)
+QA-11,Low,NUL byte answered 500 on PostgreSQL,Fixed and verified,Fixed (re-verification in Phase D),,app/core/hardening.py,app/tests/test_hardening.py,,
+QA-12,Medium,API responses carried no security headers,Fixed for API,Fixed for API; frontend is QA-19,,app/core/hardening.py,app/tests/test_hardening.py,,
+QA-13,Low,API docs public in production,Fixed,Fixed (re-verification in Phase D),,app/main.py,,,Not exercised against production
+QA-14,Low,Five data-changing routes wrote no audit row,Fixed,Fixed (re-verification in Phase D),,api/v1/clubs.py; api/v1/files.py,,,
+QA-15,Medium,Two active mentors per student possible,Open,Fixed — awaiting merge,C1,services/mentoring.py; alembic 0019_one_active_mentor; models/engagement.py,app/tests/test_mentor_one_active.py (14 incl. PostgreSQL concurrency + migration),Local SQLite + isolated PostgreSQL 16 (24 Oct 2026),Live DB not checked for duplicates: run app.seed.report_mentor_duplicates before merging
+QA-16,Medium,Internship student list unpaginated,Open,In progress,C2,,,,
+QA-17,Low,Score recomputes the whole department per call,Open,Open,C6,,,,
+QA-18,Low,No request timeout or load shedding,Open,Open,C6,,,,Partly infrastructure
+QA-19,Medium,Frontend sends no security headers,Open,Open,C5,,,,Changes the live site: needs owner approval
+QA-20,Info,CI runs SQLite only,Open,Open,C3,,,,
+QA-21,Info,12 server defaults not declared in models,Informational,Open,C6,,,,
+QA-22,Low,Chatbot button overlaps content on phones,Open,Open,C4,,,,
+QA-23,Low,SQLite zone-less times under a lock,Fixed and verified,Fixed (re-verification in Phase D),,app/db/locking.py,,,
