@@ -29,6 +29,15 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = 5432
     DATABASE_URL: str | None = None
 
+    # --- overload (QA-18; see core/overload.py) -----------------------------
+    #: PostgreSQL cancels a statement running longer than this (0 = no limit).
+    DB_STATEMENT_TIMEOUT_MS: int = 30_000
+    #: The longest a request waits for a database connection, in seconds.
+    DB_POOL_TIMEOUT_S: int = 30
+    #: Requests running at once before new ones are answered 503 (0 = no
+    #: limit). Choose it from the staging load test.
+    MAX_IN_FLIGHT_REQUESTS: int = 0
+
     # --- auth ---------------------------------------------------------------
     SECRET_KEY: str = _DEV_SECRET
     ALGORITHM: str = "HS256"

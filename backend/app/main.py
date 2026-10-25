@@ -9,6 +9,7 @@ from app.api.v1 import api_router
 from app.core.config import settings
 from app.core.errors import register_exception_handlers
 from app.core.hardening import HardeningMiddleware
+from app.core.overload import LoadShedMiddleware, register_overload_handlers
 
 DESCRIPTION = """
 CampusHub — PDEU centralised student portal.
@@ -36,6 +37,10 @@ app = FastAPI(
     openapi_url="/openapi.json" if _DOCS else None,
 )
 
+# Innermost of the three: a request shed for overload still gets CORS and
+# security headers, so the browser can read the 503 (QA-18).
+app.add_middleware(LoadShedMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -51,6 +56,7 @@ app.add_middleware(
 app.add_middleware(HardeningMiddleware)
 
 register_exception_handlers(app)
+register_overload_handlers(app)
 
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 

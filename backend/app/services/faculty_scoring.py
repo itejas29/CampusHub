@@ -29,7 +29,7 @@ import datetime as dt
 from collections import defaultdict
 from dataclasses import dataclass, field
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import settings
@@ -191,22 +191,54 @@ def is_scorable(faculty: Faculty) -> bool:
 
 
 def department_scores(db: Session, department_id: int, *, now: dt.datetime | None = None,
-                      period_days: int | None = None) -> dict[int, Score]:
-    """Scores for every active faculty member of one department."""
+                      period_days: int | None = None,
+                      faculty_ids: set[int] | None = None) -> dict[int, Score]:
+    """Scores for every active faculty member of one department, or only for
+    `faculty_ids` among them.
+
+    Only work that can be credited to someone being scored is read: records
+    they mentor or whose group they lead, and anything they reviewed. Every
+    other row would be skipped anyway, so the scores are the same; reading the
+    whole institution's work on every call was QA-17.
+    """
     now = now or utcnow()
     since = now - dt.timedelta(days=period_days or POLICY["period_days"])
-    faculty = [f for f in db.scalars(select(Faculty).where(
+    department = [f for f in db.scalars(select(Faculty).where(
         Faculty.department_id == department_id, Faculty.is_active.is_(True))
         .options(selectinload(Faculty.user).selectinload(User.role_links))) if is_scorable(f)]
+    faculty = [f for f in department if faculty_ids is None or f.id in faculty_ids]
     scores = {f.id: Score(faculty_id=f.id) for f in faculty}
     if not scores:
         return scores
-    faculty_by_user = {f.user_id: f.id for f in faculty}
+    # Work is credited to its reviewer when the reviewer is a scored colleague,
+    # else to the mentor — so the whole department is needed to place a review,
+    # even when only one person is being scored.
+    faculty_by_user = {f.user_id: f.id for f in department}
+    user_of = {f.id: f.user_id for f in faculty}
 
     # Who answers for each enrollment while work waits: its mentor, else the
-    # faculty in charge of its group.
-    enrollments = {e.id: e for e in db.scalars(select(InternshipEnrollment))}
-    group_lead = dict(db.execute(select(InternshipGroup.id, InternshipGroup.faculty_id)).all())
+    # faculty in charge of its group. A record whose mentor or lead is not
+    # being scored credits nobody here unless one of them reviewed it.
+    group_lead = dict(db.execute(select(InternshipGroup.id, InternshipGroup.faculty_id)
+                                 .where(InternshipGroup.faculty_id.in_(list(scores)))).all())
+    relevant = or_(InternshipEnrollment.mentor_faculty_id.in_(list(scores)),
+                   InternshipEnrollment.group_id.in_(list(group_lead)))
+    relevant_ids = select(InternshipEnrollment.id).where(relevant)
+    enrollments = {e.id: e for e in db.scalars(select(InternshipEnrollment).where(relevant))}
+
+    def work(model):
+        return or_(model.enrollment_id.in_(relevant_ids),
+                   model.reviewed_by_user_id.in_(list(user_of.values())))
+
+    stage_rows = list(db.scalars(select(EnrollmentStageProgress).where(
+        EnrollmentStageProgress.submitted_at.is_not(None),
+        EnrollmentStageProgress.status.in_([StageStatus.SUBMITTED, StageStatus.APPROVED,
+                                            StageStatus.REJECTED]),
+        work(EnrollmentStageProgress))))
+    report_rows = list(db.scalars(select(InternshipReport).where(
+        InternshipReport.submitted_at.is_not(None), work(InternshipReport))))
+    document_rows = list(db.scalars(select(InternshipDocument).where(
+        InternshipDocument.submitted_at.is_not(None), work(InternshipDocument))))
 
     def responsible(enrollment_id: int) -> int | None:
         e = enrollments.get(enrollment_id)
@@ -216,10 +248,13 @@ def department_scores(db: Session, department_id: int, *, now: dt.datetime | Non
 
     # One query for every label. Loading each student's account per scored
     # item was ~260 queries a call (QA query profile, 10k-student dataset).
+    labelled = set(enrollments) | {r.enrollment_id for rows in (stage_rows, report_rows,
+                                                                 document_rows) for r in rows}
     names = {eid: f"{name} ({roll})" for eid, name, roll in db.execute(
         select(InternshipEnrollment.id, User.full_name, Student.roll_number)
         .join(Student, Student.id == InternshipEnrollment.student_id)
-        .join(User, User.id == Student.user_id))}
+        .join(User, User.id == Student.user_id)
+        .where(InternshipEnrollment.id.in_(list(labelled))))}
 
     def student_name(enrollment_id: int) -> str:
         return names.get(enrollment_id, "a student")
@@ -243,44 +278,48 @@ def department_scores(db: Session, department_id: int, *, now: dt.datetime | Non
                                 label=f"{what} — {student_name(enrollment_id)}"))
 
     stage_names = dict(db.execute(select(InternshipStage.id, InternshipStage.name)).all())
-    for row in db.scalars(select(EnrollmentStageProgress).where(
-            EnrollmentStageProgress.submitted_at.is_not(None),
-            EnrollmentStageProgress.status.in_([StageStatus.SUBMITTED, StageStatus.APPROVED,
-                                                StageStatus.REJECTED]))):
+    for row in stage_rows:
         credit(row.enrollment_id, row.reviewed_by_user_id, row.submitted_at,
                row.reviewed_at if row.status != StageStatus.SUBMITTED else None,
                f"Milestone “{stage_names.get(row.stage_id, 'stage')}”")
-    for row in db.scalars(select(InternshipReport).where(InternshipReport.submitted_at.is_not(None))):
+    for row in report_rows:
         reviewed = row.reviewed_at if row.status != SubmissionStatus.SUBMITTED else None
         credit(row.enrollment_id, row.reviewed_by_user_id, row.submitted_at, reviewed,
                f"Report #{row.sequence_number}")
-    for row in db.scalars(select(InternshipDocument).where(InternshipDocument.submitted_at.is_not(None))):
+    for row in document_rows:
         reviewed = row.reviewed_at if row.status not in (SubmissionStatus.SUBMITTED,) else None
         credit(row.enrollment_id, row.reviewed_by_user_id, row.submitted_at, reviewed,
                f"Document “{row.title or row.document_type.value.title()}”")
 
     # Marks: due by the close of each presentation window that has closed.
+    # The mentors' own evaluations are loaded once (a query per student was QA-17).
+    mentored = [e for e in enrollments.values() if e.mentor_faculty_id in scores]
+    programs = {e.program_id for e in mentored}
+    evaluations: dict[tuple[int, int], InternshipEvaluation] = {}
+    for ev in db.scalars(select(InternshipEvaluation).where(
+            InternshipEvaluation.enrollment_id.in_([e.id for e in mentored]),
+            InternshipEvaluation.evaluator_user_id.in_(list(user_of.values())))
+            .order_by(InternshipEvaluation.id)):
+        evaluations.setdefault((ev.enrollment_id, ev.evaluator_user_id), ev)
+    program_codes = dict(db.execute(select(InternshipProgram.id, InternshipProgram.code)
+                                    .where(InternshipProgram.id.in_(list(programs)))).all())
     for window in db.scalars(select(InternshipWindow).where(
-            InternshipWindow.kind == InternshipWindowKind.PRESENTATION)):
+            InternshipWindow.kind == InternshipWindowKind.PRESENTATION,
+            InternshipWindow.program_id.in_(list(programs)))):
         deadline = _aware(window.closed_early_at) or _aware(window.closes_at)
         if deadline is None or deadline > now or deadline < since:
             continue
-        program = db.get(InternshipProgram, window.program_id)
-        for e in (x for x in enrollments.values() if x.program_id == window.program_id):
+        code = program_codes.get(window.program_id)
+        for e in (x for x in mentored if x.program_id == window.program_id):
             owner = e.mentor_faculty_id
-            if owner not in scores:
-                continue
-            mentor = db.get(Faculty, owner)
-            ev = db.scalar(select(InternshipEvaluation).where(
-                InternshipEvaluation.enrollment_id == e.id,
-                InternshipEvaluation.evaluator_user_id == mentor.user_id))
+            ev = evaluations.get((e.id, user_of[owner]))
             done = (ev is not None and ev.status in (EvaluationStatus.SUBMITTED, EvaluationStatus.FINALISED)
                     and ev.submitted_at is not None and _aware(ev.submitted_at) <= deadline)
             scores[owner].add(Entry(
                 when=deadline, category="MARKS",
                 outcome="ON_TIME" if done else "MISSED",
                 points=POLICY["marks_on_time"] if done else POLICY["marks_missed"],
-                label=f"Marks for {student_name(e.id)} — {program.code if program else 'programme'}"))
+                label=f"Marks for {student_name(e.id)} — {code or 'programme'}"))
 
     # Meeting requests.
     for m in db.scalars(select(MentorMeeting).where(MentorMeeting.faculty_id.in_(scores.keys()))):
@@ -301,5 +340,7 @@ def department_scores(db: Session, department_id: int, *, now: dt.datetime | Non
 
 
 def faculty_score(db: Session, faculty: Faculty, **kwargs) -> Score:
-    return department_scores(db, faculty.department_id, **kwargs).get(
-        faculty.id, Score(faculty_id=faculty.id))
+    """One faculty member's score: their row of the department's, without
+    scoring every colleague to find it."""
+    return department_scores(db, faculty.department_id, faculty_ids={faculty.id},
+                             **kwargs).get(faculty.id, Score(faculty_id=faculty.id))

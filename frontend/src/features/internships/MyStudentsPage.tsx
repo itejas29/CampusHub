@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { UserCheck, Users } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Form";
 import { Avatar, PageHeader, SearchInput } from "@/components/ui/Misc";
@@ -11,7 +12,7 @@ import { ErrorState, LoadingState } from "@/components/ui/States";
 import { TBody, TD, TH, THead, TR, TableEmpty, TableWrap } from "@/components/ui/Table";
 import { api, qs } from "@/lib/api";
 import { roman } from "@/lib/utils";
-import type { EnrollmentSummary, InternshipProgram } from "@/types";
+import type { EnrollmentSummary, InternshipProgram, Page } from "@/types";
 import { StudentDetailDrawer } from "./StudentDetailDrawer";
 
 interface Props {
@@ -24,10 +25,21 @@ interface Props {
   description?: string;
 }
 
+const PAGE_SIZE = 50;
+
 export function MyStudentsPage({ scope = "mine", programType, title, description }: Props) {
   const [programId, setProgramId] = useState<string>("");
   const [status, setStatus] = useState<string>("");
   const [search, setSearch] = useState("");
+  // The list comes a page at a time; search and filters run on the server, so
+  // a cohort of any size costs one page (QA-16).
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => setQuery(search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+  useEffect(() => { setPage(1); }, [query, programId, status, scope]);
   // The open record lives in the URL (?record=), so a review link from the
   // dashboard or a notification lands on that student's drawer, and Back closes it.
   const [searchParams, setSearchParams] = useSearchParams();
@@ -53,30 +65,30 @@ export function MyStudentsPage({ scope = "mine", programType, title, description
     [programs.data, programType],
   );
 
+  const types = programType ? (Array.isArray(programType) ? programType : [programType]) : [];
   const enrollments = useQuery({
-    queryKey: ["internship-enrollments", scope, String(programType ?? ""), programId, status],
+    queryKey: ["internship-enrollments", "page", scope, types.join(","), programId, status,
+      query, page],
     queryFn: () =>
-      api.get<EnrollmentSummary[]>(
-        `/internships/enrollments${qs({
+      api.get<Page<EnrollmentSummary>>(
+        `/internships/enrollments/page${qs({
           mine: scope === "mine" ? true : undefined,
           program_id: programId || undefined,
           status: status || undefined,
+          program_types: types.length ? types.join(",") : undefined,
+          q: query || undefined,
+          page,
+          page_size: PAGE_SIZE,
         })}`,
       ),
+    placeholderData: (previous) => previous,
   });
 
-  const rows = useMemo(() => {
-    const allowed = new Set(typedPrograms.map((p) => p.id));
-    let list = enrollments.data ?? [];
-    if (programType) list = list.filter((row) => allowed.has(row.program_id));
-    const needle = search.trim().toLowerCase();
-    if (!needle) return list;
-    return list.filter((row) =>
-      `${row.student_name} ${row.roll_number} ${row.organization_name ?? ""}`
-        .toLowerCase()
-        .includes(needle),
-    );
-  }, [enrollments.data, search, programType, typedPrograms]);
+  const rows = enrollments.data?.items ?? [];
+  const total = enrollments.data?.total ?? 0;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const first = total ? (page - 1) * PAGE_SIZE + 1 : 0;
+  const last = Math.min(page * PAGE_SIZE, total);
 
   const isCoordinatorView = scope === "all";
 
@@ -109,7 +121,7 @@ export function MyStudentsPage({ scope = "mine", programType, title, description
 
       <Card>
         <CardHeader
-          title={`${rows.length} student${rows.length === 1 ? "" : "s"}`}
+          title={`${total} student${total === 1 ? "" : "s"}`}
           icon={<Users className="h-4 w-4 text-ink-subtle" aria-hidden />}
           action={
             <div className="flex flex-wrap items-center gap-2">
@@ -224,6 +236,18 @@ export function MyStudentsPage({ scope = "mine", programType, title, description
               )}
             </TBody>
           </TableWrap>
+        )}
+        {total > PAGE_SIZE && (
+          <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-3 text-sm">
+            <span className="text-ink-muted">Showing {first}–{last} of {total}</span>
+            <div className="flex gap-2">
+              <Button size="sm" variant="secondary" disabled={page <= 1}
+                      onClick={() => setPage((n) => Math.max(1, n - 1))}>Previous</Button>
+              <span className="self-center text-ink-muted">Page {page} of {pages}</span>
+              <Button size="sm" variant="secondary" disabled={page >= pages}
+                      onClick={() => setPage((n) => Math.min(pages, n + 1))}>Next</Button>
+            </div>
+          </div>
         )}
       </Card>
 

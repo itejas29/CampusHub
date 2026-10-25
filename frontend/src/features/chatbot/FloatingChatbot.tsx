@@ -186,7 +186,12 @@ export function FloatingChatbot() {
   if (!user) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 select-none">
+    // Phones: smaller and tucked into the corner, clear of the home indicator;
+    // AppShell pads the page bottom so the last card scrolls above it (QA-22).
+    <div
+      data-testid="chatbot-dock"
+      className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 z-50 select-none sm:bottom-6 sm:right-6"
+    >
       {/* Floating Trigger Button */}
       <AnimatePresence>
         {!isOpen && (
@@ -198,7 +203,7 @@ export function FloatingChatbot() {
             whileHover={{ scale: 1.06 }}
             whileTap={{ scale: 0.94 }}
             onClick={() => setIsOpen(true)}
-            className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-tr from-accent via-iris to-violet text-white shadow-xl shadow-accent/25 transition-all focus:outline-none focus:ring-4 focus:ring-accent/30"
+            className="group relative flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-gradient-to-tr from-accent via-iris to-violet text-white shadow-xl shadow-accent/25 transition-all focus:outline-none focus:ring-4 focus:ring-accent/30"
             aria-label="Open CampusBot Assistant"
             title="CampusHub Academic & Coordination Assistant"
           >

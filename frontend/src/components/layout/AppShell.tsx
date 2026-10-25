@@ -65,7 +65,7 @@ export function AppShell() {
           collapsed={sidebarCollapsed}
           onToggleCollapse={toggleSidebar}
         />
-        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 px-4 py-6 outline-none sm:px-6 sm:py-7">
+        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 px-4 pb-24 pt-6 outline-none sm:px-6 sm:py-7">
           <div className="mx-auto w-full max-w-[84rem]">
             {/*
               Enter-only, deliberately. Wrapping <Outlet/> in an AnimatePresence
@@ -93,7 +93,7 @@ export function AppShell() {
             </motion.div>
           </div>
         </main>
-        <footer className="border-t border-line px-4 py-3 sm:px-6">
+        <footer className="border-t border-line py-3 pl-4 pr-20 sm:px-6">
           <p className="text-xs text-ink-subtle">
             CampusHub · Pandit Deendayal Energy University, Gandhinagar
           </p>
