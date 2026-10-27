@@ -108,7 +108,7 @@ export function FocusBanner({
       </span>
       <div className="min-w-0 flex-1">
         <p className="font-heading text-base font-semibold leading-snug text-ink break-anywhere">{title}</p>
-        {description && <p className="mt-0.5 text-sm text-ink-muted">{description}</p>}
+        {description && <p className="mt-0.5 text-sm text-ink-muted break-anywhere">{description}</p>}
       </div>
       {action && <div className="shrink-0">{action}</div>}
     </section>

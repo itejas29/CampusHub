@@ -7,7 +7,8 @@ export type Tone =
 const TONES: Record<Tone, string> = {
   neutral: "bg-surface-muted text-ink-muted border-line",
   brand: "bg-brand-soft text-brand border-brand/20",
-  accent: "bg-accent-soft text-accent border-accent/20",
+  // accent-hover, not accent: 5.5:1 on the soft surface rather than 4.3:1.
+  accent: "bg-accent-soft text-accent-hover border-accent/20",
   success: "bg-success-soft text-success border-success/20",
   warning: "bg-warning-soft text-warning border-warning/20",
   danger: "bg-danger-soft text-danger border-danger/20",

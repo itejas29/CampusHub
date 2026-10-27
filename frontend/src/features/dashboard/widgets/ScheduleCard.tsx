@@ -117,11 +117,13 @@ export function ScheduleCard({ extra = [] }: { extra?: CalendarItem[] }) {
                 onClick={() => setSelected(isSelected ? null : day)}
                 className={cn(
                   "relative mx-auto flex h-9 w-9 cursor-pointer flex-col items-center justify-center rounded-lg text-xs tabular-nums transition-colors",
+                  // Out-of-month days are told apart by the grey token, not by
+                  // fading it: an alpha made them 2.3:1, unreadable.
                   isSelected
-                    ? "bg-iris font-semibold text-white"
+                    ? "bg-accent font-semibold text-accent-fg"
                     : isToday(day)
-                      ? "font-semibold text-iris ring-1 ring-inset ring-iris/40"
-                      : inMonth ? "text-ink hover:bg-surface-muted" : "text-ink-subtle/60 hover:bg-surface-muted",
+                      ? "font-semibold text-accent ring-1 ring-inset ring-accent/40"
+                      : inMonth ? "text-ink hover:bg-surface-muted" : "text-ink-subtle hover:bg-surface-muted",
                 )}
               >
                 {format(day, "d")}

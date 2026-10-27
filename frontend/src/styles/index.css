@@ -22,7 +22,7 @@
     /* Text */
     --c-ink: 17 24 39;                /* #111827 */
     --c-ink-muted: 71 85 105;
-    --c-ink-subtle: 100 116 139;      /* #64748B */
+    --c-ink-subtle: 85 98 116;        /* #556274 — 5.9:1 on canvas, as MASTER.md says */
 
     /* Brand — PDEU institutional navy */
     --c-brand: 11 37 69;              /* #0B2545 */
@@ -52,7 +52,7 @@
     --c-warning: 180 83 9;
     --c-warning-solid: 217 119 6;     /* #D97706 */
     --c-warning-soft: 254 243 199;
-    --c-danger: 220 38 38;            /* #DC2626 */
+    --c-danger: 185 28 28;            /* #B91C1C — 5.9:1 on danger-soft */
     --c-danger-soft: 254 226 226;
     --c-danger-fg: 255 255 255;
     --c-info: 7 89 133;
