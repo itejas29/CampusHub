@@ -53,3 +53,47 @@ def test_every_calendar_time_carries_its_timezone(feed):
     a half hours off in India."""
     for item in feed():
         assert dt.datetime.fromisoformat(item["start_at"]).tzinfo is not None, item
+
+
+# ── what a caller may ask for ──────────────────────────────────────────────
+# The portal always sends an ISO time with its zone, but the endpoint is open to
+# anyone with a token, and a bad request must be refused, never crash.
+def _ask(api, world, login, query):
+    return api.get(f"/api/v1/calendar?{query}", headers=login(world.student_a.email))
+
+
+def test_a_range_without_a_timezone_is_read_as_utc_not_a_crash(feed, api, world, login):
+    """Regression (audit finding 3): a naive start was compared with the aware
+    internship deadline and the request failed with a 500."""
+    response = _ask(api, world, login, "start=2026-01-01T00:00:00&end=2099-01-01T00:00:00")
+    # The range is also too long, so it is refused — what matters is that it is
+    # a clean 4xx, and a sane naive range works:
+    assert response.status_code == 422
+    start = (NOW - dt.timedelta(days=1)).replace(tzinfo=None).isoformat()
+    end = (NOW + dt.timedelta(days=30)).replace(tzinfo=None).isoformat()
+    ok = _ask(api, world, login, f"start={start}&end={end}")
+    assert ok.status_code == 200, ok.text
+    assert [i["title"] for i in ok.json()] == ["Orientation", "CSSI — final submission"]
+
+
+def test_a_range_longer_than_a_year_and_a_bit_is_refused(feed, api, world, login):
+    """Audit finding 4: a 100-year range was accepted and would scan every row."""
+    response = _ask(api, world, login,
+                    "start=1990-01-01T00:00:00Z&end=2090-01-01T00:00:00Z")
+    assert response.status_code == 422
+    assert "400 days" in response.json()["error"]["message"]
+
+
+def test_the_portals_own_ranges_are_accepted(feed, api, world, login):
+    """The month grid and the dashboard's 60-day look-ahead must keep working."""
+    start = (NOW - dt.timedelta(days=40)).isoformat().replace("+00:00", "Z")
+    end = (NOW + dt.timedelta(days=65)).isoformat().replace("+00:00", "Z")
+    assert _ask(api, world, login, f"start={start}&end={end}").status_code == 200
+    assert api.get("/api/v1/calendar",
+                   headers=login(world.student_a.email)).status_code == 200
+
+
+def test_an_end_before_the_start_is_refused(feed, api, world, login):
+    response = _ask(api, world, login,
+                    "start=2026-12-01T00:00:00Z&end=2026-01-01T00:00:00Z")
+    assert response.status_code == 422

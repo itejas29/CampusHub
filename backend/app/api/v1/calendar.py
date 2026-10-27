@@ -9,6 +9,7 @@ from fastapi import APIRouter, Query
 from sqlalchemy import or_, select
 
 from app.core.deps import CurrentUser, DbSession
+from app.core.errors import ValidationError
 from app.models.academics import CourseOffering, CurriculumComponent
 from app.models.community import Event, EventRegistration
 from app.models.engagement import MentorMeeting
@@ -20,6 +21,10 @@ from app.schemas.community import CalendarItem
 
 router = APIRouter(prefix="/calendar", tags=["calendar"])
 
+#: The longest span one request may cover. The month grid asks for six weeks and
+#: the dashboard for about three months; the default is 150 days.
+MAX_RANGE = dt.timedelta(days=400)
+
 
 @router.get("", response_model=list[CalendarItem])
 def calendar(
@@ -28,8 +33,15 @@ def calendar(
     end: dt.datetime | None = Query(None),
 ) -> list[CalendarItem]:
     now = dt.datetime.now(dt.timezone.utc)
-    start = start or now - dt.timedelta(days=30)
-    end = end or now + dt.timedelta(days=120)
+    # A time without a zone is UTC, like everything the app stores. Left naive
+    # it cannot be compared with the deadlines built below (a 500 before).
+    start = _utc(start) or now - dt.timedelta(days=30)
+    end = _utc(end) or now + dt.timedelta(days=120)
+    if end < start:
+        raise ValidationError("The end of the range is before its start.")
+    if end - start > MAX_RANGE:
+        raise ValidationError(
+            f"Ask for at most {MAX_RANGE.days} days at a time.")
     items: list[CalendarItem] = []
 
     student = db.scalar(select(Student).where(Student.user_id == user.id))
