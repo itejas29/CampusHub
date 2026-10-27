@@ -195,13 +195,18 @@ def matrix(
                     coordinators=[_load(db, a) for a in leads],
                     mentors=[_load(db, a) for a in guides],
                 ))
-            # A gap is an *uncoordinated* module: mentors alone do not cover it.
-            if not leads:
+            # A gap is an *uncoordinated* module: mentors alone do not cover it,
+            # nor does an assignment whose dates have run out.
+            if not any(a.is_current() for a in leads):
+                head = (db.get(Faculty, department.hod_faculty_id)
+                        if department.hod_faculty_id else None)
                 gaps.append({
                     "domain": domain.value, "domain_label": DOMAIN_LABELS[domain],
                     "department_id": department.id,
                     "department_code": department.code,
                     "department_name": department.name,
+                    # The HoD covers it until someone is appointed (scope.acting_seats).
+                    "acting_hod": head.user.full_name if head else None,
                 })
 
     # Per-faculty roll-up: every faculty member and what they hold.
@@ -373,6 +378,12 @@ def revoke(
             if link:
                 db.delete(link)
 
+    if assignment.role is AssignedRole.COORDINATOR:
+        db.flush()
+        # The last coordinator gone, the module falls to the HoD — tell them.
+        scope.notify_if_seat_falls_to_hod(db, assignment.domain, assignment.department_id,
+                                          label=DOMAIN_LABELS[assignment.domain])
+
     notifications.notify(
         db, user_id=faculty.user_id, type=NotificationType.SYSTEM,
         title=f"{DOMAIN_LABELS[assignment.domain]} "
@@ -440,6 +451,7 @@ def edit(
                 "That faculty member already holds this role for that scope."
             )
 
+    was_department_id = assignment.department_id
     for field, value in changes.items():
         setattr(assignment, field, value)
 
@@ -448,6 +460,14 @@ def edit(
             and assignment.role is AssignedRole.COORDINATOR
             and assignment.domain in INTERNSHIP_DOMAINS):
         _sync_internship_role(db, assignment)
+
+    # Switched off, ended or moved away: the seat it held may now be empty.
+    if assignment.role is AssignedRole.COORDINATOR and (
+            {"is_active", "ends_on", "starts_on"} & changes.keys()
+            or "department_id" in changes):
+        db.flush()
+        scope.notify_if_seat_falls_to_hod(db, assignment.domain, was_department_id,
+                                          label=DOMAIN_LABELS[assignment.domain])
 
     audit.record(
         db, action=AuditAction.UPDATE, entity_type="faculty_role_assignment",

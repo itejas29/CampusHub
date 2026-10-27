@@ -77,13 +77,21 @@ def require_roles(*roles: Role) -> Callable[[User], User]:
     return _guard
 
 
-def require_permission(permission: str) -> Callable[[User], User]:
-    def _guard(user: CurrentUser) -> User:
-        if not has_permission(user.roles, permission):
-            raise PermissionDeniedError(
-                f"You do not have the '{permission}' permission."
-            )
-        return user
+def require_permission(permission: str) -> Callable[..., User]:
+    def _guard(db: DbSession, user: CurrentUser) -> User:
+        if has_permission(user.roles, permission):
+            return user
+        # A Head of Department covering a seat nobody holds gets what being
+        # appointed to it would give (`scope.acting_permissions`). Only an HoD
+        # pays the lookup; the handler still narrows to the seat's own scope.
+        if user.has_role(Role.HOD):
+            from app.services import scope as scope_service
+
+            if permission in scope_service.acting_permissions(db, user):
+                return user
+        raise PermissionDeniedError(
+            f"You do not have the '{permission}' permission."
+        )
 
     return _guard
 

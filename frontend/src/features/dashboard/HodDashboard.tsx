@@ -94,7 +94,7 @@ export function HodDashboard({ departmentCode }: { departmentCode?: string }) {
           <Card>
             <CardHeader
               title="Who runs each module"
-              description="You appoint these. A module with mentors but no coordinator is still uncovered."
+              description="You appoint these. Until you do, you run any module that has no coordinator yourself."
               icon={<ShieldCheck className="h-4 w-4 text-ink-subtle" aria-hidden />}
               action={<CardAction to="/admin/roles" label="Manage coordinators">Manage</CardAction>}
             />
@@ -120,6 +120,12 @@ export function HodDashboard({ departmentCode }: { departmentCode?: string }) {
                             </li>
                           ))}
                         </ul>
+                      ) : module.covered_by_hod ? (
+                        // Nobody appointed: the HoD runs it until someone is.
+                        <span className="flex flex-wrap items-center gap-1.5">
+                          <Badge tone="accent">Head of Department (acting)</Badge>
+                          <span className="text-xs text-ink-subtle">until a coordinator is appointed</span>
+                        </span>
                       ) : (
                         <Badge tone="warning">No coordinator</Badge>
                       )}
@@ -138,7 +144,7 @@ export function HodDashboard({ departmentCode }: { departmentCode?: string }) {
           <Card>
             <CardHeader
               title="Elective registration rounds"
-              description="Opened, extended and locked by the module's coordinator. You can see them; you cannot change them."
+              description="Opened, extended and locked by the module's coordinator — by you, for a module you are covering."
               icon={<BookOpen className="h-4 w-4 text-ink-subtle" aria-hidden />}
             />
             {data.rounds.length === 0 ? (

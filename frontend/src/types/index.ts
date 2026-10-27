@@ -23,6 +23,8 @@ export interface Coordination {
   department_code: string | null;
   department_name: string | null;
   is_institution_wide: boolean;
+  /** The HoD covering a seat nobody is appointed to — not an appointment. */
+  acting?: boolean;
 }
 
 export interface FacultyContext {
@@ -84,7 +86,9 @@ export interface RoleMatrix {
   domains: string[];
   coverage: DomainCoverage[];
   gaps: { domain: string; domain_label: string; department_id: number;
-          department_code: string; department_name: string }[];
+          department_code: string; department_name: string;
+          /** The department's HoD, who covers the module until someone is appointed. */
+          acting_hod?: string | null }[];
   faculty_summary: FacultyRoleSummary[];
 }
 
@@ -921,6 +925,8 @@ export interface HodDashboard {
     coordinators: { assignment_id: number; faculty_id: number; name: string;
       designation: string }[];
     mentor_count: number; is_covered: boolean;
+    /** Nobody is appointed, so the HoD runs it until someone is. */
+    covered_by_hod?: boolean;
   }[];
   rounds: {
     id: number; code: string; title: string; component_type: string; status: string;

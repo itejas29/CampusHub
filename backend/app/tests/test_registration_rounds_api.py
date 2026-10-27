@@ -363,8 +363,13 @@ def test_the_coordinator_is_offered_only_the_slots_of_their_own_family_and_depar
     assert [s["code"] for s in core] == ["PE1"]
     assert api.get("/api/v1/electives/admin/slots",
                    headers=login(campus.open_cse.email)).json() == []
-    assert api.get("/api/v1/electives/admin/slots",
-                   headers=login(campus.hod.email)).status_code == 403
+    # Both elective seats in ICT have a coordinator, so the HoD is offered none
+    # of their slots. (They reach the screen at all because ICT has no NPTEL
+    # coordinator and the HoD covers that seat — CLAUDE.md, owner's decision of
+    # 27 Oct 2026. Before it, an HoD was refused outright.)
+    hod = api.get("/api/v1/electives/admin/slots", headers=login(campus.hod.email))
+    assert hod.status_code == 200, hod.text
+    assert hod.json() == []
 
 
 def test_a_round_with_no_courses_cannot_open(api, login, campus):

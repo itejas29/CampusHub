@@ -195,9 +195,19 @@ and each is enforced in one place.
   someone a coordinator, a mentor, a group lead or a student's mentor asks
   `scope.assert_can_hold_scoped_role` / `scope.assert_can_mentor` first. A new
   route that assigns a mentor must ask too.
-- **The HoD reads their department and changes nothing** (`scope.oversees`).
-  Read routes may admit them; a write route must still ask `coordinates()`,
-  which an HoD never satisfies.
+- **The HoD reads their department, and runs only the modules nobody
+  coordinates** (`scope.oversees`, `scope.acting_seats`). Decided by the project
+  owner on 27 Oct 2026: removing the last coordinator used to stop the module.
+  Now, while a department has no current Coordinator for a module (an
+  institution-wide one counts; a Mentor does not), its HoD acts as that
+  coordinator — computed on every `coordinates()` check, **never stored**, so
+  appointing anyone ends it. An acting HoD gets exactly what an appointment
+  would: the same scope, and for an internship seat the internship
+  coordinator's permissions (`scope.acting_permissions`, honoured by
+  `require_permission` and `/auth/me`). Read routes may admit any HoD; a write
+  route must still ask `coordinates()`, which an HoD satisfies only for an
+  empty seat in their own department. The HoD is notified when a seat falls to
+  them (`scope.notify_if_seat_falls_to_hod`).
 
 ### One elective family, one department
 

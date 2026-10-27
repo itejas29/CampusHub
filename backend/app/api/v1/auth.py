@@ -12,7 +12,6 @@ from sqlalchemy import func, select
 from app.core.config import settings
 from app.core.deps import CurrentUser, DbSession, request_context
 from app.core.errors import AppError, AuthenticationError
-from app.core.rbac import permissions_for
 from app.core.security import (
     create_access_token, create_refresh_token, decode_token, verify_password,
 )
@@ -131,6 +130,7 @@ def build_current_user(db, user: User) -> CurrentUserOut:
                     department_code=c.department_code,
                     department_name=c.department_name,
                     is_institution_wide=c.is_institution_wide,
+                    acting=c.acting,
                 )
                 for c in scope.coordinations_for(db, user, AssignedRole.COORDINATOR)
             ],
@@ -143,7 +143,8 @@ def build_current_user(db, user: User) -> CurrentUserOut:
     return CurrentUserOut(
         id=user.id, email=user.email, full_name=user.full_name, phone=user.phone,
         avatar_url=user.avatar_url, is_active=user.is_active, roles=user.roles,
-        permissions=sorted(permissions_for(user.roles)),
+        # Includes what covering an empty seat brings an HoD (`scope.acting_seats`).
+        permissions=sorted(scope.effective_permissions(db, user)),
         student=student_ctx, faculty=faculty_ctx,
         academic_year=year.label if year else None,
         current_semester_label=(

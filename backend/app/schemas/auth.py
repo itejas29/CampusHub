@@ -57,6 +57,8 @@ class CoordinationOut(ORMModel):
     department_code: str | None = None
     department_name: str | None = None
     is_institution_wide: bool = False
+    #: The HoD covering a seat nobody is appointed to — not an appointment.
+    acting: bool = False
 
 
 class FacultyContext(ORMModel):

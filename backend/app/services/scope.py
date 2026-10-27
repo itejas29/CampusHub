@@ -13,7 +13,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.enums import (
-    INTERNSHIP_DOMAIN_FOR_TYPE, AssignedRole, CoordinationDomain, Role,
+    INTERNSHIP_DOMAIN_FOR_TYPE, INTERNSHIP_DOMAINS, AssignedRole, CoordinationDomain, Role,
 )
 from app.models.identity import (
     Department, Faculty, FacultyRoleAssignment, User, UserRole, assignments_for,
@@ -32,6 +32,8 @@ class Coordination:
     department_id: int | None
     department_code: str | None
     department_name: str | None
+    #: Not an appointment: the HoD covering a seat nobody holds (`acting_seats`).
+    acting: bool = False
 
     @property
     def is_institution_wide(self) -> bool:
@@ -48,7 +50,7 @@ def coordinations_for(db: Session, user: User,
     faculty = db.scalar(select(Faculty).where(Faculty.user_id == user.id))
     if faculty is None:
         return []
-    return [
+    held = [
         Coordination(
             role=a.role,
             domain=a.domain,
@@ -58,6 +60,15 @@ def coordinations_for(db: Session, user: User,
         )
         for a in assignments_for(faculty.role_assignments, role)
     ]
+    if role in (None, AssignedRole.COORDINATOR):
+        department = hod_department(db, user) if user.has_role(Role.HOD) else None
+        held += [
+            Coordination(role=AssignedRole.COORDINATOR, domain=domain,
+                         department_id=department.id, department_code=department.code,
+                         department_name=department.name, acting=True)
+            for domain in acting_seats(db, user)
+        ]
+    return held
 
 
 def coordinates(db: Session, user: User, domain: CoordinationDomain,
@@ -78,7 +89,10 @@ def coordinates(db: Session, user: User, domain: CoordinationDomain,
         if department_id is None or faculty.department_id == department_id:
             return True
 
-    return faculty.coordinates(domain, department_id)
+    if faculty.coordinates(domain, department_id):
+        return True
+    # An empty seat falls to the department's Head (`acting_seats`).
+    return domain in acting_seats(db, user, department_id)
 
 
 class MinorScopeRule(str):
@@ -279,7 +293,8 @@ def student_department_id(db: Session, student_id: int) -> int | None:
 #     only the coarse flag that carries the permissions, kept in step by
 #     `set_hod` and never consulted for *which* department;
 #   * the HoD appoints and removes that department's coordinators and mentors;
-#   * the HoD reads every module in the department and changes none of them;
+#   * the HoD reads every module in the department, and changes only those
+#     nobody is appointed to coordinate — acting until someone is (`acting_seats`);
 #   * the HoD holds no scoped role and has no mentees of any kind.
 def hod_department(db: Session, user: User) -> Department | None:
     """The department this user heads, if any."""
@@ -287,6 +302,94 @@ def hod_department(db: Session, user: User) -> Department | None:
     if faculty is None:
         return None
     return db.scalar(select(Department).where(Department.hod_faculty_id == faculty.id))
+
+
+def seat_is_vacant(db: Session, domain: CoordinationDomain, department_id: int) -> bool:
+    """No current Coordinator assignment covers `domain` in this department.
+
+    An institution-wide coordinator covers every department; a Mentor grant
+    covers none (Mentor and Coordinator are independent).
+    """
+    rows = db.scalars(select(FacultyRoleAssignment).where(
+        FacultyRoleAssignment.role == AssignedRole.COORDINATOR,
+        FacultyRoleAssignment.domain == domain,
+        FacultyRoleAssignment.is_active.is_(True),
+        (FacultyRoleAssignment.department_id == department_id)
+        | FacultyRoleAssignment.department_id.is_(None),
+    ))
+    return not any(a.is_current() for a in rows)
+
+
+def acting_seats(db: Session, user: User,
+                 department_id: int | None = None) -> list[CoordinationDomain]:
+    """The modules this user coordinates *as Head of Department*, because their
+    department has nobody appointed to them.
+
+    Decided by the project owner (27 Oct 2026): a seat left empty fell to nobody
+    but the registrar and the module stopped. Computed on every check, never
+    stored, so appointing anyone ends it and nothing is left behind.
+    `department_id`, when given, must be the HoD's own department.
+    """
+    # The coarse role is kept in step with the department pointer by `set_hod`,
+    # so nobody else pays a query for this.
+    if not user.has_role(Role.HOD):
+        return []
+    department = hod_department(db, user)
+    if department is None or (department_id is not None and department_id != department.id):
+        return []
+    held = {a.domain for a in db.scalars(select(FacultyRoleAssignment).where(
+        FacultyRoleAssignment.role == AssignedRole.COORDINATOR,
+        FacultyRoleAssignment.is_active.is_(True),
+        (FacultyRoleAssignment.department_id == department.id)
+        | FacultyRoleAssignment.department_id.is_(None),
+    )) if a.is_current()}
+    return [domain for domain in CoordinationDomain if domain not in held]
+
+
+def acting_permissions(db: Session, user: User) -> set[str]:
+    """What covering a seat adds to the HoD's permissions — exactly what being
+    appointed to it would add. Appointing an internship coordinator gives them
+    `Role.INTERNSHIP_COORDINATOR` (`api/v1/roles.assign`); no other domain adds
+    a role. Scope still narrows every action to the seats being covered."""
+    from app.core.rbac import ROLE_PERMISSIONS
+
+    if any(domain in INTERNSHIP_DOMAINS for domain in acting_seats(db, user)):
+        return set(ROLE_PERMISSIONS[Role.INTERNSHIP_COORDINATOR])
+    return set()
+
+
+def effective_permissions(db: Session, user: User) -> set[str]:
+    """The user's permissions, including any that covering a seat brings."""
+    from app.core.rbac import permissions_for
+
+    return permissions_for(user.roles) | acting_permissions(db, user)
+
+
+def notify_if_seat_falls_to_hod(db: Session, domain: CoordinationDomain,
+                                department_id: int | None, *, label: str) -> None:
+    """Tell a department's HoD that a module is now theirs to cover.
+
+    Called after a Coordinator assignment ends. An institution-wide assignment
+    ending can empty the seat in every department."""
+    from app.services import notifications
+    from app.models.enums import NotificationType
+
+    stmt = select(Department).where(Department.is_active.is_(True),
+                                    Department.hod_faculty_id.is_not(None))
+    if department_id is not None:
+        stmt = stmt.where(Department.id == department_id)
+    for department in db.scalars(stmt):
+        if not seat_is_vacant(db, domain, department.id):
+            continue
+        head = db.get(Faculty, department.hod_faculty_id)
+        notifications.notify(
+            db, user_id=head.user_id, type=NotificationType.SYSTEM,
+            title=f"You are now acting {label} coordinator for {department.code}",
+            message=(f"{department.code} has no {label} coordinator. As Head of "
+                     "Department you cover the module until someone is appointed; "
+                     "appointing a coordinator hands it over."),
+            link="/dashboard",
+        )
 
 
 def is_hod(db: Session, faculty: Faculty) -> bool:
@@ -299,7 +402,8 @@ def oversees(db: Session, user: User, department_id: int | None) -> bool:
     """May `user` *read* everything in this department?
 
     Reading is not managing: every write path still asks `coordinates()`, which
-    an HoD never satisfies, so oversight cannot be used to open or lock a round.
+    an HoD satisfies only for a seat nobody holds (`acting_seats`) — so
+    oversight alone cannot be used to open or lock a round.
     """
     if user.has_role(*UNSCOPED_ROLES):
         return True

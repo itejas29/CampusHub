@@ -413,6 +413,9 @@ def hod_dashboard(db: DbSession, user: CurrentUser,
             "mentor_count": sum(1 for a in held if a.role == AssignedRole.MENTOR),
             # Mentors alone do not run a module.
             "is_covered": bool(coordinators),
+            # Nobody appointed, so the HoD runs it until someone is (scope.acting_seats).
+            "covered_by_hod": (department.hod_faculty_id is not None
+                               and scope.seat_is_vacant(db, domain, department.id)),
         })
     uncovered = sum(1 for m in modules if not m["is_covered"])
 

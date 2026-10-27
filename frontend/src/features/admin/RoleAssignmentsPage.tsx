@@ -374,7 +374,7 @@ export function RoleAssignmentsPage() {
         <Card>
           <CardHeader
             title="Modules with no coordinator"
-            description="Nobody can approve or configure these until someone is assigned."
+            description="The department's Head runs each of these until someone is assigned."
             icon={<AlertTriangle className="h-4 w-4 text-warning" aria-hidden />}
           />
           {matrix.data.gaps.length === 0 ? (
@@ -391,6 +391,9 @@ export function RoleAssignmentsPage() {
                     <p className="truncate text-sm text-ink">{gap.domain_label}</p>
                     <p className="truncate text-2xs text-ink-subtle">
                       {gap.department_name}
+                    </p>
+                    <p className="truncate text-2xs text-ink-muted">
+                      {gap.acting_hod ? `Covered by ${gap.acting_hod} (HoD)` : "No Head of Department to cover it"}
                     </p>
                   </div>
                   <Badge tone="warning">{gap.department_code}</Badge>
