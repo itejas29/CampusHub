@@ -10,7 +10,7 @@ import datetime as dt
 
 from sqlalchemy import (
     JSON, Boolean, Date, DateTime, Enum as SAEnum, ForeignKey, Index, Integer,
-    Numeric, String, Text, UniqueConstraint,
+    Numeric, String, Text, UniqueConstraint, true,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -87,7 +87,8 @@ class ProgramDivision(PKMixin, TimestampMixin, Base):
     admission_year: Mapped[int] = mapped_column(Integer, nullable=False)
     name: Mapped[str] = mapped_column(String(10), nullable=False)      # "A"
     capacity: Mapped[int | None] = mapped_column(Integer)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true(),
+                                            nullable=False)
     notes: Mapped[str | None] = mapped_column(Text)
 
     program: Mapped["Program"] = relationship(back_populates="divisions")
@@ -339,14 +340,15 @@ class ElectiveRegistrationWindow(PKMixin, TimestampMixin, Base):
     )
     status: Mapped[RegistrationWindowStatus] = mapped_column(
         _enum(RegistrationWindowStatus, "registration_window_status", 20),
-        default=RegistrationWindowStatus.DRAFT, nullable=False,
+        default=RegistrationWindowStatus.DRAFT, server_default="DRAFT", nullable=False,
     )
     opens_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
     closes_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
     # ── eligibility, all optional; empty means "not narrowed by this key" ──
-    eligible_semesters: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
-    eligible_program_ids: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
-    eligible_divisions: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    eligible_semesters: Mapped[list] = mapped_column(JSON, default=list, server_default="[]", nullable=False)
+    eligible_program_ids: Mapped[list] = mapped_column(JSON, default=list, server_default="[]",
+                                                       nullable=False)
+    eligible_divisions: Mapped[list] = mapped_column(JSON, default=list, server_default="[]", nullable=False)
     # ── preference limits, overriding the elective type's defaults ─────────
     min_preferences: Mapped[int | None] = mapped_column(Integer)
     max_preferences: Mapped[int | None] = mapped_column(Integer)
@@ -360,7 +362,7 @@ class ElectiveRegistrationWindow(PKMixin, TimestampMixin, Base):
     # to year, so each round carries its own.
     selection_mode: Mapped[RoundSelectionMode] = mapped_column(
         _enum(RoundSelectionMode, "round_selection_mode", 20),
-        default=RoundSelectionMode.RANKED, nullable=False,
+        default=RoundSelectionMode.RANKED, server_default="RANKED", nullable=False,
     )
     #: Two-stage rounds only: INTEREST, then FINAL once the shortlist is set.
     stage: Mapped[RoundStage | None] = mapped_column(_enum(RoundStage, "round_stage", 20))
@@ -698,7 +700,7 @@ class MoocRound(PKMixin, TimestampMixin, Base):
     )
     status: Mapped[MoocRoundStatus] = mapped_column(
         _enum(MoocRoundStatus, "mooc_round_status", 20),
-        default=MoocRoundStatus.DRAFT, nullable=False,
+        default=MoocRoundStatus.DRAFT, server_default="DRAFT", nullable=False,
     )
     #: Which semesters' students choose in it. Students carrying the slot
     #: over from an earlier round are included whatever their semester.
@@ -800,7 +802,8 @@ class MoocRegistration(PKMixin, TimestampMixin, Base):
         ForeignKey("mooc_rounds.id", ondelete="CASCADE"), index=True
     )
     option: Mapped[MoocOption] = mapped_column(
-        _enum(MoocOption, "mooc_option", 10), default=MoocOption.NPTEL, nullable=False
+        _enum(MoocOption, "mooc_option", 10), default=MoocOption.NPTEL, server_default="NPTEL",
+        nullable=False,
     )
     course_id: Mapped[int | None] = mapped_column(
         ForeignKey("courses.id", ondelete="SET NULL"), index=True

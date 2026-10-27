@@ -1,0 +1,18 @@
+<testsuites id="" name="" tests="2" failures="0" skipped="0" errors="0" time="13.531181">
+<testsuite name="9-mobile-chatbot.spec.ts" timestamp="2026-10-24T15:22:00.206Z" hostname="" tests="2" failures="0" skipped="0" time="9.641" errors="0">
+<testcase name="the chatbot covers nothing a student taps at phone width" classname="9-mobile-chatbot.spec.ts" time="5.665">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|c4_e2e_artifacts\9-mobile-chatbot-the-chatb-86035-student-taps-at-phone-width\test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+<testcase name="the chatbot covers nothing a coordinator taps at phone width" classname="9-mobile-chatbot.spec.ts" time="3.976">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|c4_e2e_artifacts\9-mobile-chatbot-the-chatb-e45fa-dinator-taps-at-phone-width\test-finished-1.png]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>

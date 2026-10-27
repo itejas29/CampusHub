@@ -16,12 +16,13 @@ from __future__ import annotations
 import datetime as dt
 
 import pytest
+from sqlalchemy import event
 
 from app.models.engagement import MentorMeeting
 from app.models.enums import (
     InternshipType, InternshipWindowKind, MeetingStatus, StageStatus, StudentStatus,
 )
-from app.models.identity import Student, User
+from app.models.identity import Faculty, Student, User
 from app.models.internships import (
     EnrollmentStageProgress, InternshipEnrollment, InternshipProgram, InternshipStage,
     InternshipWindow,
@@ -215,3 +216,78 @@ def test_the_hod_still_sees_unscored_real_faculty_marked_as_such(api, db, world,
     rows = api.get("/api/v1/faculty-scores/department", headers=login(world.plain.email)).json()["faculty"]
     mentor = next(r for r in rows if r["faculty_id"] == world.mentor_ict.faculty.id)
     assert mentor["is_scored"] is False and mentor["band"] == "Not scored yet"
+
+
+# ── QA-17: one person's score without recomputing the institution ──
+
+def _summary(score):
+    return (score.points, score.on_time, score.late, score.overdue, score.missed,
+            score.pending, round(score.quality, 6), dict(score.by_category),
+            sorted((e.category, e.outcome, e.points, e.label) for e in score.entries))
+
+
+def _more_students(db, world, program, n):
+    for i in range(n):
+        user = User(email=f"qa17-{i}@test.example.com", hashed_password="x",
+                    full_name=f"Extra {i}")
+        db.add(user)
+        db.flush()
+        student = Student(user_id=user.id, roll_number=f"25BIT9{i:02d}",
+                          program_id=world.programs["B.TECH-ICT"].id,
+                          department_id=world.departments["ICT"].id, admission_year=2025,
+                          current_semester=3, division="A", cpi=8, backlog_count=0,
+                          status=StudentStatus.ACTIVE)
+        db.add(student)
+        db.flush()
+        db.add(InternshipEnrollment(program_id=program.id, student_id=student.id,
+                                    mentor_faculty_id=world.mentor_ict.faculty.id))
+    db.flush()
+
+
+def test_one_faculty_score_is_their_row_of_the_department(db, world, cohort):
+    program, stage, (a, b) = cohort
+    second = InternshipStage(program_id=program.id, code="REPORT", name="Report", sequence=2)
+    db.add(second)
+    db.flush()
+    _stage(db, a, stage, ago(10), ago(9), by=world.mentor_ict.user.id)
+    _stage(db, b, stage, ago(12), ago(2), by=world.plain.user.id)
+    _stage(db, a, second, ago(9))
+    db.add(InternshipWindow(program_id=program.id, kind=InternshipWindowKind.PRESENTATION,
+                            title="P", message="m", opens_at=ago(20), closes_at=ago(1)))
+    db.add(MentorMeeting(student_id=world.student_a.student.id,
+                         faculty_id=world.mentor_ict.faculty.id, title="Help",
+                         requested_at=ago(6), status=MeetingStatus.REQUESTED))
+    db.flush()
+    department = scoring.department_scores(db, world.departments["ICT"].id, now=NOW)
+    assert department[world.mentor_ict.faculty.id].entries     # not a vacuous comparison
+    assert department[world.plain.faculty.id].entries
+    for faculty_id, score in department.items():
+        one = scoring.faculty_score(db, db.get(Faculty, faculty_id), now=NOW)
+        assert _summary(one) == _summary(score), faculty_id
+
+
+def test_a_score_costs_the_same_queries_however_many_students(db, world, cohort):
+    program, _stage_row, _rows = cohort
+    db.add(InternshipWindow(program_id=program.id, kind=InternshipWindowKind.PRESENTATION,
+                            title="P", message="m", opens_at=ago(20), closes_at=ago(1)))
+    db.flush()
+    mentor = world.mentor_ict.faculty
+
+    def queries():
+        count = [0]
+
+        def tick(*_):
+            count[0] += 1
+        engine = db.get_bind()
+        event.listen(engine, "before_cursor_execute", tick)
+        try:
+            score = scoring.faculty_score(db, mentor, now=NOW)
+        finally:
+            event.remove(engine, "before_cursor_execute", tick)
+        return count[0], score.missed
+
+    few, missed_few = queries()
+    _more_students(db, world, program, 10)
+    many, missed_many = queries()
+    assert (missed_few, missed_many) == (2, 12)    # marks missing for every mentee
+    assert many == few

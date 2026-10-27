@@ -5,7 +5,7 @@ import datetime as dt
 
 from sqlalchemy import (
     JSON, Boolean, DateTime, Enum as SAEnum, ForeignKey, Index, Integer, String,
-    Text, UniqueConstraint,
+    Text, UniqueConstraint, text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -27,6 +27,11 @@ class MentorAssignment(PKMixin, TimestampMixin, Base):
         UniqueConstraint("student_id", "academic_year_id",
                          name="uq_mentor_assignments_student_id_academic_year_id"),
         Index("ix_mentor_assignments_faculty_active", "faculty_id", "is_active"),
+        # One active mentor per student, in any year (QA-15, migration 0019).
+        # The constraint above cannot say it: NULL years never collide, and a
+        # new year's row sits beside last year's.
+        Index("uq_mentor_assignments_one_active_per_student", "student_id", unique=True,
+              postgresql_where=text("is_active"), sqlite_where=text("is_active = 1")),
     )
 
     student_id: Mapped[int] = mapped_column(

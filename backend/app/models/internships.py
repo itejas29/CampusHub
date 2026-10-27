@@ -299,7 +299,8 @@ class InternshipEnrollment(PKMixin, TimestampMixin, Base):
         ForeignKey("project_teams.id", ondelete="SET NULL"), index=True
     )
     #: Faculty ids, most preferred first (`config["guide_preferences"]`).
-    guide_preferences: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    guide_preferences: Mapped[list] = mapped_column(JSON, default=list, server_default="[]",
+                                                    nullable=False)
     industry_mentor_name: Mapped[str | None] = mapped_column(String(150))
     industry_mentor_email: Mapped[str | None] = mapped_column(String(255))
     industry_mentor_phone: Mapped[str | None] = mapped_column(String(20))
